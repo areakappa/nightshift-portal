@@ -12,7 +12,7 @@
     <div>
       <p class="eyebrow">Configurazione organizzazione</p>
       <h1>Nuova organizzazione</h1>
-      <p class="header-copy">Crea la base di lavoro per configurare servizi, ruoli e turni.</p>
+      <p class="header-copy">Completa i passaggi e crea l'organizzazione solo alla fine.</p>
     </div>
   </div>
 
@@ -47,92 +47,110 @@
       </form>
 
       <div class="step-actions">
-        <button
-          mat-raised-button
-          color="primary"
-          class="primary-action"
-          (click)="saveInfo(stepper)"
-          [disabled]="infoForm.invalid || isSaving"
-        >
-          <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
-          <span *ngIf="!isSaving">Crea e continua</span>
+        <button mat-raised-button color="primary" class="primary-action" (click)="goNext(stepper, infoForm)">
+          Avanti
+        </button>
+      </div>
+    </mat-step>
+
+    <mat-step [stepControl]="sectorForm">
+      <ng-template matStepLabel>Settore</ng-template>
+
+      <form [formGroup]="sectorForm" class="step-content">
+        <div class="step-intro">
+          <mat-icon>travel_explore</mat-icon>
+          <div>
+            <h2>Settore e localizzazione</h2>
+            <p>Seleziona il settore di attività e la regione.</p>
+          </div>
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Settore di attività</mat-label>
+          <input matInput formControlName="workSector" placeholder="Es. Sanità, Commercio, Logistica..." />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Regione</mat-label>
+          <mat-select formControlName="region" placeholder="Seleziona regione">
+            <mat-option *ngFor="let region of regions" [value]="region">{{ region }}</mat-option>
+          </mat-select>
+        </mat-form-field>
+      </form>
+
+      <div class="step-actions">
+        <button mat-button matStepperPrevious>Indietro</button>
+        <button mat-raised-button color="primary" class="primary-action" (click)="goNext(stepper, sectorForm)">
+          Avanti
         </button>
       </div>
     </mat-step>
 
     <mat-step>
-      <ng-template matStepLabel>Invita collaboratori</ng-template>
+      <ng-template matStepLabel>Contratti</ng-template>
 
       <div class="step-content">
         <div class="step-intro">
-          <mat-icon>group_add</mat-icon>
+          <mat-icon>description</mat-icon>
           <div>
-            <h2>Invita il team</h2>
-            <p>Aggiungi ora i collaboratori, oppure salta questo passaggio e fallo più tardi.</p>
+            <h2>Contratti CCNL</h2>
+            <p>Seleziona il contratto collettivo nazionale applicato.</p>
           </div>
         </div>
 
-        <div class="add-email-row">
-          <mat-form-field appearance="outline" class="email-field">
-            <mat-label>Email collaboratore</mat-label>
-            <input
-              matInput
-              [(ngModel)]="newInviteEmail"
-              type="email"
-              placeholder="nome@azienda.it"
-              (keyup.enter)="addInviteEmail()"
-            />
-          </mat-form-field>
-
+        <div class="option-list">
           <button
-            mat-raised-button
-            color="primary"
-            class="add-email-button"
-            aria-label="Aggiungi collaboratore"
-            (click)="addInviteEmail()"
+            type="button"
+            class="option-card"
+            *ngFor="let contract of contracts"
+            [class.selected]="selectedContract === contract"
+            (click)="selectContract(contract)"
           >
-            <mat-icon>add</mat-icon>
+            <span class="option-radio"></span>
+            <span>
+              <strong>{{ contract.title }}</strong>
+              <small>{{ contract.description }}</small>
+            </span>
           </button>
-        </div>
-
-        <div class="email-chips" *ngIf="inviteEmails.length > 0">
-          <div class="email-chip" *ngFor="let email of inviteEmails; let i = index">
-            <mat-icon>email</mat-icon>
-            <span>{{ email }}</span>
-            <button mat-icon-button aria-label="Rimuovi email" (click)="removeEmail(i)">
-              <mat-icon>close</mat-icon>
-            </button>
-          </div>
-        </div>
-
-        <div class="empty-invites" *ngIf="inviteEmails.length === 0">
-          <mat-icon>mail_outline</mat-icon>
-          <span>Nessun invito aggiunto: potrai invitare il team in seguito.</span>
         </div>
       </div>
 
       <div class="step-actions">
         <button mat-button matStepperPrevious>Indietro</button>
-        <button mat-raised-button color="primary" class="primary-action" matStepperNext (click)="sendInvites()">
-          {{ inviteEmails.length > 0 ? 'Invia inviti' : 'Salta' }}
-        </button>
+        <button mat-raised-button color="primary" class="primary-action" matStepperNext>Avanti</button>
       </div>
     </mat-step>
 
     <mat-step>
-      <ng-template matStepLabel>Completato</ng-template>
+      <ng-template matStepLabel>Regole</ng-template>
 
-      <div class="step-content done-step">
-        <div class="success-orb">
-          <mat-icon class="done-icon">check_circle</mat-icon>
+      <div class="step-content">
+        <div class="step-intro">
+          <mat-icon>rule</mat-icon>
+          <div>
+            <h2>Vincoli contrattuali</h2>
+            <p>Seleziona i vincoli che vuoi applicare all'organizzazione.</p>
+          </div>
         </div>
-        <h2>Organizzazione creata!</h2>
-        <p>{{ infoForm.value.name }} è pronta all'uso.</p>
+
+        <div class="rule-list">
+          <mat-checkbox class="rule-card" *ngFor="let rule of rules" [(ngModel)]="rule.selected" color="primary">
+            <strong>{{ rule.title }}:</strong> {{ rule.description }}
+          </mat-checkbox>
+        </div>
       </div>
 
-      <div class="step-actions done-actions">
-        <button mat-raised-button color="primary" class="primary-action" (click)="finish()">
-          Vai alla home
+      <div class="step-actions">
+        <button mat-button matStepperPrevious>Indietro</button>
+        <button
+          mat-raised-button
+          color="primary"
+          class="primary-action"
+          (click)="createOrganization()"
+          [disabled]="isSaving"
+        >
+          <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
+          <span *ngIf="!isSaving">Crea</span>
         </button>
       </div>
     </mat-step>

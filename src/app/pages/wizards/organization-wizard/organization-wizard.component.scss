@@ -55,37 +55,51 @@
 .primary-action { min-width: 150px; border-radius: 12px; font-weight: 800; }
 .full-width { width: 100%; }
 
-.add-email-row { display: grid; grid-template-columns: 1fr 52px; gap: 12px; align-items: start; .email-field { width: 100%; } }
-.add-email-button { height: 56px; min-width: 52px; border-radius: 14px; }
+.option-list,
+.rule-list { display: flex; flex-direction: column; gap: 12px; }
 
-.email-chips { display: flex; flex-wrap: wrap; gap: 10px; }
-.email-chip {
-  display: flex; align-items: center; gap: 8px; padding: 8px 8px 8px 12px; border: 1px solid rgba(129,140,248,0.32);
-  border-radius: 999px; background: rgba(99,102,241,0.14); font-size: 13px; font-weight: 700;
-  mat-icon:first-child { color: var(--ns-primary-light); font-size: 16px; width: 16px; height: 16px; }
-  button { width: 24px; height: 24px; mat-icon { font-size: 14px; width: 14px; height: 14px; } }
+.option-card {
+  display: grid; grid-template-columns: 24px 1fr; gap: 14px; align-items: start; width: 100%;
+  padding: 16px 18px; border: 1px solid rgba(129,140,248,0.34); border-radius: 14px;
+  color: var(--ns-text); background: rgba(15,23,42,0.2); text-align: left; cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+
+  &:hover,
+  &.selected {
+    border-color: rgba(129,140,248,0.82);
+    background: rgba(99,102,241,0.16);
+    transform: translateY(-1px);
+  }
+
+  strong { display: block; margin-bottom: 6px; font-size: 0.98rem; }
+  small { display: block; color: var(--ns-text-secondary); line-height: 1.45; font-size: 0.88rem; }
 }
 
-.empty-invites {
-  display: flex; gap: 10px; align-items: center; padding: 14px 16px; color: var(--ns-text-secondary);
-  border: 1px dashed rgba(148,163,184,0.32); border-radius: 16px; background: rgba(15,23,42,0.18);
+.option-radio {
+  width: 18px; height: 18px; margin-top: 4px; border: 2px solid rgba(148,163,184,0.56); border-radius: 50%;
 }
 
-.done-step {
-  align-items: center; text-align: center; padding: 34px 0 10px;
-  h2 { margin: 16px 0 6px; font-size: 1.45rem; font-weight: 800; }
-  p { max-width: 480px; margin: 0; color: var(--ns-text-secondary); line-height: 1.5; }
+.option-card.selected .option-radio {
+  border-color: var(--ns-primary-light);
+  background: var(--ns-primary-light);
+  box-shadow: inset 0 0 0 4px rgba(15,23,42,0.94);
 }
 
-.success-orb { display: grid; width: 84px; height: 84px; place-items: center; border-radius: 999px; background: rgba(16,185,129,0.12); }
-.done-icon { width: 64px; height: 64px; color: var(--ns-success); font-size: 64px; }
-.done-actions { justify-content: center; }
+.rule-card {
+  padding: 14px 16px; border: 1px solid rgba(129,140,248,0.46); border-radius: 12px;
+  color: var(--ns-text); background: rgba(99,102,241,0.16); font-weight: 700;
+}
+
+:host ::ng-deep .rule-card {
+  .mdc-form-field { align-items: flex-start; }
+  label { line-height: 1.35; }
+}
 
 @media (max-width: 640px) {
   .wizard-container { padding-inline: 16px; }
   .wizard-header { grid-template-columns: 40px 1fr; }
   .organization-stepper { padding: 16px; }
-  .add-email-row { grid-template-columns: 1fr; }
+  .option-card { padding: 14px; }
   .primary-action { width: 100%; }
   .step-actions { flex-direction: column-reverse; }
 }
