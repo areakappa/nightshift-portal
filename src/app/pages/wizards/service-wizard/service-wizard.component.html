@@ -1,149 +1,209 @@
 <div class="page-container wizard-container">
   <div class="wizard-header">
-    <button
-      mat-icon-button
-      class="close-button"
-      aria-label="Annulla creazione servizio"
-      (click)="cancel()"
-    >
+    <button mat-icon-button class="close-button" aria-label="Annulla creazione servizio" (click)="cancel()">
       <mat-icon>close</mat-icon>
     </button>
-
     <div>
       <p class="eyebrow">Configurazione servizio</p>
       <h1>Nuovo servizio</h1>
-      <p class="header-copy">
-        Definisci il servizio, aggiungi i ruoli operativi e pubblicalo in pochi passaggi.
-      </p>
+      <p class="header-copy">Segui gli stessi passaggi dell'app mobile per configurare servizio, ruoli, turni e team.</p>
     </div>
   </div>
 
-  <mat-stepper #stepper linear class="service-stepper">
-    <mat-step [stepControl]="infoForm">
-      <ng-template matStepLabel>Informazioni servizio</ng-template>
-
-      <form [formGroup]="infoForm" class="step-content">
-        <div class="step-intro">
-          <mat-icon>nightlight_round</mat-icon>
-          <div>
-            <h2>Partiamo dalle basi</h2>
-            <p>Scegli un nome chiaro e una descrizione utile per riconoscerlo subito.</p>
-          </div>
-        </div>
-
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Nome servizio</mat-label>
-          <input matInput formControlName="name" placeholder="Es. Sicurezza notturna" />
-          <mat-hint>Minimo 2 caratteri</mat-hint>
-        </mat-form-field>
-
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Descrizione</mat-label>
-          <textarea
-            matInput
-            rows="4"
-            formControlName="description"
-            placeholder="Turni, responsabilità, contesto operativo..."
-          ></textarea>
-        </mat-form-field>
-      </form>
-
-      <div class="step-actions">
-        <button
-          mat-raised-button
-          color="primary"
-          class="primary-action"
-          (click)="createService(stepper)"
-          [disabled]="infoForm.invalid || isSaving"
-        >
-          <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
-          <span *ngIf="!isSaving">Crea e continua</span>
-        </button>
-      </div>
-    </mat-step>
-
+  <mat-stepper #stepper class="service-stepper">
     <mat-step>
-      <ng-template matStepLabel>Aggiungi ruoli</ng-template>
-
+      <ng-template matStepLabel>Tipo</ng-template>
       <div class="step-content">
         <div class="step-intro">
-          <mat-icon>groups</mat-icon>
+          <mat-icon>tune</mat-icon>
           <div>
-            <h2>Costruisci la squadra</h2>
-            <p>Aggiungi i ruoli necessari per questo servizio, ad esempio Guardia o Supervisore.</p>
+            <h2>Vuoi creare un servizio...</h2>
+            <p>Seleziona la tipologia di servizio da creare.</p>
           </div>
         </div>
-
-        <div class="add-role-row">
-          <mat-form-field appearance="outline" class="role-field">
-            <mat-label>Nome ruolo</mat-label>
-            <input
-              matInput
-              [(ngModel)]="newRoleName"
-              (keyup.enter)="addRole()"
-              placeholder="Es. Guardia"
-            />
-          </mat-form-field>
-
-          <button
-            mat-raised-button
-            color="primary"
-            class="add-role-button"
-            aria-label="Aggiungi ruolo"
-            (click)="addRole()"
-          >
-            <mat-icon>add</mat-icon>
-          </button>
-        </div>
-
-        <div class="roles-list">
-          <mat-card class="ns-card role-row" *ngFor="let role of roles; let i = index">
-            <mat-card-content>
-              <mat-icon>work</mat-icon>
-              <span>{{ role.name }}</span>
-              <button mat-icon-button color="warn" (click)="removeRole(i)" aria-label="Rimuovi ruolo">
-                <mat-icon>delete</mat-icon>
-              </button>
-            </mat-card-content>
-          </mat-card>
-
-          <div class="empty-roles" *ngIf="roles.length === 0">
-            <mat-icon>badge</mat-icon>
-            <span>Nessun ruolo aggiunto: puoi salvarli anche in seguito.</span>
-          </div>
-        </div>
+        <mat-radio-group class="option-list" [(ngModel)]="serviceTypeSelected">
+          <mat-radio-button class="option-card" value="internal">Per la tua azienda</mat-radio-button>
+          <mat-radio-button class="option-card" value="external">Per un cliente</mat-radio-button>
+        </mat-radio-group>
       </div>
+      <div class="step-actions">
+        <button mat-raised-button color="primary" class="primary-action" (click)="goFromType(stepper)">Avanti</button>
+      </div>
+    </mat-step>
 
+    <mat-step [stepControl]="anagraphicForm">
+      <ng-template matStepLabel>Anagrafica</ng-template>
+      <form [formGroup]="anagraphicForm" class="step-content">
+        <div class="step-intro">
+          <mat-icon>badge</mat-icon>
+          <div>
+            <h2>Informazioni servizio</h2>
+            <p>Inserisci nome e periodo di validità del servizio.</p>
+          </div>
+        </div>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Nome servizio</mat-label>
+          <input matInput formControlName="name" placeholder="Es. Guardiania sede centrale" />
+          <mat-hint>Minimo 3 caratteri</mat-hint>
+        </mat-form-field>
+        <div class="date-grid">
+          <mat-form-field appearance="outline">
+            <mat-label>Data inizio</mat-label>
+            <input matInput type="date" formControlName="startDate" />
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Data fine</mat-label>
+            <input matInput type="date" formControlName="endDate" />
+          </mat-form-field>
+        </div>
+      </form>
       <div class="step-actions">
         <button mat-button matStepperPrevious>Indietro</button>
-        <button
-          mat-raised-button
-          color="primary"
-          class="primary-action"
-          (click)="saveRoles(stepper)"
-          [disabled]="isSaving"
-        >
-          <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
-          <span *ngIf="!isSaving">Salva ruoli</span>
+        <button mat-raised-button color="primary" class="primary-action" (click)="goNext(stepper, anagraphicForm)">Avanti</button>
+      </div>
+    </mat-step>
+
+    <mat-step [stepControl]="descriptionForm">
+      <ng-template matStepLabel>Descrizione</ng-template>
+      <form [formGroup]="descriptionForm" class="step-content">
+        <div class="step-intro">
+          <mat-icon>description</mat-icon>
+          <div>
+            <h2>Descrizione servizio</h2>
+            <p>Descrivi in modo semplice il servizio da eseguire.</p>
+          </div>
+        </div>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Tipo di servizio</mat-label>
+          <textarea matInput rows="5" maxlength="280" formControlName="serviceType" placeholder="Es. Presidio accessi, ronda, controllo badge..."></textarea>
+          <mat-hint align="end">{{ getCharCount() }} / 280</mat-hint>
+        </mat-form-field>
+      </form>
+      <div class="step-actions">
+        <button mat-button matStepperPrevious>Indietro</button>
+        <button mat-raised-button color="primary" class="primary-action" (click)="analyzeDescription(stepper)" [disabled]="isLoadingAI">
+          <mat-spinner *ngIf="isLoadingAI" diameter="18"></mat-spinner>
+          <span *ngIf="!isLoadingAI">Analizza con AI</span>
         </button>
       </div>
     </mat-step>
 
     <mat-step>
-      <ng-template matStepLabel>Completato</ng-template>
-
-      <div class="step-content done-step">
-        <div class="success-orb">
-          <mat-icon class="done-icon">check_circle</mat-icon>
+      <ng-template matStepLabel>Ruoli</ng-template>
+      <div class="step-content">
+        <div class="step-intro">
+          <mat-icon>auto_awesome</mat-icon>
+          <div>
+            <h2>Ruoli lavorativi suggeriti</h2>
+            <p>L'AI suggerisce i ruoli necessari. Seleziona quelli da creare.</p>
+          </div>
         </div>
-        <h2>Servizio creato con successo!</h2>
-        <p>Il servizio "{{ infoForm.value.name }}" è stato configurato con {{ roles.length }} ruoli.</p>
+        <div *ngIf="isLoadingAI" class="empty-roles">
+          <mat-spinner diameter="24"></mat-spinner>
+          <span>Analisi in corso con AI...</span>
+        </div>
+        <ng-container *ngIf="!isLoadingAI && serviceContextAIResponse">
+          <div class="ai-score">
+            <span>Indice di comprensione</span>
+            <strong>{{ serviceContextAIResponse.indice }}%</strong>
+          </div>
+          <div class="roles-list">
+            <mat-checkbox class="role-row" *ngFor="let role of serviceContextAIResponse.ruoli" [(ngModel)]="role.selected" color="primary">
+              <strong>{{ role.ruolo }}</strong>
+              <small>{{ role.mansione }}</small>
+            </mat-checkbox>
+          </div>
+          <button mat-stroked-button color="primary" (click)="addCustomRole()">
+            <mat-icon>add</mat-icon> Aggiungi ruolo personalizzato
+          </button>
+          <div class="summary-box">Ruoli selezionati: {{ getSelectedRoles().length }} / {{ serviceContextAIResponse.ruoli.length }}</div>
+        </ng-container>
       </div>
+      <div class="step-actions">
+        <button mat-button matStepperPrevious>Indietro</button>
+        <button mat-raised-button color="primary" class="primary-action" (click)="goFromRoles(stepper)">Avanti</button>
+      </div>
+    </mat-step>
 
-      <div class="step-actions done-actions">
-        <button mat-raised-button color="primary" class="primary-action" (click)="finish()">
-          Vai ai servizi
+    <mat-step [stepControl]="addressForm">
+      <ng-template matStepLabel>Indirizzo</ng-template>
+      <form [formGroup]="addressForm" class="step-content">
+        <div class="step-intro">
+          <mat-icon>location_on</mat-icon>
+          <div>
+            <h2>Indirizzo servizio</h2>
+            <p>Indica dove verrà svolto il servizio.</p>
+          </div>
+        </div>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Indirizzo</mat-label>
+          <input matInput formControlName="address" placeholder="Es. Via Roma 1, Milano" />
+        </mat-form-field>
+        <div class="map-placeholder">
+          <mat-icon>map</mat-icon>
+          <span>La mappa potrà essere collegata quando sarà disponibile l'endpoint stazione/indirizzo.</span>
+        </div>
+      </form>
+      <div class="step-actions">
+        <button mat-button matStepperPrevious>Indietro</button>
+        <button mat-raised-button color="primary" class="primary-action" (click)="goNext(stepper, addressForm)">Avanti</button>
+      </div>
+    </mat-step>
+
+    <mat-step>
+      <ng-template matStepLabel>Turni</ng-template>
+      <div class="step-content">
+        <div class="step-intro">
+          <mat-icon>schedule</mat-icon>
+          <div>
+            <h2>Giorni lavorativi</h2>
+            <p>Seleziona i giorni e gli orari di lavoro.</p>
+          </div>
+        </div>
+        <div class="day-pills">
+          <button type="button" class="day-pill" *ngFor="let day of days" [class.selected]="day.selected" (click)="toggleDay(day)">
+            {{ day.short }}
+          </button>
+        </div>
+        <div class="shifts-list">
+          <div class="shift-item" *ngFor="let day of getSelectedDays()">
+            <div class="shift-header">
+              <strong>{{ day.full }}</strong>
+              <button mat-button color="primary" (click)="toggleRestDay(day)">{{ day.isRestDay ? 'Lavorativo' : 'Riposo' }}</button>
+            </div>
+            <div class="time-grid" *ngIf="!day.isRestDay">
+              <label>Mattina <input type="time" [(ngModel)]="day.startMorning" /> - <input type="time" [(ngModel)]="day.stopMorning" /></label>
+              <label>Pomeriggio <input type="time" [(ngModel)]="day.startAfternoon" /> - <input type="time" [(ngModel)]="day.stopAfternoon" /></label>
+            </div>
+            <div class="rest-label" *ngIf="day.isRestDay"><mat-icon>hotel</mat-icon> RIPOSO</div>
+          </div>
+        </div>
+      </div>
+      <div class="step-actions">
+        <button mat-button matStepperPrevious>Indietro</button>
+        <button mat-raised-button color="primary" class="primary-action" (click)="goFromShifts(stepper)" [disabled]="isSaving">
+          <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
+          <span *ngIf="!isSaving">Crea servizio</span>
         </button>
+      </div>
+    </mat-step>
+
+    <mat-step>
+      <ng-template matStepLabel>Team</ng-template>
+      <div class="step-content done-step">
+        <div class="success-orb"><mat-icon class="done-icon">check_circle</mat-icon></div>
+        <h2>Servizio creato con successo!</h2>
+        <p>Il servizio "{{ anagraphicForm.value.name }}" è stato creato correttamente.</p>
+        <div class="team-question-card">
+          <h3>Vuoi creare anche il team?</h3>
+          <p>Puoi creare subito il team associato a questo servizio oppure farlo in seguito.</p>
+          <div class="team-actions">
+            <button mat-stroked-button color="primary" (click)="createTeamNo()">No, continua più tardi</button>
+            <button mat-raised-button color="primary" (click)="createTeamYes()">
+              <mat-icon>groups</mat-icon> Sì, crea team
+            </button>
+          </div>
+        </div>
       </div>
     </mat-step>
   </mat-stepper>

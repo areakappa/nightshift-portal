@@ -125,7 +125,7 @@ export class HomeComponent implements OnInit {
                 } catch { this.serviceCoverage.set(service.id, null); }
             }
             this.teamAssigned = totalAssigned; this.teamNeeded = totalNeeded;
-            this.coveragePct = totalNeeded > 0 ? Math.round((totalAssigned / totalNeeded) * 100) : 100;
+            this.coveragePct = totalNeeded > 0 ? Math.round((totalAssigned / totalNeeded) * 100) : 0;
             await this.loadRecentShifts(orgId);
         } finally {
             this.isServicesLoading = false;
