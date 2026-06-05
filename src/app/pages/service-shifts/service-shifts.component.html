@@ -43,7 +43,7 @@
     <p>Nessun turno configurato. Aggiungi il primo tipo di turno.</p>
   </div>
 
-  <mat-card class="ns-card" *ngIf="!isLoading && shifts.length > 0">
+  <mat-card class="ns-card shifts-table-card" *ngIf="!isLoading && shifts.length > 0">
     <table mat-table [dataSource]="shifts" class="shifts-table">
       <ng-container matColumnDef="name">
         <th mat-header-cell *matHeaderCellDef>Nome</th>
