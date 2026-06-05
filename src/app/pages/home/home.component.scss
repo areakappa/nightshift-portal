@@ -33,6 +33,7 @@
   font-size: 32px; font-weight: 700; color: var(--ns-text);
   .stat-total { font-size: 18px; color: var(--ns-text-secondary); }
 }
+.stat-spinner { margin: 8px auto; }
 
 .coverage-pct {
   &.low    { color: var(--ns-danger); }

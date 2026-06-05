@@ -47,6 +47,7 @@ export class HomeComponent implements OnInit {
     organizationSelected: OrganizationDto | null = null;
     organizationsTeams: OrganizationTeamDto[] = [];
     isLoading = false;
+    isServicesLoading = false;
     loadError = '';
 
     private readonly serviceCoverage = new Map<number, TeamCoverage | null>();
@@ -78,7 +79,6 @@ export class HomeComponent implements OnInit {
             this.currentUser = this.authentication.getUser();
             if (!this.currentUser) { this.resetState(); return; }
             await this.loadOrganizationsTeams(this.currentUser.id);
-            if (this.organizationSelected) await this.loadServices();
         } catch (e) {
             console.error(e);
             this.loadError = 'Impossibile caricare i dati della home.';
@@ -86,6 +86,8 @@ export class HomeComponent implements OnInit {
             this.isLoading = false;
             this.cdr.detectChanges();
         }
+        // Carica servizi e copertura in background senza bloccare il render
+        if (this.organizationSelected) void this.loadServices();
     }
 
     private async loadOrganizationsTeams(userId: number): Promise<void> {
@@ -104,20 +106,27 @@ export class HomeComponent implements OnInit {
     private async loadServices(): Promise<void> {
         const orgId = this.organizationService.getOrganizationSelectedId();
         if (!orgId) return;
-        this.services = await this.servicesService.getServicesbyIDOrganization(orgId);
-        this.serviceCoverage.clear();
-        let totalAssigned = 0; let totalNeeded = 0;
-        for (const service of this.services) {
-            try {
-                const cov = await this.servicesService.getTeamServiceRoles(service.id);
-                this.serviceCoverage.set(service.id, cov);
-                totalAssigned += cov?.totalRolesCoverage ?? 0;
-                totalNeeded += cov?.totalRolesToCoverage ?? 0;
-            } catch { this.serviceCoverage.set(service.id, null); }
+        this.isServicesLoading = true;
+        this.cdr.detectChanges();
+        try {
+            this.services = await this.servicesService.getServicesbyIDOrganization(orgId);
+            this.serviceCoverage.clear();
+            let totalAssigned = 0; let totalNeeded = 0;
+            for (const service of this.services) {
+                try {
+                    const cov = await this.servicesService.getTeamServiceRoles(service.id);
+                    this.serviceCoverage.set(service.id, cov);
+                    totalAssigned += cov?.totalRolesCoverage ?? 0;
+                    totalNeeded += cov?.totalRolesToCoverage ?? 0;
+                } catch { this.serviceCoverage.set(service.id, null); }
+            }
+            this.teamAssigned = totalAssigned; this.teamNeeded = totalNeeded;
+            this.coveragePct = totalNeeded > 0 ? Math.round((totalAssigned / totalNeeded) * 100) : 100;
+            await this.loadRecentShifts(orgId);
+        } finally {
+            this.isServicesLoading = false;
+            this.cdr.detectChanges();
         }
-        this.teamAssigned = totalAssigned; this.teamNeeded = totalNeeded;
-        this.coveragePct = totalNeeded > 0 ? Math.round((totalAssigned / totalNeeded) * 100) : 100;
-        await this.loadRecentShifts(orgId);
     }
 
     private async loadRecentShifts(orgId: number): Promise<void> {

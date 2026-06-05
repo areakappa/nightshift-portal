@@ -30,7 +30,8 @@
       <mat-card class="ns-card stat-card">
         <mat-card-content>
           <mat-icon class="stat-icon primary">business_center</mat-icon>
-          <div class="stat-value">{{ services.length }}</div>
+          <div class="stat-value" *ngIf="!isServicesLoading">{{ services.length }}</div>
+          <mat-spinner *ngIf="isServicesLoading" diameter="20" class="stat-spinner"></mat-spinner>
           <div class="stat-label">Servizi attivi</div>
         </mat-card-content>
       </mat-card>
@@ -38,7 +39,8 @@
       <mat-card class="ns-card stat-card">
         <mat-card-content>
           <mat-icon class="stat-icon success">group</mat-icon>
-          <div class="stat-value">{{ teamAssigned }}<span class="stat-total">/{{ teamNeeded }}</span></div>
+          <div class="stat-value" *ngIf="!isServicesLoading">{{ teamAssigned }}<span class="stat-total">/{{ teamNeeded }}</span></div>
+          <mat-spinner *ngIf="isServicesLoading" diameter="20" class="stat-spinner"></mat-spinner>
           <div class="stat-label">Ruoli coperti</div>
         </mat-card-content>
       </mat-card>
@@ -46,9 +48,10 @@
       <mat-card class="ns-card stat-card">
         <mat-card-content>
           <mat-icon class="stat-icon accent">donut_large</mat-icon>
-          <div class="stat-value coverage-pct" [class.low]="coveragePct < 70" [class.medium]="coveragePct >= 70 && coveragePct < 100" [class.full]="coveragePct === 100">
+          <div class="stat-value coverage-pct" *ngIf="!isServicesLoading" [class.low]="coveragePct < 70" [class.medium]="coveragePct >= 70 && coveragePct < 100" [class.full]="coveragePct === 100">
             {{ coveragePct }}%
           </div>
+          <mat-spinner *ngIf="isServicesLoading" diameter="20" class="stat-spinner"></mat-spinner>
           <div class="stat-label">Copertura team</div>
         </mat-card-content>
       </mat-card>

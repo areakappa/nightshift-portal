@@ -1,7 +1,7 @@
 <div class="page-container">
   <div class="loading-overlay" *ngIf="isLoading"><mat-spinner diameter="40"></mat-spinner></div>
 
-  <ng-container *ngIf="!isLoading && service">
+  <ng-container *ngIf="service">
     <!-- Header -->
     <div class="page-header">
       <div class="header-row">
@@ -22,7 +22,10 @@
     <div class="coverage-section">
       <mat-card class="ns-card coverage-card">
         <mat-card-content>
-          <div class="coverage-grid">
+          <div *ngIf="isCoverageLoading" class="coverage-loading">
+            <mat-spinner diameter="24"></mat-spinner>
+          </div>
+          <div class="coverage-grid" *ngIf="!isCoverageLoading">
             <div class="cov-item">
               <div class="cov-val">{{ teamCoverage?.totalRolesCoverage ?? 0 }}</div>
               <div class="cov-label">Ruoli coperti</div>

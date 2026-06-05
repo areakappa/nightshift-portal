@@ -2,6 +2,7 @@
 .header-row > div { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 .coverage-card mat-card-content { padding: 20px !important; }
+.coverage-loading { display: flex; justify-content: center; padding: 16px 0; }
 .coverage-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; text-align: center; }
 .cov-val { font-size: 28px; font-weight: 700; }
 .cov-label { font-size: 12px; color: var(--ns-text-secondary); }

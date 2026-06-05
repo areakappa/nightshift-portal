@@ -31,6 +31,7 @@ export class ServiceDetailComponent implements OnInit {
     teamCoverage: TeamCoverage | null = null;
     orgUsers: UserDto[] = [];
     isLoading = false;
+    isCoverageLoading = false;
 
     constructor(
         private servicesService: ServicesService,
@@ -45,7 +46,9 @@ export class ServiceDetailComponent implements OnInit {
     }
 
     async ngOnInit(): Promise<void> {
-        await this.refresh();
+        if (!this.service?.id) { this.router.navigate(['/services']); return; }
+        // Load coverage in background — don't block page render
+        void this.loadCoverage();
     }
 
     async refresh(): Promise<void> {
@@ -53,18 +56,27 @@ export class ServiceDetailComponent implements OnInit {
         this.isLoading = true;
         try {
             this.service = await this.servicesService.getServicebyID(this.service.id);
-            const orgId = this.organizationService.getOrganizationSelectedId();
-            const [cov, users] = await Promise.all([
-                this.servicesService.getTeamServiceRoles(this.service!.id),
-                this.organizationService.getUsersbyOrganization(orgId)
-            ]);
-            this.teamCoverage = cov;
-            this.orgUsers = users;
-        } catch (e) {
+        } catch {
             this.snackBar.open('Errore nel caricamento del servizio', 'Chiudi', { duration: 3000 });
         } finally {
             this.isLoading = false;
         }
+        void this.loadCoverage();
+    }
+
+    private async loadCoverage(): Promise<void> {
+        if (!this.service?.id) return;
+        this.isCoverageLoading = true;
+        try {
+            const orgId = this.organizationService.getOrganizationSelectedId();
+            const [cov, users] = await Promise.all([
+                this.servicesService.getTeamServiceRoles(this.service.id),
+                this.organizationService.getUsersbyOrganization(orgId)
+            ]);
+            this.teamCoverage = cov;
+            this.orgUsers = users;
+        } catch { /* coverage non critica */ }
+        finally { this.isCoverageLoading = false; }
     }
 
     goBack(): void { this.router.navigate(['/services']); }
