@@ -8,7 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatStepperModule } from '@angular/material/stepper';
+import { MatStepper, MatStepperModule } from '@angular/material/stepper';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDividerModule } from '@angular/material/divider';
 import { ServicesService } from '../../../services/services.service';
@@ -48,7 +48,7 @@ export class ServiceWizardComponent {
         });
     }
 
-    async createService(): Promise<void> {
+    async createService(stepper: MatStepper): Promise<void> {
         if (this.infoForm.invalid) return;
         this.isSaving = true;
         try {
@@ -59,6 +59,7 @@ export class ServiceWizardComponent {
                 idOrganization: orgId
             } as any);
             this.snackBar.open('Servizio creato!', 'Ok', { duration: 2000 });
+            stepper.next();
         } catch {
             this.snackBar.open('Errore nella creazione del servizio', 'Chiudi', { duration: 3000 });
             this.isSaving = false;
@@ -76,14 +77,18 @@ export class ServiceWizardComponent {
 
     removeRole(i: number): void { this.roles.splice(i, 1); }
 
-    async saveRoles(): Promise<void> {
-        if (!this.createdService) return;
+    async saveRoles(stepper: MatStepper): Promise<void> {
+        if (!this.createdService) {
+            return;
+        }
+
         this.isSaving = true;
         try {
             for (const role of this.roles) {
                 await this.servicesService.postServiceRole({ ...role, idService: this.createdService.id } as any);
             }
             this.snackBar.open('Ruoli salvati!', 'Ok', { duration: 2000 });
+            stepper.next();
         } catch {
             this.snackBar.open('Errore nel salvataggio ruoli', 'Chiudi', { duration: 3000 });
         } finally {

@@ -1,66 +1,149 @@
 <div class="page-container wizard-container">
   <div class="wizard-header">
-    <button mat-icon-button (click)="cancel()"><mat-icon>close</mat-icon></button>
-    <h1>Nuovo servizio</h1>
+    <button
+      mat-icon-button
+      class="close-button"
+      aria-label="Annulla creazione servizio"
+      (click)="cancel()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+
+    <div>
+      <p class="eyebrow">Configurazione servizio</p>
+      <h1>Nuovo servizio</h1>
+      <p class="header-copy">
+        Definisci il servizio, aggiungi i ruoli operativi e pubblicalo in pochi passaggi.
+      </p>
+    </div>
   </div>
 
-  <mat-stepper linear>
-    <!-- Step 1: Info servizio -->
-    <mat-step label="Informazioni servizio" [stepControl]="infoForm">
+  <mat-stepper #stepper linear class="service-stepper">
+    <mat-step [stepControl]="infoForm">
+      <ng-template matStepLabel>Informazioni servizio</ng-template>
+
       <form [formGroup]="infoForm" class="step-content">
+        <div class="step-intro">
+          <mat-icon>nightlight_round</mat-icon>
+          <div>
+            <h2>Partiamo dalle basi</h2>
+            <p>Scegli un nome chiaro e una descrizione utile per riconoscerlo subito.</p>
+          </div>
+        </div>
+
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Nome servizio</mat-label>
-          <input matInput formControlName="name" placeholder="Es. Sicurezza notturna">
+          <input matInput formControlName="name" placeholder="Es. Sicurezza notturna" />
+          <mat-hint>Minimo 2 caratteri</mat-hint>
         </mat-form-field>
+
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Descrizione</mat-label>
-          <textarea matInput rows="3" formControlName="description"></textarea>
+          <textarea
+            matInput
+            rows="4"
+            formControlName="description"
+            placeholder="Turni, responsabilità, contesto operativo..."
+          ></textarea>
         </mat-form-field>
       </form>
+
       <div class="step-actions">
-        <button mat-raised-button color="primary" matStepperNext (click)="createService()" [disabled]="infoForm.invalid || isSaving">
+        <button
+          mat-raised-button
+          color="primary"
+          class="primary-action"
+          (click)="createService(stepper)"
+          [disabled]="infoForm.invalid || isSaving"
+        >
           <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
           <span *ngIf="!isSaving">Crea e continua</span>
         </button>
       </div>
     </mat-step>
 
-    <!-- Step 2: Ruoli -->
-    <mat-step label="Aggiungi ruoli">
+    <mat-step>
+      <ng-template matStepLabel>Aggiungi ruoli</ng-template>
+
       <div class="step-content">
-        <p>Aggiungi i ruoli per questo servizio (es. Guardia, Supervisore)</p>
+        <div class="step-intro">
+          <mat-icon>groups</mat-icon>
+          <div>
+            <h2>Costruisci la squadra</h2>
+            <p>Aggiungi i ruoli necessari per questo servizio, ad esempio Guardia o Supervisore.</p>
+          </div>
+        </div>
+
         <div class="add-role-row">
           <mat-form-field appearance="outline" class="role-field">
             <mat-label>Nome ruolo</mat-label>
-            <input matInput [(ngModel)]="newRoleName" (keyup.enter)="addRole()" placeholder="Es. Guardia">
+            <input
+              matInput
+              [(ngModel)]="newRoleName"
+              (keyup.enter)="addRole()"
+              placeholder="Es. Guardia"
+            />
           </mat-form-field>
-          <button mat-raised-button (click)="addRole()"><mat-icon>add</mat-icon></button>
+
+          <button
+            mat-raised-button
+            color="primary"
+            class="add-role-button"
+            aria-label="Aggiungi ruolo"
+            (click)="addRole()"
+          >
+            <mat-icon>add</mat-icon>
+          </button>
         </div>
+
         <div class="roles-list">
           <mat-card class="ns-card role-row" *ngFor="let role of roles; let i = index">
             <mat-card-content>
               <mat-icon>work</mat-icon>
               <span>{{ role.name }}</span>
-              <button mat-icon-button color="warn" (click)="removeRole(i)"><mat-icon>delete</mat-icon></button>
+              <button mat-icon-button color="warn" (click)="removeRole(i)" aria-label="Rimuovi ruolo">
+                <mat-icon>delete</mat-icon>
+              </button>
             </mat-card-content>
           </mat-card>
+
+          <div class="empty-roles" *ngIf="roles.length === 0">
+            <mat-icon>badge</mat-icon>
+            <span>Nessun ruolo aggiunto: puoi salvarli anche in seguito.</span>
+          </div>
         </div>
       </div>
+
       <div class="step-actions">
         <button mat-button matStepperPrevious>Indietro</button>
-        <button mat-raised-button color="primary" matStepperNext (click)="saveRoles()">Salva ruoli</button>
+        <button
+          mat-raised-button
+          color="primary"
+          class="primary-action"
+          (click)="saveRoles(stepper)"
+          [disabled]="isSaving"
+        >
+          <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
+          <span *ngIf="!isSaving">Salva ruoli</span>
+        </button>
       </div>
     </mat-step>
 
-    <!-- Step 3: Fine -->
-    <mat-step label="Completato">
+    <mat-step>
+      <ng-template matStepLabel>Completato</ng-template>
+
       <div class="step-content done-step">
-        <mat-icon class="done-icon">check_circle</mat-icon>
+        <div class="success-orb">
+          <mat-icon class="done-icon">check_circle</mat-icon>
+        </div>
         <h2>Servizio creato con successo!</h2>
         <p>Il servizio "{{ infoForm.value.name }}" è stato configurato con {{ roles.length }} ruoli.</p>
       </div>
-      <div class="step-actions">
-        <button mat-raised-button color="primary" (click)="finish()">Vai ai servizi</button>
+
+      <div class="step-actions done-actions">
+        <button mat-raised-button color="primary" class="primary-action" (click)="finish()">
+          Vai ai servizi
+        </button>
       </div>
     </mat-step>
   </mat-stepper>

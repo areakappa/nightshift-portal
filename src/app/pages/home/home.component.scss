@@ -16,7 +16,8 @@
 .stat-card {
   text-align: center;
   cursor: default;
-  &.clickable { cursor: pointer; &:hover { transform: translateY(-2px); transition: transform 0.15s; } }
+  transition: transform 0.18s ease, border-color 0.18s ease;
+  &.clickable { cursor: pointer; &:hover { transform: translateY(-2px); border-color: rgba(129,140,248,0.42) !important; } }
 
   mat-card-content { padding: 20px !important; }
 }
@@ -66,8 +67,12 @@
 
 .service-card {
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
-  &:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.12) !important; }
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+  &:hover {
+    transform: translateY(-2px);
+    border-color: rgba(129,140,248,0.42) !important;
+    box-shadow: 0 24px 60px rgba(2,6,23,0.34) !important;
+  }
 }
 
 .service-header {
@@ -96,7 +101,7 @@
 .activity-item {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 0;
-  border-bottom: 1px solid var(--ns-border);
+  border-bottom: 1px solid rgba(148,163,184,0.18);
   &:last-child { border-bottom: none; }
   .activity-icon { font-size: 18px; width: 18px; height: 18px; color: var(--ns-text-secondary); }
 }
