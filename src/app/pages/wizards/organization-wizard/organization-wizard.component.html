@@ -1,63 +1,139 @@
 <div class="page-container wizard-container">
   <div class="wizard-header">
-    <button mat-icon-button (click)="cancel()"><mat-icon>close</mat-icon></button>
-    <h1>Nuova organizzazione</h1>
+    <button
+      mat-icon-button
+      class="close-button"
+      aria-label="Annulla creazione organizzazione"
+      (click)="cancel()"
+    >
+      <mat-icon>close</mat-icon>
+    </button>
+
+    <div>
+      <p class="eyebrow">Configurazione organizzazione</p>
+      <h1>Nuova organizzazione</h1>
+      <p class="header-copy">Crea la base di lavoro per configurare servizi, ruoli e turni.</p>
+    </div>
   </div>
 
-  <mat-stepper #stepper linear>
-    <mat-step label="Informazioni organizzazione" [stepControl]="infoForm">
+  <mat-stepper #stepper linear class="organization-stepper">
+    <mat-step [stepControl]="infoForm">
+      <ng-template matStepLabel>Anagrafica</ng-template>
+
       <form [formGroup]="infoForm" class="step-content">
+        <div class="step-intro">
+          <mat-icon>domain_add</mat-icon>
+          <div>
+            <h2>Informazioni organizzazione</h2>
+            <p>Inserisci nome e descrizione della tua organizzazione.</p>
+          </div>
+        </div>
+
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Nome organizzazione</mat-label>
-          <input matInput formControlName="name">
+          <input matInput formControlName="name" placeholder="Es. Azienda Servizi SpA" />
+          <mat-hint>Minimo 2 caratteri</mat-hint>
         </mat-form-field>
+
         <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Ragione sociale</mat-label>
-          <input matInput formControlName="businessName">
-        </mat-form-field>
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Descrizione</mat-label>
-          <textarea matInput rows="3" formControlName="description"></textarea>
+          <mat-label>Descrizione organizzazione</mat-label>
+          <textarea
+            matInput
+            rows="4"
+            formControlName="description"
+            placeholder="Descrivi brevemente l'attività principale..."
+          ></textarea>
         </mat-form-field>
       </form>
+
       <div class="step-actions">
-        <button mat-raised-button color="primary" (click)="saveInfo(stepper)" [disabled]="infoForm.invalid || isSaving">
+        <button
+          mat-raised-button
+          color="primary"
+          class="primary-action"
+          (click)="saveInfo(stepper)"
+          [disabled]="infoForm.invalid || isSaving"
+        >
           <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
           <span *ngIf="!isSaving">Crea e continua</span>
         </button>
       </div>
     </mat-step>
 
-    <mat-step label="Invita collaboratori">
+    <mat-step>
+      <ng-template matStepLabel>Invita collaboratori</ng-template>
+
       <div class="step-content">
+        <div class="step-intro">
+          <mat-icon>group_add</mat-icon>
+          <div>
+            <h2>Invita il team</h2>
+            <p>Aggiungi ora i collaboratori, oppure salta questo passaggio e fallo più tardi.</p>
+          </div>
+        </div>
+
         <div class="add-email-row">
           <mat-form-field appearance="outline" class="email-field">
             <mat-label>Email collaboratore</mat-label>
-            <input matInput [(ngModel)]="newInviteEmail" type="email" (keyup.enter)="addInviteEmail()">
+            <input
+              matInput
+              [(ngModel)]="newInviteEmail"
+              type="email"
+              placeholder="nome@azienda.it"
+              (keyup.enter)="addInviteEmail()"
+            />
           </mat-form-field>
-          <button mat-raised-button (click)="addInviteEmail()"><mat-icon>add</mat-icon></button>
+
+          <button
+            mat-raised-button
+            color="primary"
+            class="add-email-button"
+            aria-label="Aggiungi collaboratore"
+            (click)="addInviteEmail()"
+          >
+            <mat-icon>add</mat-icon>
+          </button>
         </div>
-        <div class="email-chips">
+
+        <div class="email-chips" *ngIf="inviteEmails.length > 0">
           <div class="email-chip" *ngFor="let email of inviteEmails; let i = index">
-            <mat-icon>email</mat-icon>{{ email }}
-            <button mat-icon-button (click)="removeEmail(i)"><mat-icon>close</mat-icon></button>
+            <mat-icon>email</mat-icon>
+            <span>{{ email }}</span>
+            <button mat-icon-button aria-label="Rimuovi email" (click)="removeEmail(i)">
+              <mat-icon>close</mat-icon>
+            </button>
           </div>
         </div>
+
+        <div class="empty-invites" *ngIf="inviteEmails.length === 0">
+          <mat-icon>mail_outline</mat-icon>
+          <span>Nessun invito aggiunto: potrai invitare il team in seguito.</span>
+        </div>
       </div>
+
       <div class="step-actions">
         <button mat-button matStepperPrevious>Indietro</button>
-        <button mat-raised-button color="primary" matStepperNext (click)="sendInvites()">Invia inviti</button>
+        <button mat-raised-button color="primary" class="primary-action" matStepperNext (click)="sendInvites()">
+          {{ inviteEmails.length > 0 ? 'Invia inviti' : 'Salta' }}
+        </button>
       </div>
     </mat-step>
 
-    <mat-step label="Completato">
+    <mat-step>
+      <ng-template matStepLabel>Completato</ng-template>
+
       <div class="step-content done-step">
-        <mat-icon class="done-icon">check_circle</mat-icon>
+        <div class="success-orb">
+          <mat-icon class="done-icon">check_circle</mat-icon>
+        </div>
         <h2>Organizzazione creata!</h2>
         <p>{{ infoForm.value.name }} è pronta all'uso.</p>
       </div>
-      <div class="step-actions">
-        <button mat-raised-button color="primary" (click)="finish()">Vai all'organizzazione</button>
+
+      <div class="step-actions done-actions">
+        <button mat-raised-button color="primary" class="primary-action" (click)="finish()">
+          Vai alla home
+        </button>
       </div>
     </mat-step>
   </mat-stepper>
