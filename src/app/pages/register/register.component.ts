@@ -72,15 +72,30 @@ export class RegisterComponent {
 
         this.submitProcess = true;
         try {
-            const registerModel: RegisterModel = {
-                customerInfo: new CustomerInfoCrud(null, null, this.email.value!, null, true, null, null, null, null),
-                contactInfo: new ContactInfoCrud(this.name.value!, this.surname.value!, this.email.value!, '', '', null, null),
-                username: this.email.value!,
-                password: this.password.value!,
-                name: this.name.value!,
-                surname: this.surname.value!,
-                email: this.email.value!,
-            } as any;
+            const customerInfo = new CustomerInfoCrud(
+                null,
+                null,
+                this.email.value!,
+                null,
+                true,
+                null,
+                null,
+                null,
+                null
+            );
+            customerInfo.UserName = this.email.value!;
+            customerInfo.UserPassword = this.password.value!;
+
+            const contactInfo = new ContactInfoCrud(
+                this.name.value!,
+                this.surname.value!,
+                this.email.value!,
+                '',
+                '',
+                null,
+                null
+            );
+            const registerModel = new RegisterModel(customerInfo, contactInfo);
 
             const result = await this.demoService.register(registerModel);
             if (!result) {
