@@ -100,6 +100,76 @@ html, body {
   background: transparent !important;
 }
 
+.service-stepper .map-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(129, 140, 248, 0.34);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.22);
+}
+
+.service-stepper .map-refresh {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  background: rgba(15, 23, 42, 0.9) !important;
+  backdrop-filter: blur(10px);
+
+  mat-spinner,
+  mat-icon {
+    margin-right: 6px;
+  }
+}
+
+.service-stepper .address-lookup {
+  position: relative;
+  z-index: 5;
+}
+
+.service-stepper .places-dropdown {
+  position: absolute;
+  right: 0;
+  left: 0;
+  top: calc(100% - 12px);
+  overflow: hidden;
+  border: 1px solid rgba(129, 140, 248, 0.38);
+  border-radius: 16px;
+  background: #111827;
+  box-shadow: 0 20px 45px rgba(2, 6, 23, 0.42);
+}
+
+.service-stepper .place-option {
+  display: flex;
+  width: 100%;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border: 0;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+  color: var(--ns-text);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+
+  &:hover {
+    background: rgba(99, 102, 241, 0.18);
+  }
+
+  mat-icon {
+    color: var(--ns-primary-light);
+  }
+
+  strong,
+  small {
+    display: block;
+  }
+
+  small {
+    margin-top: 2px;
+    color: var(--ns-text-secondary);
+  }
+}
+
 .ns-badge-success { background: var(--ns-success); color: #fff; border-radius: 12px; padding: 2px 8px; font-size: 12px; }
 .ns-badge-warning { background: var(--ns-warning); color: #000; border-radius: 12px; padding: 2px 8px; font-size: 12px; }
 .ns-badge-danger  { background: var(--ns-danger);  color: #fff; border-radius: 12px; padding: 2px 8px; font-size: 12px; }

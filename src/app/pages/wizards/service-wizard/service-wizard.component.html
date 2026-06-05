@@ -135,14 +135,38 @@
             <p>Indica dove verrà svolto il servizio.</p>
           </div>
         </div>
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Indirizzo</mat-label>
-          <input matInput formControlName="address" placeholder="Es. Via Roma 1, Milano" />
-        </mat-form-field>
-        <div class="map-placeholder">
-          <mat-icon>map</mat-icon>
-          <span>La mappa potrà essere collegata quando sarà disponibile l'endpoint stazione/indirizzo.</span>
+        <div class="address-lookup">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Indirizzo</mat-label>
+            <input matInput formControlName="address" placeholder="Es. Via Roma 1, Milano" autocomplete="off" />
+            <mat-spinner matSuffix *ngIf="isLoadingPlaces" diameter="18"></mat-spinner>
+          </mat-form-field>
+          <div class="places-dropdown" *ngIf="placePredictions.length">
+            <button type="button" class="place-option" *ngFor="let place of placePredictions" (click)="selectPlace(place)">
+              <mat-icon>place</mat-icon>
+              <span>
+                <strong>{{ place.structured_formatting.main_text }}</strong>
+                <small>{{ place.structured_formatting.secondary_text || place.description }}</small>
+              </span>
+            </button>
+          </div>
         </div>
+        <div class="map-card" *ngIf="apiLoaded; else noMap">
+          <google-map height="260px" width="100%" [center]="mapCenter" [zoom]="mapZoom" [options]="mapOptions">
+            <map-marker [position]="mapCenter" [options]="markerOptions"></map-marker>
+          </google-map>
+          <button mat-stroked-button color="primary" type="button" class="map-refresh" (click)="geocodeAddress()" [disabled]="isGeocoding">
+            <mat-spinner *ngIf="isGeocoding" diameter="16"></mat-spinner>
+            <mat-icon *ngIf="!isGeocoding">my_location</mat-icon>
+            Aggiorna mappa
+          </button>
+        </div>
+        <ng-template #noMap>
+          <div class="map-placeholder">
+            <mat-icon>map</mat-icon>
+            <span>Google Maps non è configurato nell'ambiente corrente.</span>
+          </div>
+        </ng-template>
       </form>
       <div class="step-actions">
         <button mat-button matStepperPrevious>Indietro</button>

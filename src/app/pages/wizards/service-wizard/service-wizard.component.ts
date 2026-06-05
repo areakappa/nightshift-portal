@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -13,6 +13,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatRadioModule } from '@angular/material/radio';
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { GoogleMapsModule } from '@angular/google-maps';
 import { ServicesService } from '../../../services/services.service';
 import { OrganizationService } from '../../../services/organization.service';
 import { OpenAiService } from '../../../services/openai.service';
@@ -25,6 +26,7 @@ import { ServiceShiftCrud } from '../../../models/crud/ServiceShiftCrud';
 import { ServiceContextAIResponse } from '../../../models/generic/openAi/ServiceContextAIResponse';
 import { ServiceRoleAIResponse } from '../../../models/generic/openAi/ServiceRoleAIResponse';
 import { OpenAIRequest } from '../../../models/generic/openAi/OpenAIRequest';
+import { environment } from '../../../../environments/environment';
 
 type ServiceFor = 'internal' | 'external';
 
@@ -47,18 +49,35 @@ interface WorkDay {
         CommonModule, FormsModule, ReactiveFormsModule,
         MatCardModule, MatButtonModule, MatIconModule, MatProgressSpinnerModule,
         MatFormFieldModule, MatInputModule, MatStepperModule, MatSnackBarModule,
-        MatDividerModule, MatRadioModule, MatCheckboxModule
+        MatDividerModule, MatRadioModule, MatCheckboxModule, GoogleMapsModule
     ],
     templateUrl: './service-wizard.component.html',
     styleUrls: ['./service-wizard.component.scss']
 })
-export class ServiceWizardComponent {
+export class ServiceWizardComponent implements OnInit {
     isSaving = false;
     isLoadingAI = false;
     serviceTypeSelected: ServiceFor | '' = '';
     createdService: ServiceDTO | null = null;
     organizationSelected: OrganizationDto | null = null;
     serviceContextAIResponse: ServiceContextAIResponse | null = null;
+    apiLoaded = false;
+    isGeocoding = false;
+    mapCenter: google.maps.LatLngLiteral = { lat: 41.9028, lng: 12.4964 };
+    mapZoom = 12;
+    mapOptions: google.maps.MapOptions = {
+        mapTypeId: 'roadmap',
+        disableDefaultUI: true,
+        zoomControl: true,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: true
+    };
+    markerOptions: google.maps.MarkerOptions = { draggable: false };
+    private addressSearchTimer: ReturnType<typeof setTimeout> | null = null;
+    placePredictions: google.maps.places.AutocompletePrediction[] = [];
+    isLoadingPlaces = false;
+    private placesSessionToken: google.maps.places.AutocompleteSessionToken | null = null;
 
     anagraphicForm: FormGroup;
     descriptionForm: FormGroup;
@@ -98,7 +117,12 @@ export class ServiceWizardComponent {
         this.addressForm = this.fb.group({
             address: ['', Validators.required]
         });
+        this.addressForm.get('address')?.valueChanges.subscribe(() => this.queueAddressSearch());
         void this.loadOrganization();
+    }
+
+    ngOnInit(): void {
+        void this.loadGoogleMaps();
     }
 
     async loadOrganization(): Promise<void> {
@@ -114,6 +138,9 @@ export class ServiceWizardComponent {
         if (form?.invalid) {
             form.markAllAsTouched();
             return;
+        }
+        if (form === this.addressForm) {
+            void this.geocodeAddress();
         }
         stepper.next();
     }
@@ -299,6 +326,126 @@ export class ServiceWizardComponent {
     }
 
     cancel(): void { this.router.navigate(['/services']); }
+
+    private queueAddressSearch(): void {
+        if (this.addressSearchTimer) clearTimeout(this.addressSearchTimer);
+        this.addressSearchTimer = setTimeout(() => void this.loadPlacePredictions(), 350);
+    }
+
+    private async loadGoogleMaps(): Promise<void> {
+        if (!environment.googleMapsApiKey) return;
+        if (window.google?.maps?.places) {
+            this.apiLoaded = true;
+            return;
+        }
+
+        try {
+            if (window.google?.maps && (google.maps as any).importLibrary) {
+                await (google.maps as any).importLibrary('places');
+                this.apiLoaded = true;
+                return;
+            }
+
+            await new Promise<void>((resolve, reject) => {
+                const existingScript = document.getElementById('google-maps-api');
+                if (existingScript) {
+                    existingScript.addEventListener('load', () => resolve(), { once: true });
+                    existingScript.addEventListener('error', () => reject(), { once: true });
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.id = 'google-maps-api';
+                script.src = `https://maps.googleapis.com/maps/api/js?key=${environment.googleMapsApiKey}&libraries=places`;
+                script.async = true;
+                script.defer = true;
+                script.onload = () => resolve();
+                script.onerror = () => reject();
+                document.head.appendChild(script);
+            });
+            this.apiLoaded = true;
+            await this.geocodeAddress();
+        } finally {
+            this.cdr.detectChanges();
+        }
+    }
+
+    private async loadPlacePredictions(): Promise<void> {
+        const input = this.addressForm.value.address?.trim();
+        if (!this.apiLoaded || !window.google?.maps?.places || !input || input.length < 3) {
+            this.placePredictions = [];
+            this.cdr.detectChanges();
+            return;
+        }
+
+        this.isLoadingPlaces = true;
+        if (!this.placesSessionToken) {
+            this.placesSessionToken = new google.maps.places.AutocompleteSessionToken();
+        }
+
+        try {
+            const service = new google.maps.places.AutocompleteService();
+            const predictions = await new Promise<google.maps.places.AutocompletePrediction[]>((resolve) => {
+                service.getPlacePredictions(
+                    {
+                        input,
+                        sessionToken: this.placesSessionToken ?? undefined,
+                        componentRestrictions: { country: 'it' },
+                        types: ['establishment', 'geocode']
+                    },
+                    (results, status) => {
+                        resolve(status === google.maps.places.PlacesServiceStatus.OK ? results ?? [] : []);
+                    }
+                );
+            });
+            this.placePredictions = predictions;
+        } finally {
+            this.isLoadingPlaces = false;
+            this.cdr.detectChanges();
+        }
+    }
+
+    async selectPlace(prediction: google.maps.places.AutocompletePrediction): Promise<void> {
+        this.addressForm.get('address')?.setValue(prediction.description, { emitEvent: false });
+        this.placePredictions = [];
+        this.isGeocoding = true;
+
+        try {
+            const geocoder = new google.maps.Geocoder();
+            const response = await geocoder.geocode({ placeId: prediction.place_id });
+            const location = response.results[0]?.geometry.location;
+            if (!location) return;
+            this.mapCenter = { lat: location.lat(), lng: location.lng() };
+            this.mapZoom = 16;
+            this.placesSessionToken = null;
+        } catch {
+            this.snackBar.open('Impossibile recuperare la posizione selezionata', 'Ok', { duration: 2500 });
+        } finally {
+            this.isGeocoding = false;
+            this.cdr.detectChanges();
+        }
+    }
+
+    async geocodeAddress(): Promise<void> {
+        const address = this.addressForm.value.address?.trim();
+        if (!this.apiLoaded || !address || !window.google?.maps) return;
+
+        this.placePredictions = [];
+        this.isGeocoding = true;
+        try {
+            const geocoder = new google.maps.Geocoder();
+            const response = await geocoder.geocode({ address });
+            const location = response.results[0]?.geometry.location;
+            if (!location) return;
+            this.mapCenter = { lat: location.lat(), lng: location.lng() };
+            this.mapZoom = 16;
+        } catch {
+            this.snackBar.open('Indirizzo non trovato su Google Maps', 'Ok', { duration: 2500 });
+        } finally {
+            this.isGeocoding = false;
+            this.cdr.detectChanges();
+        }
+    }
 
     private toDateInputValue(date: Date): string {
         return date.toISOString().slice(0, 10);
