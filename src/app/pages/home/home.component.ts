@@ -72,6 +72,10 @@ export class HomeComponent implements OnInit {
         await this.refresh();
     }
 
+    get hasOrganization(): boolean {
+        return !!this.organizationSelected && this.organizationService.getOrganizationSelectedId() > 0;
+    }
+
     async refresh(): Promise<void> {
         this.isLoading = true;
         this.loadError = '';
@@ -146,6 +150,8 @@ export class HomeComponent implements OnInit {
 
     private resetState(): void {
         this.orgName = 'Nessuna organizzazione';
+        this.organizationSelected = null;
+        this.organizationsTeams = [];
         this.services = []; this.coveragePct = 0; this.teamAssigned = 0; this.teamNeeded = 0;
         this.recentActivity = ['Nessuna attività disponibile'];
     }
@@ -173,6 +179,10 @@ export class HomeComponent implements OnInit {
     }
 
     async addService(): Promise<void> {
+        if (!this.hasOrganization) {
+            this.addOrganization();
+            return;
+        }
         if (await this.demoLimitService.isDemoServiceLimitReached({ services: this.services })) {
             await this.upgradeService.presentUpgradeFlow('Con il tuo piano puoi creare al massimo 1 servizio.', { contactOnly: true });
             return;
@@ -180,6 +190,7 @@ export class HomeComponent implements OnInit {
         this.router.navigateByUrl('/wizard/service');
     }
 
+    addOrganization(): void { this.router.navigateByUrl('/wizard/organization'); }
     goToServices(): void { this.router.navigate(['/services']); }
     goToDashboard(): void { this.router.navigate(['/dashboard']); }
     goToCalendar(): void { this.router.navigate(['/calendar']); }

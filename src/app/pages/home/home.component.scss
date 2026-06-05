@@ -13,6 +13,57 @@
   margin-bottom: 32px;
 }
 
+.onboarding-card {
+  max-width: 640px;
+  margin-top: 24px;
+
+  mat-card-content {
+    display: grid;
+    gap: 18px;
+    padding: 28px !important;
+  }
+}
+
+.onboarding-icon {
+  display: grid;
+  width: 58px;
+  height: 58px;
+  place-items: center;
+  border-radius: 18px;
+  color: #fff;
+  background: var(--ns-gradient);
+
+  mat-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 32px;
+  }
+}
+
+.onboarding-copy {
+  h2 {
+    max-width: 520px;
+    margin: 0 0 8px;
+    font-size: 1.55rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+
+  p {
+    max-width: 520px;
+    margin: 0;
+    color: var(--ns-text-secondary);
+    font-size: 1rem;
+    line-height: 1.5;
+  }
+}
+
+.onboarding-action {
+  min-height: 52px;
+  border-radius: 14px;
+  font-weight: 800;
+}
+
 .stat-card {
   text-align: center;
   cursor: default;

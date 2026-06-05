@@ -8,7 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
-import { MatStepperModule } from '@angular/material/stepper';
+import { MatStepper, MatStepperModule } from '@angular/material/stepper';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { OrganizationService } from '../../../services/organization.service';
 import { UsersService } from '../../../services/users.service';
@@ -28,6 +28,7 @@ export class OrganizationWizardComponent {
     isSaving = false;
     inviteEmails: string[] = [];
     newInviteEmail = '';
+    createdOrganizationId = 0;
 
     infoForm: FormGroup;
 
@@ -45,12 +46,17 @@ export class OrganizationWizardComponent {
         });
     }
 
-    async saveInfo(): Promise<void> {
+    async saveInfo(stepper: MatStepper): Promise<void> {
         if (this.infoForm.invalid) return;
         this.isSaving = true;
         try {
-            await this.orgService.postOrganization(this.infoForm.value);
+            const organization = await this.orgService.postOrganization(this.infoForm.value);
+            this.createdOrganizationId = organization?.id ?? 0;
+            if (this.createdOrganizationId) {
+                this.orgService.setOrganizationSelectedId(this.createdOrganizationId);
+            }
             this.snackBar.open('Organizzazione creata!', 'Ok', { duration: 2000 });
+            stepper.next();
         } catch {
             this.snackBar.open('Errore nella creazione', 'Chiudi', { duration: 3000 });
         } finally {
@@ -72,6 +78,6 @@ export class OrganizationWizardComponent {
         this.snackBar.open(`${this.inviteEmails.length} inviti inviati`, 'Ok', { duration: 2000 });
     }
 
-    finish(): void { this.router.navigate(['/organization-detail']); }
+    finish(): void { this.router.navigate(['/home']); }
     cancel(): void { this.router.navigate(['/home']); }
 }

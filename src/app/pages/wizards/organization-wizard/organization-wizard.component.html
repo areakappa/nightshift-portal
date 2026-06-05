@@ -4,7 +4,7 @@
     <h1>Nuova organizzazione</h1>
   </div>
 
-  <mat-stepper linear>
+  <mat-stepper #stepper linear>
     <mat-step label="Informazioni organizzazione" [stepControl]="infoForm">
       <form [formGroup]="infoForm" class="step-content">
         <mat-form-field appearance="outline" class="full-width">
@@ -21,7 +21,7 @@
         </mat-form-field>
       </form>
       <div class="step-actions">
-        <button mat-raised-button color="primary" matStepperNext (click)="saveInfo()" [disabled]="infoForm.invalid || isSaving">
+        <button mat-raised-button color="primary" (click)="saveInfo(stepper)" [disabled]="infoForm.invalid || isSaving">
           <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
           <span *ngIf="!isSaving">Crea e continua</span>
         </button>

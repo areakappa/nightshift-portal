@@ -17,14 +17,31 @@
       <div class="header-row">
         <div>
           <h1>{{ orgName }}</h1>
-          <p>Settimana: {{ weekLabel }}</p>
+          <p *ngIf="hasOrganization">Settimana: {{ weekLabel }}</p>
         </div>
-        <button mat-raised-button color="primary" (click)="addService()">
+        <button mat-raised-button color="primary" *ngIf="hasOrganization" (click)="addService()">
           <mat-icon>add</mat-icon> Nuovo Servizio
         </button>
       </div>
     </div>
 
+    <mat-card class="ns-card onboarding-card" *ngIf="!hasOrganization">
+      <mat-card-content>
+        <div class="onboarding-icon">
+          <mat-icon>domain_add</mat-icon>
+        </div>
+        <div class="onboarding-copy">
+          <h2>Non sei ancora associato a un'organizzazione</h2>
+          <p>Crea la tua prima organizzazione per iniziare a configurare servizi, ruoli e turni.</p>
+        </div>
+        <button mat-raised-button color="primary" class="onboarding-action" (click)="addOrganization()">
+          <mat-icon>add</mat-icon>
+          Aggiungi organizzazione
+        </button>
+      </mat-card-content>
+    </mat-card>
+
+    <ng-container *ngIf="hasOrganization">
     <!-- Stats cards -->
     <div class="stats-grid">
       <mat-card class="ns-card stat-card">
@@ -135,5 +152,6 @@
         <mat-icon>notifications</mat-icon> Notifiche
       </button>
     </div>
+    </ng-container>
   </ng-container>
 </div>

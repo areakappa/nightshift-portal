@@ -23,6 +23,7 @@ interface NavItem {
     icon: string;
     route: string;
     roles?: string[];
+    requiresOrganization?: boolean;
 }
 
 @Component({
@@ -41,12 +42,12 @@ export class SidenavComponent implements OnInit {
 
     navItems: NavItem[] = [
         { label: 'Home', icon: 'home', route: '/home' },
-        { label: 'Servizi', icon: 'business_center', route: '/services' },
-        { label: 'Calendario', icon: 'calendar_month', route: '/calendar' },
-        { label: 'Dashboard', icon: 'dashboard', route: '/dashboard' },
-        { label: 'Team', icon: 'group', route: '/team' },
-        { label: 'Notifiche', icon: 'notifications', route: '/notifications' },
-        { label: 'Indisponibilità', icon: 'event_busy', route: '/unavailability' },
+        { label: 'Servizi', icon: 'business_center', route: '/services', requiresOrganization: true },
+        { label: 'Calendario', icon: 'calendar_month', route: '/calendar', requiresOrganization: true },
+        { label: 'Dashboard', icon: 'dashboard', route: '/dashboard', requiresOrganization: true },
+        { label: 'Team', icon: 'group', route: '/team', requiresOrganization: true },
+        { label: 'Notifiche', icon: 'notifications', route: '/notifications', requiresOrganization: true },
+        { label: 'Indisponibilità', icon: 'event_busy', route: '/unavailability', requiresOrganization: true },
     ];
 
     organizations: OrganizationDto[] = [];
@@ -81,9 +82,16 @@ export class SidenavComponent implements OnInit {
 
     private async loadOrganizations(): Promise<void> {
         try {
-            this.organizations = await this.orgService.getOrganizations();
+            const userId = this.authService.getUser()?.id ?? 0;
+            const organizationsTeams = userId ? await this.orgService.getOrganizationsTeams(userId) : [];
+            this.organizations = organizationsTeams
+                .map(item => item.organization)
+                .filter((organization): organization is OrganizationDto => !!organization);
             if (this.organizations.length > 0 && !this.selectedOrgId) {
                 this.onOrgChange(this.organizations[0].id);
+            } else if (this.organizations.length === 0) {
+                this.selectedOrgId = 0;
+                this.orgService.setOrganizationSelectedId(0);
             }
         } catch (e) {
             console.error('Errore caricamento organizzazioni:', e);
@@ -103,6 +111,23 @@ export class SidenavComponent implements OnInit {
     navigate(route: string): void {
         this.router.navigateByUrl(route);
         this.closeSidenav.emit();
+    }
+
+    canNavigate(item: NavItem): boolean {
+        return !item.requiresOrganization || this.hasOrganization;
+    }
+
+    getDisabledTooltip(item: NavItem): string {
+        return this.canNavigate(item) ? '' : 'Crea prima un\'organizzazione';
+    }
+
+    navigateItem(item: NavItem): void {
+        if (!this.canNavigate(item)) return;
+        this.navigate(item.route);
+    }
+
+    get hasOrganization(): boolean {
+        return this.selectedOrgId > 0 && this.organizations.length > 0;
     }
 
     async logout(): Promise<void> {

@@ -28,7 +28,10 @@
     <a *ngFor="let item of navItems"
        class="nav-item"
        [class.active]="isActive(item.route)"
-       (click)="navigate(item.route)">
+       [class.disabled]="!canNavigate(item)"
+       [attr.aria-disabled]="!canNavigate(item)"
+       [matTooltip]="getDisabledTooltip(item)"
+       (click)="navigateItem(item)">
       <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
       <span class="nav-label">{{ item.label }}</span>
     </a>
@@ -43,11 +46,11 @@
       <mat-icon class="nav-icon">add_business</mat-icon>
       <span class="nav-label">Nuova Organizzazione</span>
     </a>
-    <a class="nav-item" [class.active]="isActive('/wizard/service')" (click)="navigate('/wizard/service')">
+    <a class="nav-item" *ngIf="hasOrganization" [class.active]="isActive('/wizard/service')" (click)="navigate('/wizard/service')">
       <mat-icon class="nav-icon">add_circle_outline</mat-icon>
       <span class="nav-label">Nuovo Servizio</span>
     </a>
-    <a class="nav-item" [class.active]="isActive('/wizard/team')" (click)="navigate('/wizard/team')">
+    <a class="nav-item" *ngIf="hasOrganization" [class.active]="isActive('/wizard/team')" (click)="navigate('/wizard/team')">
       <mat-icon class="nav-icon">group_add</mat-icon>
       <span class="nav-label">Nuovo Team</span>
     </a>

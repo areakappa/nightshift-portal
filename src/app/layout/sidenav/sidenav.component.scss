@@ -100,6 +100,16 @@
     .nav-icon { color: #818cf8; }
   }
 
+  &.disabled {
+    cursor: not-allowed;
+    color: rgba(148, 163, 184, 0.38);
+
+    &:hover {
+      background: transparent;
+      color: rgba(148, 163, 184, 0.38);
+    }
+  }
+
   .nav-icon {
     font-size: 20px;
     width: 20px;
