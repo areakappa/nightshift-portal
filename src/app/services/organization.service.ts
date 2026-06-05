@@ -107,6 +107,12 @@ export class OrganizationService {
         );
     }
 
+    public async postOrganizationRules(organizationRulesCrud: OrganizationRuleCrud[]): Promise<boolean> {
+        return await firstValueFrom(
+            this.http.post<boolean>(this.organizationUrl + '/PostOrganizationRules', organizationRulesCrud, { headers: Utility.getAuthHeader() })
+        );
+    }
+
     public async putOrganizationRule(organizationRuleCrud: OrganizationRuleCrud): Promise<OrganizationRuleDto | null> {
         return await firstValueFrom(
             this.http.put<OrganizationRuleDto | null>(this.organizationUrl + '/PutOrganizationRule', organizationRuleCrud, { headers: Utility.getAuthHeader() })

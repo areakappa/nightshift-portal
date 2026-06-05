@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -13,17 +13,17 @@ import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatStepper, MatStepperModule } from '@angular/material/stepper';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { OrganizationService } from '../../../services/organization.service';
+import { OpenAiService } from '../../../services/openai.service';
+import { AuthenticationService } from '../../../services/authentication.service';
+import { CCNLContract } from '../../../models/CCNLContract';
 import { OrganizationCrud } from '../../../models/crud/OrganizationCrud';
 import { OrganizationRuleCrud } from '../../../models/crud/OrganizationRuleCrud';
-
-interface ContractOption {
-    title: string;
-    description: string;
-}
+import { ContractRulesFromGpt } from '../../../models/generic/ContractRulesFromGpt';
+import { OpenAIRequest } from '../../../models/generic/openAi/OpenAIRequest';
 
 interface RuleOption {
-    title: string;
-    description: string;
+    vincolo: string;
+    descrizione: string;
     selected: boolean;
 }
 
@@ -41,6 +41,8 @@ interface RuleOption {
 })
 export class OrganizationWizardComponent {
     isSaving = false;
+    isLoadingContracts = false;
+    isLoadingRules = false;
     createdOrganizationId = 0;
 
     infoForm: FormGroup;
@@ -53,36 +55,18 @@ export class OrganizationWizardComponent {
         'Trentino-Alto Adige', 'Umbria', 'Valle d\'Aosta', 'Veneto'
     ];
 
-    contracts: ContractOption[] = [
-        {
-            title: 'CCNL del Commercio',
-            description: 'Contratto Collettivo Nazionale del Lavoro per il settore commercio, applicabile anche alle aziende informatiche che operano nella vendita di prodotti e servizi tecnologici.'
-        },
-        {
-            title: 'CCNL Metalmeccanico',
-            description: 'Contratto Collettivo Nazionale del Lavoro per il settore metalmeccanico, applicabile a imprese che operano in ambiti tecnici e ingegneristici.'
-        },
-        {
-            title: 'CCNL dell\'Informatica e delle Telecomunicazioni',
-            description: 'Contratto Collettivo Nazionale specifico per informatica e telecomunicazioni, regola diritti e doveri dei lavoratori in questo campo.'
-        }
-    ];
-
-    selectedContract = this.contracts[0];
-
-    rules: RuleOption[] = [
-        { title: 'Orario di lavoro settimanale', description: 'Massimo 40 ore settimanali.', selected: true },
-        { title: 'Giorni di riposo', description: 'Almeno 1 giorno di riposo ogni 7 giorni.', selected: true },
-        { title: 'Flessibilità', description: 'La distribuzione dell\'orario di lavoro può essere flessibile, rispettando le 40 ore settimanali.', selected: true },
-        { title: 'Lavoro straordinario', description: 'Deve essere preventivamente autorizzato e compensato secondo le disposizioni del CCNL.', selected: true },
-        { title: 'Pausa', description: 'Dopo 6 ore di lavoro continuativo è obbligatoria una pausa di almeno 30 minuti.', selected: true }
-    ];
+    contracts: CCNLContract[] = [];
+    selectedContract: CCNLContract | null = null;
+    rules: RuleOption[] = [];
 
     constructor(
         private fb: FormBuilder,
         private orgService: OrganizationService,
+        private openAiService: OpenAiService,
+        private authService: AuthenticationService,
         private router: Router,
-        private snackBar: MatSnackBar
+        private snackBar: MatSnackBar,
+        private cdr: ChangeDetectorRef
     ) {
         this.infoForm = this.fb.group({
             name: ['', [Validators.required, Validators.minLength(2)]],
@@ -94,7 +78,7 @@ export class OrganizationWizardComponent {
         });
     }
 
-    goNext(stepper: MatStepper, form?: FormGroup): void {
+    async goNext(stepper: MatStepper, form?: FormGroup): Promise<void> {
         if (form?.invalid) {
             form.markAllAsTouched();
             return;
@@ -102,8 +86,74 @@ export class OrganizationWizardComponent {
         stepper.next();
     }
 
-    selectContract(contract: ContractOption): void {
+    async goToContracts(stepper: MatStepper): Promise<void> {
+        if (this.sectorForm.invalid) {
+            this.sectorForm.markAllAsTouched();
+            return;
+        }
+
+        stepper.next();
+        await this.loadContracts();
+    }
+
+    async goToRules(stepper: MatStepper): Promise<void> {
+        if (!this.selectedContract) {
+            this.snackBar.open('Seleziona un contratto CCNL', 'Ok', { duration: 2500 });
+            return;
+        }
+
+        stepper.next();
+        await this.loadRules();
+    }
+
+    selectContract(contract: CCNLContract): void {
         this.selectedContract = contract;
+    }
+
+    async loadContracts(): Promise<void> {
+        this.isLoadingContracts = true;
+        this.contracts = [];
+        this.selectedContract = null;
+        try {
+            const prompt = "Per un'azienda che opera nel settore '" +
+                this.sectorForm.value.workSector +
+                "' quali sono i contratti CCNL, e solo quelli, che devono essere applicati ai propri dipendenti ?\r\n- Rispondi **solo** in formato JSON valido.\r\n- L'output deve essere un **array di oggetti**, ognuno rappresentante un contratto con la corretta dicitura '\r\n Evita la scritta 'json' e gli apici pre e post oggetto grazie.";
+            const obj = await this.openAiService.getOpenAIResponse(
+                new OpenAIRequest(this.sectorForm.value.workSector, prompt)
+            );
+            this.contracts = this.parseJsonArray<CCNLContract>(obj.response)
+                .filter(contract => contract.contratto);
+            this.selectedContract = this.contracts[0] ?? null;
+        } catch {
+            this.snackBar.open('Errore nel caricamento dei contratti CCNL. Riprova.', 'Chiudi', { duration: 3500 });
+        } finally {
+            this.isLoadingContracts = false;
+            this.cdr.detectChanges();
+        }
+    }
+
+    async loadRules(): Promise<void> {
+        this.isLoadingRules = true;
+        this.rules = [];
+        try {
+            const prompt =
+                'Dovendo preparare i turni di lavoro aziendali, per una azienda che si trova in ' +
+                this.sectorForm.value.region +
+                '  riferendoci al contratto ' +
+                this.selectedContract?.contratto +
+                ', estrai tutti i vincoli che devono essere rispettati. - Rispondi **solo** in formato JSON valido.- L\'output deve essere un **array di oggetti**, ognuno rappresentante un vincolo \r\n Evita la scritta \'json\' e gli apici pre e post oggetto grazie.';
+            const obj = await this.openAiService.getOpenAIResponse(
+                new OpenAIRequest(this.sectorForm.value.workSector, prompt)
+            );
+            this.rules = this.parseJsonArray<ContractRulesFromGpt>(obj.response)
+                .filter(rule => rule.vincolo)
+                .map(rule => ({ ...rule, selected: rule.selected !== false }));
+        } catch {
+            this.snackBar.open('Errore nel caricamento delle regole contrattuali. Riprova.', 'Chiudi', { duration: 3500 });
+        } finally {
+            this.isLoadingRules = false;
+            this.cdr.detectChanges();
+        }
     }
 
     async createOrganization(): Promise<void> {
@@ -117,14 +167,14 @@ export class OrganizationWizardComponent {
         try {
             const prompt = this.rules
                 .filter(rule => rule.selected)
-                .map(rule => `${rule.title}: ${rule.description}`)
+                .map(rule => `${rule.vincolo}: ${rule.descrizione}`)
                 .join('\n');
             const organizationCrud = new OrganizationCrud(
                 this.infoForm.value.name,
                 this.infoForm.value.description,
                 this.sectorForm.value.region,
-                this.selectedContract.title,
-                this.selectedContract.description,
+                this.selectedContract.contratto,
+                this.selectedContract.descrizione,
                 '',
                 this.sectorForm.value.workSector,
                 0,
@@ -147,13 +197,24 @@ export class OrganizationWizardComponent {
     }
 
     private async saveSelectedRules(): Promise<void> {
-        for (const rule of this.rules.filter(item => item.selected)) {
-            try {
-                await this.orgService.postOrganizationRule(
-                    new OrganizationRuleCrud(0, this.createdOrganizationId, rule.title, rule.description, 1)
-                );
-            } catch { }
-        }
+        const idCustomer = this.authService.getUser()?.idCustomer ?? 0;
+        const rulesCrud = this.rules
+            .filter(item => item.selected)
+            .map(rule => new OrganizationRuleCrud(idCustomer, this.createdOrganizationId, rule.vincolo, rule.descrizione, 1));
+        if (rulesCrud.length) await this.orgService.postOrganizationRules(rulesCrud);
+    }
+
+    private parseJsonArray<T>(response: string): T[] {
+        const cleanedResponse = response
+            .replace(/```json/gi, '')
+            .replace(/```/g, '')
+            .trim();
+        const arrayStart = cleanedResponse.indexOf('[');
+        const arrayEnd = cleanedResponse.lastIndexOf(']');
+        const json = arrayStart >= 0 && arrayEnd >= arrayStart
+            ? cleanedResponse.slice(arrayStart, arrayEnd + 1)
+            : cleanedResponse;
+        return JSON.parse(json) as T[];
     }
 
     finish(): void { this.router.navigate(['/home']); }

@@ -80,7 +80,13 @@
 
       <div class="step-actions">
         <button mat-button matStepperPrevious>Indietro</button>
-        <button mat-raised-button color="primary" class="primary-action" (click)="goNext(stepper, sectorForm)">
+        <button
+          mat-raised-button
+          color="primary"
+          class="primary-action"
+          (click)="goToContracts(stepper)"
+          [disabled]="isLoadingContracts"
+        >
           Avanti
         </button>
       </div>
@@ -94,11 +100,16 @@
           <mat-icon>description</mat-icon>
           <div>
             <h2>Contratti CCNL</h2>
-            <p>Seleziona il contratto collettivo nazionale applicato.</p>
+            <p>Seleziona il contratto collettivo nazionale proposto dall'AI.</p>
           </div>
         </div>
 
-        <div class="option-list">
+        <div *ngIf="isLoadingContracts" class="loading-box">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Caricamento contratti tramite AI...</span>
+        </div>
+
+        <div *ngIf="!isLoadingContracts && contracts.length > 0" class="option-list">
           <button
             type="button"
             class="option-card"
@@ -108,16 +119,29 @@
           >
             <span class="option-radio"></span>
             <span>
-              <strong>{{ contract.title }}</strong>
-              <small>{{ contract.description }}</small>
+              <strong>{{ contract.contratto }}</strong>
+              <small>{{ contract.descrizione }}</small>
             </span>
           </button>
+        </div>
+
+        <div *ngIf="!isLoadingContracts && contracts.length === 0" class="empty-state">
+          <mat-icon>info</mat-icon>
+          <span>Nessun contratto disponibile. Torna indietro e riprova.</span>
         </div>
       </div>
 
       <div class="step-actions">
         <button mat-button matStepperPrevious>Indietro</button>
-        <button mat-raised-button color="primary" class="primary-action" matStepperNext>Avanti</button>
+        <button
+          mat-raised-button
+          color="primary"
+          class="primary-action"
+          (click)="goToRules(stepper)"
+          [disabled]="isLoadingContracts || !selectedContract"
+        >
+          Avanti
+        </button>
       </div>
     </mat-step>
 
@@ -129,14 +153,24 @@
           <mat-icon>rule</mat-icon>
           <div>
             <h2>Vincoli contrattuali</h2>
-            <p>Seleziona i vincoli che vuoi applicare all'organizzazione.</p>
+            <p>Seleziona i vincoli suggeriti dall'AI che vuoi applicare all'organizzazione.</p>
           </div>
         </div>
 
-        <div class="rule-list">
+        <div *ngIf="isLoadingRules" class="loading-box">
+          <mat-spinner diameter="28"></mat-spinner>
+          <span>Caricamento vincoli contrattuali tramite AI...</span>
+        </div>
+
+        <div *ngIf="!isLoadingRules && rules.length > 0" class="rule-list">
           <mat-checkbox class="rule-card" *ngFor="let rule of rules" [(ngModel)]="rule.selected" color="primary">
-            <strong>{{ rule.title }}:</strong> {{ rule.description }}
+            <strong>{{ rule.vincolo }}:</strong> {{ rule.descrizione }}
           </mat-checkbox>
+        </div>
+
+        <div *ngIf="!isLoadingRules && rules.length === 0" class="empty-state">
+          <mat-icon>info</mat-icon>
+          <span>Nessun vincolo disponibile. Torna indietro e riprova.</span>
         </div>
       </div>
 
@@ -147,7 +181,7 @@
           color="primary"
           class="primary-action"
           (click)="createOrganization()"
-          [disabled]="isSaving"
+          [disabled]="isSaving || isLoadingRules || rules.length === 0"
         >
           <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
           <span *ngIf="!isSaving">Crea</span>
