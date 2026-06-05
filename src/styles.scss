@@ -89,6 +89,17 @@ html, body {
   color: inherit;
 }
 
+.organization-stepper.mat-stepper-horizontal {
+  background:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.2), transparent 34%),
+    linear-gradient(145deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.86)) !important;
+}
+
+.organization-stepper .mat-horizontal-stepper-wrapper,
+.organization-stepper .mat-horizontal-content-container {
+  background: transparent !important;
+}
+
 .ns-badge-success { background: var(--ns-success); color: #fff; border-radius: 12px; padding: 2px 8px; font-size: 12px; }
 .ns-badge-warning { background: var(--ns-warning); color: #000; border-radius: 12px; padding: 2px 8px; font-size: 12px; }
 .ns-badge-danger  { background: var(--ns-danger);  color: #fff; border-radius: 12px; padding: 2px 8px; font-size: 12px; }
