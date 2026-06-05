@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
@@ -33,7 +33,7 @@ export class OrganizationRulesComponent implements OnInit {
     draftDescription = '';
     displayedColumns = ['name', 'description', 'actions'];
 
-    constructor(private orgService: OrganizationService, private snackBar: MatSnackBar) { }
+    constructor(private orgService: OrganizationService, private snackBar: MatSnackBar, private cdr: ChangeDetectorRef) { }
 
     async ngOnInit(): Promise<void> {
         await this.loadRules();
@@ -49,6 +49,7 @@ export class OrganizationRulesComponent implements OnInit {
             this.snackBar.open('Errore nel caricamento regole', 'Chiudi', { duration: 3000 });
         } finally {
             this.isLoading = false;
+            this.cdr.detectChanges();
         }
     }
 

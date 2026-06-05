@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -40,7 +40,8 @@ export class ServicesComponent implements OnInit {
         private demoLimitService: DemoLimitService,
         private router: Router,
         private upgradeService: UpgradeService,
-        private snackBar: MatSnackBar
+        private snackBar: MatSnackBar,
+        private cdr: ChangeDetectorRef
     ) { }
 
     async ngOnInit(): Promise<void> {
@@ -60,6 +61,7 @@ export class ServicesComponent implements OnInit {
             this.snackBar.open('Errore nel caricamento servizi', 'Chiudi', { duration: 3000 });
         } finally {
             this.isLoading = false;
+            this.cdr.detectChanges();
         }
     }
 

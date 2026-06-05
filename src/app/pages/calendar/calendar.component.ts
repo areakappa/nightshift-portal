@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -31,7 +31,8 @@ export class CalendarComponent implements OnInit {
 
     constructor(
         private scheduleService: ScheduleService,
-        private snackBar: MatSnackBar
+        private snackBar: MatSnackBar,
+        private cdr: ChangeDetectorRef
     ) { }
 
     async ngOnInit(): Promise<void> {
@@ -52,6 +53,7 @@ export class CalendarComponent implements OnInit {
             this.snackBar.open('Errore nel caricamento turni', 'Chiudi', { duration: 3000 });
         } finally {
             this.isLoading = false;
+            this.cdr.detectChanges();
         }
     }
 

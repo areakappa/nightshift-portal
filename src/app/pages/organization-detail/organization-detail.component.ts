@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -39,7 +39,8 @@ export class OrganizationDetailComponent implements OnInit {
         private orgService: OrganizationService,
         private authService: AuthenticationService,
         private router: Router,
-        private snackBar: MatSnackBar
+        private snackBar: MatSnackBar,
+        private cdr: ChangeDetectorRef
     ) { }
 
     async ngOnInit(): Promise<void> {
@@ -56,6 +57,7 @@ export class OrganizationDetailComponent implements OnInit {
             this.snackBar.open('Errore nel caricamento organizzazione', 'Chiudi', { duration: 3000 });
         } finally {
             this.isLoading = false;
+            this.cdr.detectChanges();
         }
     }
 

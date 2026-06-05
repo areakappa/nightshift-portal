@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -44,7 +44,8 @@ export class TeamWizardComponent implements OnInit {
         private orgService: OrganizationService,
         private servicesService: ServicesService,
         private router: Router,
-        private snackBar: MatSnackBar
+        private snackBar: MatSnackBar,
+        private cdr: ChangeDetectorRef
     ) { }
 
     async ngOnInit(): Promise<void> {
@@ -57,6 +58,7 @@ export class TeamWizardComponent implements OnInit {
             ]);
         } finally {
             this.isLoading = false;
+            this.cdr.detectChanges();
         }
     }
 

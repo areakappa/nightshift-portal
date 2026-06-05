@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
@@ -53,7 +53,8 @@ export class UserWizardComponent implements OnInit {
         private usersService: UsersService,
         private router: Router,
         private snackBar: MatSnackBar,
-        private fb: FormBuilder
+        private fb: FormBuilder,
+        private cdr: ChangeDetectorRef
     ) {
         this.typeForm = this.fb.group({ createNew: [false] });
         this.newUserForm = this.fb.group({
@@ -91,6 +92,7 @@ export class UserWizardComponent implements OnInit {
             });
         } finally {
             this.isLoading = false;
+            this.cdr.detectChanges();
         }
     }
 

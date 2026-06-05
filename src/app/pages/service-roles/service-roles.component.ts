@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule, ReactiveFormsModule, FormControl, Validators } from '@angular/forms';
@@ -43,7 +43,8 @@ export class ServiceRolesComponent implements OnInit {
     constructor(
         private servicesService: ServicesService,
         private router: Router,
-        private snackBar: MatSnackBar
+        private snackBar: MatSnackBar,
+        private cdr: ChangeDetectorRef
     ) {
         const state = history.state;
         if (state?.service) {
@@ -65,6 +66,7 @@ export class ServiceRolesComponent implements OnInit {
             this.snackBar.open('Errore nel caricamento ruoli', 'Chiudi', { duration: 3000 });
         } finally {
             this.isLoading = false;
+            this.cdr.detectChanges();
         }
     }
 

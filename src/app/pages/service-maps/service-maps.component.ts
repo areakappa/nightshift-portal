@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -29,7 +29,7 @@ export class ServiceMapsComponent implements OnInit {
     markerOptions: google.maps.MarkerOptions = { draggable: false };
     apiLoaded = false;
 
-    constructor(private router: Router, private snackBar: MatSnackBar) {
+    constructor(private router: Router, private snackBar: MatSnackBar, private cdr: ChangeDetectorRef) {
         const state = history.state;
         if (state?.service) {
             try { this.service = JSON.parse(state.service); } catch { }
@@ -52,7 +52,7 @@ export class ServiceMapsComponent implements OnInit {
     private getUserLocation(): void {
         if ('geolocation' in navigator) {
             navigator.geolocation.getCurrentPosition(
-                pos => { this.mapCenter = { lat: pos.coords.latitude, lng: pos.coords.longitude }; },
+                pos => { this.mapCenter = { lat: pos.coords.latitude, lng: pos.coords.longitude }; this.cdr.detectChanges(); },
                 () => { /* use default */ }
             );
         }

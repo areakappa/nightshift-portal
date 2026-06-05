@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -28,7 +28,8 @@ export class NotificationsComponent implements OnInit {
     constructor(
         private scheduleService: ScheduleService,
         private authService: AuthenticationService,
-        private snackBar: MatSnackBar
+        private snackBar: MatSnackBar,
+        private cdr: ChangeDetectorRef
     ) { }
 
     async ngOnInit(): Promise<void> {
@@ -45,6 +46,7 @@ export class NotificationsComponent implements OnInit {
             this.snackBar.open('Errore nel caricamento notifiche', 'Chiudi', { duration: 3000 });
         } finally {
             this.isLoading = false;
+            this.cdr.detectChanges();
         }
     }
 

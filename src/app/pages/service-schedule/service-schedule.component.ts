@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -42,7 +42,8 @@ export class ServiceScheduleComponent implements OnInit {
         private scheduleService: ScheduleService,
         private organizationService: OrganizationService,
         private router: Router,
-        private snackBar: MatSnackBar
+        private snackBar: MatSnackBar,
+        private cdr: ChangeDetectorRef
     ) {
         const state = history.state;
         if (state?.service) {
@@ -68,6 +69,7 @@ export class ServiceScheduleComponent implements OnInit {
             this.snackBar.open('Errore nel caricamento turni', 'Chiudi', { duration: 3000 });
         } finally {
             this.isLoading = false;
+            this.cdr.detectChanges();
         }
     }
 

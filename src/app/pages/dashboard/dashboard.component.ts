@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -45,7 +45,8 @@ export class DashboardComponent implements OnInit {
         private orgService: OrganizationService,
         private authService: AuthenticationService,
         private roleService: RoleService,
-        private snackBar: MatSnackBar
+        private snackBar: MatSnackBar,
+        private cdr: ChangeDetectorRef
     ) { }
 
     async ngOnInit(): Promise<void> {
@@ -65,6 +66,7 @@ export class DashboardComponent implements OnInit {
             this.snackBar.open('Errore nel caricamento dashboard', 'Chiudi', { duration: 3000 });
         } finally {
             this.isLoading = false;
+            this.cdr.detectChanges();
         }
     }
 

@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -37,7 +37,8 @@ export class ServiceDetailComponent implements OnInit {
         private servicesService: ServicesService,
         private organizationService: OrganizationService,
         private router: Router,
-        private snackBar: MatSnackBar
+        private snackBar: MatSnackBar,
+        private cdr: ChangeDetectorRef
     ) {
         const state = history.state;
         if (state?.service) {
@@ -60,6 +61,7 @@ export class ServiceDetailComponent implements OnInit {
             this.snackBar.open('Errore nel caricamento del servizio', 'Chiudi', { duration: 3000 });
         } finally {
             this.isLoading = false;
+            this.cdr.detectChanges();
         }
         void this.loadCoverage();
     }
@@ -76,7 +78,7 @@ export class ServiceDetailComponent implements OnInit {
             this.teamCoverage = cov;
             this.orgUsers = users;
         } catch { /* coverage non critica */ }
-        finally { this.isCoverageLoading = false; }
+        finally { this.isCoverageLoading = false; this.cdr.detectChanges(); }
     }
 
     goBack(): void { this.router.navigate(['/services']); }

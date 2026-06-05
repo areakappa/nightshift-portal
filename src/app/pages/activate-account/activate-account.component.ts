@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
@@ -22,7 +22,8 @@ export class ActivateAccountComponent implements OnInit {
     constructor(
         private route: ActivatedRoute,
         private router: Router,
-        private demoService: DemoService
+        private demoService: DemoService,
+        private cdr: ChangeDetectorRef
     ) { }
 
     async ngOnInit(): Promise<void> {
@@ -40,6 +41,7 @@ export class ActivateAccountComponent implements OnInit {
             this.error = e?.error?.body ?? 'Errore durante l\'attivazione.';
         } finally {
             this.loading = false;
+            this.cdr.detectChanges();
         }
     }
 
