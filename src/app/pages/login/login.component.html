@@ -1,0 +1,71 @@
+<div class="auth-page">
+  <div class="auth-left">
+    <div class="brand-banner">
+      <div class="brand-logo">NS</div>
+      <h1 class="brand-title">NightShift</h1>
+      <p class="brand-subtitle">Gestione turni intelligente</p>
+    </div>
+  </div>
+
+  <div class="auth-right">
+    <mat-card class="auth-card">
+      <mat-card-header>
+        <mat-card-title>Accedi</mat-card-title>
+        <mat-card-subtitle>Benvenuto! Inserisci le tue credenziali</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <!-- Error banner -->
+        <div class="error-banner" *ngIf="errorMessage">
+          <mat-icon>error_outline</mat-icon>
+          {{ errorMessage }}
+        </div>
+
+        <!-- Username -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Username / Email</mat-label>
+          <mat-icon matPrefix>person</mat-icon>
+          <input matInput [formControl]="username" type="email" placeholder="nome@esempio.com" autocomplete="username" (keyup.enter)="login()">
+          <mat-error *ngIf="username.invalid">Username o email obbligatorio</mat-error>
+        </mat-form-field>
+
+        <!-- Password -->
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Password</mat-label>
+          <mat-icon matPrefix>lock</mat-icon>
+          <input matInput [formControl]="password" [type]="showPassword ? 'text' : 'password'" placeholder="Inserisci password" autocomplete="current-password" (keyup.enter)="login()">
+          <button mat-icon-button matSuffix type="button" (click)="showPassword = !showPassword">
+            <mat-icon>{{ showPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          <mat-error *ngIf="password.invalid">Password obbligatoria</mat-error>
+        </mat-form-field>
+
+        <!-- Keep access -->
+        <div class="form-options">
+          <mat-checkbox [(ngModel)]="keepAccess" color="primary">Ricordami</mat-checkbox>
+          <a class="link" (click)="goToForgotPassword()">Password dimenticata?</a>
+        </div>
+
+        <!-- Login button -->
+        <button mat-raised-button color="primary" class="full-width submit-btn"
+          (click)="login()" [disabled]="submitProcess || !isFormValid()">
+          <mat-spinner *ngIf="submitProcess" diameter="20" color="accent"></mat-spinner>
+          <span *ngIf="!submitProcess">Accedi</span>
+        </button>
+
+        <!-- Resend activation -->
+        <div class="resend-section" *ngIf="showResendActivation">
+          <p>Account non verificato?</p>
+          <a class="link" (click)="resendActivationEmail()" [class.disabled]="resendProcess || username.invalid">
+            {{ resendProcess ? 'Invio in corso...' : 'Reinvia email di attivazione' }}
+          </a>
+        </div>
+
+        <!-- Register link -->
+        <div class="register-section">
+          Non hai un account? <a class="link" (click)="goToRegister()">Registrati</a>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

@@ -1,0 +1,57 @@
+<div class="page-container">
+  <div class="page-header">
+    <div class="header-row">
+      <div>
+        <h1>Servizi</h1>
+        <p>Gestisci i servizi della tua organizzazione</p>
+      </div>
+      <button mat-raised-button color="primary" (click)="addService()">
+        <mat-icon>add</mat-icon> Nuovo Servizio
+      </button>
+    </div>
+  </div>
+
+  <!-- Search -->
+  <mat-form-field appearance="outline" class="search-field">
+    <mat-label>Cerca servizio</mat-label>
+    <mat-icon matPrefix>search</mat-icon>
+    <input matInput [(ngModel)]="searchText" (ngModelChange)="applyFilter()" placeholder="Nome o descrizione...">
+  </mat-form-field>
+
+  <!-- Loading -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <mat-spinner diameter="40"></mat-spinner>
+  </div>
+
+  <!-- Empty state -->
+  <div class="no-data" *ngIf="!isLoading && filteredServices.length === 0">
+    <mat-icon>business_center</mat-icon>
+    <p *ngIf="searchText">Nessun servizio trovato per "{{ searchText }}"</p>
+    <p *ngIf="!searchText">Nessun servizio. <a (click)="addService()">Crea il primo servizio.</a></p>
+  </div>
+
+  <!-- Services grid -->
+  <div class="services-grid" *ngIf="!isLoading && filteredServices.length > 0">
+    <mat-card class="ns-card service-card" *ngFor="let service of filteredServices" (click)="goToDetail(service)">
+      <mat-card-content>
+        <div class="service-header">
+          <div class="service-avatar">{{ service.name?.charAt(0) ?? 'S' }}</div>
+          <div class="service-info">
+            <div class="service-name">{{ service.name }}</div>
+            <div class="service-desc">{{ service.description }}</div>
+          </div>
+          <span class="status-chip" [class.active]="isServiceActive(service)" [class.inactive]="!isServiceActive(service)">
+            {{ isServiceActive(service) ? 'Attivo' : 'Inattivo' }}
+          </span>
+        </div>
+
+        <div class="service-meta">
+          <span><mat-icon>event</mat-icon> Dal {{ getDate(service.startValidityDate) }}</span>
+          <span *ngIf="service.stopValidityDate"><mat-icon>event_busy</mat-icon> Al {{ getDate(service.stopValidityDate) }}</span>
+          <span><mat-icon>schedule</mat-icon> {{ service.serviceShifts?.length ?? 0 }} turni</span>
+          <span><mat-icon>badge</mat-icon> {{ service.serviceRoles?.length ?? 0 }} ruoli</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

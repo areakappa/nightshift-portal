@@ -1,0 +1,67 @@
+<div class="page-container wizard-container">
+  <div class="wizard-header">
+    <button mat-icon-button (click)="cancel()"><mat-icon>close</mat-icon></button>
+    <h1>Nuovo servizio</h1>
+  </div>
+
+  <mat-stepper linear>
+    <!-- Step 1: Info servizio -->
+    <mat-step label="Informazioni servizio" [stepControl]="infoForm">
+      <form [formGroup]="infoForm" class="step-content">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Nome servizio</mat-label>
+          <input matInput formControlName="name" placeholder="Es. Sicurezza notturna">
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Descrizione</mat-label>
+          <textarea matInput rows="3" formControlName="description"></textarea>
+        </mat-form-field>
+      </form>
+      <div class="step-actions">
+        <button mat-raised-button color="primary" matStepperNext (click)="createService()" [disabled]="infoForm.invalid || isSaving">
+          <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
+          <span *ngIf="!isSaving">Crea e continua</span>
+        </button>
+      </div>
+    </mat-step>
+
+    <!-- Step 2: Ruoli -->
+    <mat-step label="Aggiungi ruoli">
+      <div class="step-content">
+        <p>Aggiungi i ruoli per questo servizio (es. Guardia, Supervisore)</p>
+        <div class="add-role-row">
+          <mat-form-field appearance="outline" class="role-field">
+            <mat-label>Nome ruolo</mat-label>
+            <input matInput [(ngModel)]="newRoleName" (keyup.enter)="addRole()" placeholder="Es. Guardia">
+          </mat-form-field>
+          <button mat-raised-button (click)="addRole()"><mat-icon>add</mat-icon></button>
+        </div>
+        <div class="roles-list">
+          <mat-card class="ns-card role-row" *ngFor="let role of roles; let i = index">
+            <mat-card-content>
+              <mat-icon>work</mat-icon>
+              <span>{{ role.name }}</span>
+              <button mat-icon-button color="warn" (click)="removeRole(i)"><mat-icon>delete</mat-icon></button>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+      <div class="step-actions">
+        <button mat-button matStepperPrevious>Indietro</button>
+        <button mat-raised-button color="primary" matStepperNext (click)="saveRoles()">Salva ruoli</button>
+      </div>
+    </mat-step>
+
+    <!-- Step 3: Fine -->
+    <mat-step label="Completato">
+      <div class="step-content done-step">
+        <mat-icon class="done-icon">check_circle</mat-icon>
+        <h2>Servizio creato con successo!</h2>
+        <p>Il servizio "{{ infoForm.value.name }}" è stato configurato con {{ roles.length }} ruoli.</p>
+      </div>
+      <div class="step-actions">
+        <button mat-raised-button color="primary" (click)="finish()">Vai ai servizi</button>
+      </div>
+    </mat-step>
+  </mat-stepper>
+</div>

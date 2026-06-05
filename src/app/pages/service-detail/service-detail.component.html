@@ -1,0 +1,107 @@
+<div class="page-container">
+  <div class="loading-overlay" *ngIf="isLoading"><mat-spinner diameter="40"></mat-spinner></div>
+
+  <ng-container *ngIf="!isLoading && service">
+    <!-- Header -->
+    <div class="page-header">
+      <div class="header-row">
+        <div>
+          <button mat-icon-button (click)="goBack()">
+            <mat-icon>arrow_back</mat-icon>
+          </button>
+          <h1>{{ service.name }}</h1>
+          <p>{{ service.description }}</p>
+        </div>
+        <div class="header-actions">
+          <button mat-stroked-button (click)="refresh()"><mat-icon>refresh</mat-icon></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Coverage card -->
+    <div class="coverage-section">
+      <mat-card class="ns-card coverage-card">
+        <mat-card-content>
+          <div class="coverage-grid">
+            <div class="cov-item">
+              <div class="cov-val">{{ teamCoverage?.totalRolesCoverage ?? 0 }}</div>
+              <div class="cov-label">Ruoli coperti</div>
+            </div>
+            <div class="cov-item">
+              <div class="cov-val">{{ teamCoverage?.totalRolesToCoverage ?? 0 }}</div>
+              <div class="cov-label">Totale ruoli</div>
+            </div>
+            <div class="cov-item">
+              <div class="cov-val coverage-pct" [class.full]="getCoveragePct() === 100">{{ getCoveragePct() }}%</div>
+              <div class="cov-label">Copertura</div>
+            </div>
+            <div class="cov-item">
+              <div class="cov-val">{{ service.serviceShifts?.length ?? 0 }}</div>
+              <div class="cov-label">Turni</div>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Actions grid -->
+    <div class="actions-grid">
+      <mat-card class="ns-card action-card" (click)="goToRoles()">
+        <mat-card-content>
+          <mat-icon class="action-icon">badge</mat-icon>
+          <div class="action-title">Ruoli</div>
+          <div class="action-desc">Gestisci i ruoli del servizio</div>
+          <div class="action-count">{{ service.serviceRoles?.length ?? 0 }} ruoli</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="ns-card action-card" (click)="goToShifts()">
+        <mat-card-content>
+          <mat-icon class="action-icon">access_time</mat-icon>
+          <div class="action-title">Turni</div>
+          <div class="action-desc">Configura i tipi di turno</div>
+          <div class="action-count">{{ service.serviceShifts?.length ?? 0 }} turni</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="ns-card action-card" (click)="goToSchedule()">
+        <mat-card-content>
+          <mat-icon class="action-icon">calendar_month</mat-icon>
+          <div class="action-title">Programmazione</div>
+          <div class="action-desc">Visualizza e gestisci il calendario</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="ns-card action-card" (click)="goToTeam()">
+        <mat-card-content>
+          <mat-icon class="action-icon">group</mat-icon>
+          <div class="action-title">Team</div>
+          <div class="action-desc">Assegna persone ai ruoli</div>
+          <div class="action-count">{{ orgUsers.length }} utenti</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="ns-card action-card" (click)="goToMaps()">
+        <mat-card-content>
+          <mat-icon class="action-icon">map</mat-icon>
+          <div class="action-title">Mappa</div>
+          <div class="action-desc">Visualizza la posizione del servizio</div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Service info -->
+    <mat-card class="ns-card info-card">
+      <mat-card-header><mat-card-title>Informazioni servizio</mat-card-title></mat-card-header>
+      <mat-card-content>
+        <div class="info-grid">
+          <div class="info-item"><span class="info-label">Inizio validità</span><span>{{ getDate(service.startValidityDate) }}</span></div>
+          <div class="info-item"><span class="info-label">Fine validità</span><span>{{ getDate(service.stopValidityDate ?? '') }}</span></div>
+          <div class="info-item"><span class="info-label">Stato</span>
+            <span class="status-chip" [class.active]="service.state === 1">{{ service.state === 1 ? 'Attivo' : 'Inattivo' }}</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </ng-container>
+</div>

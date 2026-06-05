@@ -1,0 +1,82 @@
+<div class="sidenav-wrapper">
+
+  <!-- Logo & Brand -->
+  <div class="sidenav-brand">
+    <div class="brand-logo">NS</div>
+    <div class="brand-text">
+      <span class="brand-title">NightShift</span>
+      <span class="brand-subtitle">Portal</span>
+    </div>
+  </div>
+
+  <!-- Organization Selector -->
+  <div class="org-selector" *ngIf="organizations.length > 0">
+    <mat-select
+      [(ngModel)]="selectedOrgId"
+      (ngModelChange)="onOrgChange($event)"
+      class="org-select">
+      <mat-option *ngFor="let org of organizations" [value]="org.id">
+        {{ org.name }}
+      </mat-option>
+    </mat-select>
+  </div>
+
+  <mat-divider class="divider"></mat-divider>
+
+  <!-- Navigation -->
+  <nav class="nav-list">
+    <a *ngFor="let item of navItems"
+       class="nav-item"
+       [class.active]="isActive(item.route)"
+       (click)="navigate(item.route)">
+      <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
+      <span class="nav-label">{{ item.label }}</span>
+    </a>
+  </nav>
+
+  <mat-divider class="divider"></mat-divider>
+
+  <!-- Wizards -->
+  <div class="section-label">Configurazione</div>
+  <nav class="nav-list">
+    <a class="nav-item" [class.active]="isActive('/wizard/organization')" (click)="navigate('/wizard/organization')">
+      <mat-icon class="nav-icon">add_business</mat-icon>
+      <span class="nav-label">Nuova Organizzazione</span>
+    </a>
+    <a class="nav-item" [class.active]="isActive('/wizard/service')" (click)="navigate('/wizard/service')">
+      <mat-icon class="nav-icon">add_circle_outline</mat-icon>
+      <span class="nav-label">Nuovo Servizio</span>
+    </a>
+    <a class="nav-item" [class.active]="isActive('/wizard/team')" (click)="navigate('/wizard/team')">
+      <mat-icon class="nav-icon">group_add</mat-icon>
+      <span class="nav-label">Nuovo Team</span>
+    </a>
+  </nav>
+
+  <div class="spacer"></div>
+
+  <!-- Bottom Section -->
+  <div class="sidenav-bottom">
+    <mat-divider class="divider"></mat-divider>
+
+    <!-- Theme toggle -->
+    <div class="theme-toggle">
+      <mat-icon>{{ isDark ? 'dark_mode' : 'light_mode' }}</mat-icon>
+      <span>Dark mode</span>
+      <mat-slide-toggle [checked]="isDark" (change)="toggleTheme()" color="accent"></mat-slide-toggle>
+    </div>
+
+    <!-- User section -->
+    <div class="user-section" *ngIf="authService.getUser() as user">
+      <div class="user-avatar">{{ getInitials(user) }}</div>
+      <div class="user-info">
+        <span class="user-name">{{ user.name }} {{ user.surname }}</span>
+        <span class="user-role" *ngIf="currentRole$ | async as role">{{ role }}</span>
+      </div>
+      <button mat-icon-button (click)="logout()" matTooltip="Logout" class="logout-btn">
+        <mat-icon>logout</mat-icon>
+      </button>
+    </div>
+  </div>
+
+</div>

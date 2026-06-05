@@ -1,0 +1,81 @@
+<div class="page-container">
+  <div class="page-header">
+    <div class="header-row">
+      <div><h1>Dashboard</h1><p>Panoramica generale</p></div>
+      <button mat-stroked-button (click)="switchRole()">
+        <mat-icon>swap_horiz</mat-icon>
+        Passa a {{ currentRole === 'organizer' ? 'Operatore' : 'Organizzatore' }}
+      </button>
+    </div>
+  </div>
+
+  <div class="role-badge-row">
+    <span class="role-badge" [class.organizer]="currentRole === 'organizer'" [class.operator]="currentRole === 'operator'">
+      <mat-icon>{{ currentRole === 'organizer' ? 'manage_accounts' : 'engineering' }}</mat-icon>
+      Vista {{ currentRole === 'organizer' ? 'Organizzatore' : 'Operatore' }}
+    </span>
+  </div>
+
+  <div class="loading-overlay" *ngIf="isLoading"><mat-spinner diameter="48"></mat-spinner></div>
+
+  <!-- Organizer view -->
+  <ng-container *ngIf="!isLoading && currentRole === 'organizer'">
+    <!-- Summary card -->
+    <mat-card class="ns-card summary-card">
+      <mat-card-content>
+        <div class="summary-grid">
+          <div class="sum-item">
+            <div class="sum-val">{{ services.length }}</div>
+            <div class="sum-label">Servizi</div>
+          </div>
+          <div class="sum-item">
+            <div class="sum-val" [class.low]="totalCoveragePct < 70" [class.full]="totalCoveragePct === 100">{{ totalCoveragePct }}%</div>
+            <div class="sum-label">Copertura totale</div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Services coverage -->
+    <h2 class="section-title">Copertura per servizio</h2>
+    <div class="services-list">
+      <mat-card class="ns-card service-row" *ngFor="let service of services">
+        <mat-card-content>
+          <div class="service-row-inner">
+            <div class="service-name">{{ service.name }}</div>
+            <div class="coverage-bar-wrap">
+              <div class="coverage-bar">
+                <div class="coverage-fill" [style.width.%]="getCoveragePct(service)"
+                  [class.low]="getCoveragePct(service) < 70"
+                  [class.full]="getCoveragePct(service) === 100"></div>
+              </div>
+              <span class="cov-label">{{ getCoverage(service)?.totalRolesCoverage ?? 0 }}/{{ getCoverage(service)?.totalRolesToCoverage ?? 0 }}</span>
+            </div>
+            <span class="pct-label">{{ getCoveragePct(service) }}%</span>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </ng-container>
+
+  <!-- Operator view -->
+  <ng-container *ngIf="!isLoading && currentRole === 'operator'">
+    <h2 class="section-title">I miei prossimi turni (7 giorni)</h2>
+    <div class="no-data" *ngIf="myShifts.length === 0">
+      <mat-icon>event_available</mat-icon>
+      <p>Nessun turno programmato per i prossimi 7 giorni</p>
+    </div>
+    <mat-card class="ns-card" *ngIf="myShifts.length > 0">
+      <mat-card-content>
+        <div class="my-shift-row" *ngFor="let shift of myShifts">
+          <div class="shift-date-badge">{{ shift.startDateTime | date:'d/M' }}</div>
+          <div class="shift-details">
+            <div class="shift-service">{{ shift.nameServiceType }}</div>
+            <div class="shift-role">{{ shift.role ?? shift.roleName ?? shift.serviceRole }}</div>
+          </div>
+          <div class="shift-time">{{ shift.startDateTime | date:'HH:mm' }} – {{ shift.endDateTime | date:'HH:mm' }}</div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </ng-container>
+</div>

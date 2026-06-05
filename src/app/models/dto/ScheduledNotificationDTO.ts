@@ -1,0 +1,36 @@
+export interface ScheduledNotificationDTO {
+    id: number | null;
+    idcustomer: number | null;
+    idcompany: number | null;
+    idmediaType: number | null;
+    nameMediaType: string | null;
+    idscheduleTask: number | null;
+    nameScheduleTask: string | null;
+    idscheduleTaskType: number | null;
+    iduser: number | null;
+    idUserSender: number | null;
+    nameUser: string | null;
+    idTaskType: number | null;
+    idShift: number | null;
+    startDate: string | null;
+    stopDate: string | null;
+    weekNumber: number | null;
+    year: number | null;
+    userEmail: string | null;
+    idEmployee: number | null;
+    nameEmployee: string | null;
+    idClient: number | null;
+    nameClient: string | null;
+    nameService: string | null;
+    nameServiceType: string | null;
+    picturePathClient: string | null;
+    nameUserSender: string | null;
+    title: string | null;
+    field1: string | null;
+    field2: string | null;
+    field3: string | null;
+    field4: string | null;
+    idZone: number | null;
+    state: number | null;
+    created: string | null; 
+}

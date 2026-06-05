@@ -1,0 +1,136 @@
+<div class="page-container">
+
+  <!-- Loading -->
+  <div class="loading-overlay" *ngIf="isLoading">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+
+  <ng-container *ngIf="!isLoading">
+    <!-- Error banner -->
+    <div class="error-banner" *ngIf="loadError">
+      <mat-icon>error_outline</mat-icon> {{ loadError }}
+      <button mat-button (click)="refresh()">Riprova</button>
+    </div>
+
+    <!-- Header -->
+    <div class="page-header">
+      <div class="header-row">
+        <div>
+          <h1>{{ orgName }}</h1>
+          <p>Settimana: {{ weekLabel }}</p>
+        </div>
+        <button mat-raised-button color="primary" (click)="addService()">
+          <mat-icon>add</mat-icon> Nuovo Servizio
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats cards -->
+    <div class="stats-grid">
+      <mat-card class="ns-card stat-card">
+        <mat-card-content>
+          <mat-icon class="stat-icon primary">business_center</mat-icon>
+          <div class="stat-value">{{ services.length }}</div>
+          <div class="stat-label">Servizi attivi</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="ns-card stat-card">
+        <mat-card-content>
+          <mat-icon class="stat-icon success">group</mat-icon>
+          <div class="stat-value">{{ teamAssigned }}<span class="stat-total">/{{ teamNeeded }}</span></div>
+          <div class="stat-label">Ruoli coperti</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="ns-card stat-card">
+        <mat-card-content>
+          <mat-icon class="stat-icon accent">donut_large</mat-icon>
+          <div class="stat-value coverage-pct" [class.low]="coveragePct < 70" [class.medium]="coveragePct >= 70 && coveragePct < 100" [class.full]="coveragePct === 100">
+            {{ coveragePct }}%
+          </div>
+          <div class="stat-label">Copertura team</div>
+        </mat-card-content>
+      </mat-card>
+
+      <mat-card class="ns-card stat-card clickable" (click)="goToCalendar()">
+        <mat-card-content>
+          <mat-icon class="stat-icon warn">calendar_month</mat-icon>
+          <div class="stat-value">—</div>
+          <div class="stat-label">Vai al Calendario</div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Services list -->
+    <div class="section-header">
+      <h2>Servizi</h2>
+      <button mat-button color="primary" (click)="goToServices()">Vedi tutti</button>
+    </div>
+
+    <div class="no-data" *ngIf="services.length === 0">
+      <mat-icon>business_center</mat-icon>
+      <p>Nessun servizio configurato. <a (click)="addService()">Crea il primo servizio</a></p>
+    </div>
+
+    <div class="services-grid" *ngIf="services.length > 0">
+      <mat-card class="ns-card service-card" *ngFor="let service of services" (click)="goToService(service)">
+        <mat-card-content>
+          <div class="service-header">
+            <mat-icon class="service-icon">business_center</mat-icon>
+            <div class="service-info">
+              <div class="service-name">{{ service.name }}</div>
+              <div class="service-org">{{ service.description }}</div>
+            </div>
+            <span class="status-badge" [class.ready]="getServiceStatus(service) === 'Pronto'" [class.setup]="getServiceStatus(service) === 'Setup'">
+              {{ getServiceStatus(service) }}
+            </span>
+          </div>
+          <mat-divider></mat-divider>
+          <div class="service-stats">
+            <div class="cov-item">
+              <mat-icon>group</mat-icon>
+              <span>{{ getCoverageForService(service)?.totalRolesCoverage ?? 0 }}/{{ getCoverageForService(service)?.totalRolesToCoverage ?? 0 }} ruoli</span>
+            </div>
+            <div class="cov-item">
+              <mat-icon>schedule</mat-icon>
+              <span>{{ (service.serviceShifts?.length ?? 0) }} turni</span>
+            </div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+
+    <!-- Recent activity -->
+    <div class="section-header">
+      <h2>Attività recente</h2>
+    </div>
+    <mat-card class="ns-card activity-card">
+      <mat-card-content>
+        <div class="activity-item" *ngFor="let item of recentActivity">
+          <mat-icon class="activity-icon">schedule</mat-icon>
+          <span>{{ item }}</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Quick actions -->
+    <div class="section-header">
+      <h2>Azioni rapide</h2>
+    </div>
+    <div class="quick-actions">
+      <button mat-stroked-button color="primary" (click)="goToDashboard()">
+        <mat-icon>dashboard</mat-icon> Dashboard
+      </button>
+      <button mat-stroked-button color="primary" (click)="goToCalendar()">
+        <mat-icon>calendar_month</mat-icon> Calendario
+      </button>
+      <button mat-stroked-button color="primary" routerLink="/team">
+        <mat-icon>group</mat-icon> Team
+      </button>
+      <button mat-stroked-button color="primary" routerLink="/notifications">
+        <mat-icon>notifications</mat-icon> Notifiche
+      </button>
+    </div>
+  </ng-container>
+</div>

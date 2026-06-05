@@ -1,0 +1,38 @@
+<div class="page-container">
+  <div class="page-header">
+    <div class="header-row">
+      <div><h1>Notifiche</h1><p>Richieste e aggiornamenti</p></div>
+      <button mat-icon-button (click)="loadNotifications()"><mat-icon>refresh</mat-icon></button>
+    </div>
+  </div>
+
+  <div class="loading-overlay" *ngIf="isLoading"><mat-spinner diameter="40"></mat-spinner></div>
+
+  <div class="no-data" *ngIf="!isLoading && notifications.length === 0">
+    <mat-icon>notifications_none</mat-icon>
+    <p>Nessuna notifica</p>
+  </div>
+
+  <div class="notifications-list" *ngIf="!isLoading && notifications.length > 0">
+    <mat-card class="ns-card notif-card" *ngFor="let notif of notifications">
+      <mat-card-content>
+        <div class="notif-row">
+          <mat-icon class="notif-icon">{{ getNotificationIcon(notif) }}</mat-icon>
+          <div class="notif-body">
+            <div class="notif-title">{{ notif.title ?? notif.nameScheduleTask }}</div>
+            <div class="notif-message">{{ notif.nameEmployee }} · {{ notif.nameService }}</div>
+            <div class="notif-date">{{ notif.startDate | date:'d/M/yyyy HH:mm' }}</div>
+          </div>
+          <div class="notif-actions" *ngIf="notif.state === 0">
+            <button mat-icon-button color="primary" (click)="approveNotification(notif)" title="Approva">
+              <mat-icon>check_circle</mat-icon>
+            </button>
+            <button mat-icon-button color="warn" (click)="rejectNotification(notif)" title="Rifiuta">
+              <mat-icon>cancel</mat-icon>
+            </button>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

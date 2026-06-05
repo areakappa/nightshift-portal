@@ -1,0 +1,70 @@
+<div class="page-container">
+  <div class="page-header">
+    <div class="header-row">
+      <div class="header-left">
+        <button mat-icon-button (click)="goBack()"><mat-icon>arrow_back</mat-icon></button>
+        <div><h1>Turni servizio</h1><p>{{ service?.name }}</p></div>
+      </div>
+      <button mat-raised-button color="primary" (click)="showAddForm = !showAddForm">
+        <mat-icon>{{ showAddForm ? 'close' : 'add' }}</mat-icon>
+        {{ showAddForm ? 'Annulla' : 'Aggiungi turno' }}
+      </button>
+    </div>
+  </div>
+
+  <mat-card class="ns-card add-form-card" *ngIf="showAddForm">
+    <mat-card-header><mat-card-title>Nuovo turno</mat-card-title></mat-card-header>
+    <mat-card-content>
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Nome turno</mat-label>
+          <input matInput [formControl]="shiftName" placeholder="Es. Mattina">
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Inizio</mat-label>
+          <input matInput [formControl]="shiftStart" type="time">
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Fine</mat-label>
+          <input matInput [formControl]="shiftEnd" type="time">
+        </mat-form-field>
+      </div>
+      <button mat-raised-button color="primary" (click)="addShift()" [disabled]="savingShift">
+        <mat-spinner *ngIf="savingShift" diameter="18"></mat-spinner>
+        <span *ngIf="!savingShift">Salva turno</span>
+      </button>
+    </mat-card-content>
+  </mat-card>
+
+  <div class="loading-overlay" *ngIf="isLoading"><mat-spinner diameter="40"></mat-spinner></div>
+
+  <div class="no-data" *ngIf="!isLoading && shifts.length === 0">
+    <mat-icon>access_time</mat-icon>
+    <p>Nessun turno configurato. Aggiungi il primo tipo di turno.</p>
+  </div>
+
+  <mat-card class="ns-card" *ngIf="!isLoading && shifts.length > 0">
+    <table mat-table [dataSource]="shifts" class="shifts-table">
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Nome</th>
+        <td mat-cell *matCellDef="let shift">{{ shift.name }}</td>
+      </ng-container>
+      <ng-container matColumnDef="start">
+        <th mat-header-cell *matHeaderCellDef>Inizio</th>
+        <td mat-cell *matCellDef="let shift">{{ formatTime(shift.startTime) }}</td>
+      </ng-container>
+      <ng-container matColumnDef="end">
+        <th mat-header-cell *matHeaderCellDef>Fine</th>
+        <td mat-cell *matCellDef="let shift">{{ formatTime(shift.endTime) }}</td>
+      </ng-container>
+      <ng-container matColumnDef="actions">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let shift">
+          <button mat-icon-button color="warn"><mat-icon>delete_outline</mat-icon></button>
+        </td>
+      </ng-container>
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+  </mat-card>
+</div>

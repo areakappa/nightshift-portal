@@ -1,0 +1,78 @@
+<div class="page-container wizard-container">
+  <div class="page-header">
+    <button mat-icon-button (click)="cancel()"><mat-icon>close</mat-icon></button>
+    <h1>Wizard Utente</h1>
+  </div>
+
+  <div class="loading-overlay" *ngIf="isLoading"><mat-spinner diameter="40"></mat-spinner></div>
+
+  <mat-stepper linear orientation="vertical" *ngIf="!isLoading">
+    <!-- Step 1: Tipo -->
+    <mat-step label="Tipo operazione">
+      <div class="step-content">
+        <p>Come vuoi aggiungere l'utente al team?</p>
+        <div class="choice-cards">
+          <mat-card class="ns-card choice-card" [class.selected]="!createNew" (click)="createNew = false">
+            <mat-card-content>
+              <mat-icon>people</mat-icon>
+              <div class="choice-label">Utente esistente</div>
+              <div class="choice-desc">Seleziona da quelli già registrati</div>
+            </mat-card-content>
+          </mat-card>
+          <mat-card class="ns-card choice-card" [class.selected]="createNew" (click)="createNew = true">
+            <mat-card-content>
+              <mat-icon>person_add</mat-icon>
+              <div class="choice-label">Invita nuovo utente</div>
+              <div class="choice-desc">Manda un invito via email</div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+      <div class="step-actions"><button mat-raised-button color="primary" matStepperNext>Avanti</button></div>
+    </mat-step>
+
+    <!-- Step 2a: Utente esistente -->
+    <mat-step label="Seleziona utente" *ngIf="!createNew">
+      <div class="step-content">
+        <div class="no-data" *ngIf="filteredUsers.length === 0">
+          <mat-icon>group_off</mat-icon><p>Nessun utente disponibile</p>
+        </div>
+        <mat-list>
+          <mat-list-item *ngFor="let user of filteredUsers" (click)="selectUser(user)" [class.selected-row]="selectedUser?.id === user.id">
+            <mat-icon matListItemIcon>{{ selectedUser?.id === user.id ? 'check_circle' : 'person' }}</mat-icon>
+            <span matListItemTitle>{{ getUserLabel(user) }}</span>
+            <span matListItemLine>{{ user.email }}</span>
+          </mat-list-item>
+        </mat-list>
+      </div>
+      <div class="step-actions">
+        <button mat-button matStepperPrevious>Indietro</button>
+        <button mat-raised-button color="primary" (click)="confirm()" [disabled]="!selectedUser">Conferma</button>
+      </div>
+    </mat-step>
+
+    <!-- Step 2b: Nuovo utente -->
+    <mat-step label="Invita nuovo utente" *ngIf="createNew" [stepControl]="newUserForm">
+      <div class="step-content">
+        <form [formGroup]="newUserForm" class="invite-form">
+          <mat-form-field appearance="outline" class="full-width">
+            <mat-label>Email</mat-label>
+            <input matInput formControlName="email" type="email" placeholder="utente@esempio.com">
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Nome</mat-label>
+            <input matInput formControlName="name">
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Cognome</mat-label>
+            <input matInput formControlName="surname">
+          </mat-form-field>
+        </form>
+      </div>
+      <div class="step-actions">
+        <button mat-button matStepperPrevious>Indietro</button>
+        <button mat-raised-button color="primary" (click)="confirm()">Invia invito</button>
+      </div>
+    </mat-step>
+  </mat-stepper>
+</div>

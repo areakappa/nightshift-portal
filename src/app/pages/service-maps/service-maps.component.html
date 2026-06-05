@@ -1,0 +1,19 @@
+<div class="page-container">
+  <div class="page-header">
+    <div class="header-left">
+      <button mat-icon-button (click)="goBack()"><mat-icon>arrow_back</mat-icon></button>
+      <div><h1>Mappa servizio</h1><p>{{ service?.name }}</p></div>
+    </div>
+  </div>
+
+  <mat-card class="ns-card map-card" *ngIf="apiLoaded">
+    <google-map height="500px" width="100%" [center]="mapCenter" [zoom]="mapZoom" [options]="mapOptions">
+      <map-marker [position]="mapCenter" [options]="markerOptions"></map-marker>
+    </google-map>
+  </mat-card>
+
+  <div class="no-map" *ngIf="!apiLoaded">
+    <mat-icon>map</mat-icon>
+    <p>Google Maps API non configurata. Configurare la chiave API nell'ambiente.</p>
+  </div>
+</div>

@@ -1,0 +1,64 @@
+<div class="page-container wizard-container">
+  <div class="wizard-header">
+    <button mat-icon-button (click)="cancel()"><mat-icon>close</mat-icon></button>
+    <h1>Nuova organizzazione</h1>
+  </div>
+
+  <mat-stepper linear>
+    <mat-step label="Informazioni organizzazione" [stepControl]="infoForm">
+      <form [formGroup]="infoForm" class="step-content">
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Nome organizzazione</mat-label>
+          <input matInput formControlName="name">
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Ragione sociale</mat-label>
+          <input matInput formControlName="businessName">
+        </mat-form-field>
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Descrizione</mat-label>
+          <textarea matInput rows="3" formControlName="description"></textarea>
+        </mat-form-field>
+      </form>
+      <div class="step-actions">
+        <button mat-raised-button color="primary" matStepperNext (click)="saveInfo()" [disabled]="infoForm.invalid || isSaving">
+          <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
+          <span *ngIf="!isSaving">Crea e continua</span>
+        </button>
+      </div>
+    </mat-step>
+
+    <mat-step label="Invita collaboratori">
+      <div class="step-content">
+        <div class="add-email-row">
+          <mat-form-field appearance="outline" class="email-field">
+            <mat-label>Email collaboratore</mat-label>
+            <input matInput [(ngModel)]="newInviteEmail" type="email" (keyup.enter)="addInviteEmail()">
+          </mat-form-field>
+          <button mat-raised-button (click)="addInviteEmail()"><mat-icon>add</mat-icon></button>
+        </div>
+        <div class="email-chips">
+          <div class="email-chip" *ngFor="let email of inviteEmails; let i = index">
+            <mat-icon>email</mat-icon>{{ email }}
+            <button mat-icon-button (click)="removeEmail(i)"><mat-icon>close</mat-icon></button>
+          </div>
+        </div>
+      </div>
+      <div class="step-actions">
+        <button mat-button matStepperPrevious>Indietro</button>
+        <button mat-raised-button color="primary" matStepperNext (click)="sendInvites()">Invia inviti</button>
+      </div>
+    </mat-step>
+
+    <mat-step label="Completato">
+      <div class="step-content done-step">
+        <mat-icon class="done-icon">check_circle</mat-icon>
+        <h2>Organizzazione creata!</h2>
+        <p>{{ infoForm.value.name }} è pronta all'uso.</p>
+      </div>
+      <div class="step-actions">
+        <button mat-raised-button color="primary" (click)="finish()">Vai all'organizzazione</button>
+      </div>
+    </mat-step>
+  </mat-stepper>
+</div>

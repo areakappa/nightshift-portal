@@ -1,0 +1,20 @@
+.header-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.header-actions { display: flex; gap: 8px; }
+.invite-card { margin-bottom: 16px; }
+.invite-row { display: flex; align-items: center; gap: 12px; }
+.invite-field { flex: 1; }
+.cov-card { margin-bottom: 16px; }
+.cov-grid { display: grid; grid-template-columns: repeat(3, 1fr); text-align: center; }
+.cov-val { font-size: 28px; font-weight: 700; }
+.cov-label { font-size: 12px; color: var(--ns-text-secondary); }
+.search-field { width: 100%; max-width: 400px; margin-bottom: 16px; }
+.users-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.user-card mat-card-content { padding: 16px !important; }
+.user-header { display: flex; align-items: center; gap: 12px; }
+.user-avatar { width: 40px; height: 40px; border-radius: 50%; background: var(--ns-gradient); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; flex-shrink: 0; }
+.user-info { flex: 1; }
+.user-name { font-weight: 600; }
+.user-email { font-size: 12px; color: var(--ns-text-secondary); }
+.no-data { text-align: center; padding: 48px; color: var(--ns-text-secondary);
+  mat-icon { font-size: 56px; width: 56px; height: 56px; opacity: 0.3; display: block; margin: 0 auto 12px; } }

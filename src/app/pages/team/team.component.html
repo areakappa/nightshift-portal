@@ -1,0 +1,75 @@
+<div class="page-container">
+  <div class="page-header">
+    <div class="header-row">
+      <div><h1>Team</h1><p>Gestisci i membri dell'organizzazione</p></div>
+      <div class="header-actions">
+        <button mat-stroked-button (click)="showInviteForm = !showInviteForm">
+          <mat-icon>person_add</mat-icon> Invita utente
+        </button>
+        <button mat-raised-button color="primary" (click)="goToUserWizard()">
+          <mat-icon>add</mat-icon> Nuovo utente
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Invite form -->
+  <mat-card class="ns-card invite-card" *ngIf="showInviteForm">
+    <mat-card-content>
+      <div class="invite-row">
+        <mat-form-field appearance="outline" class="invite-field">
+          <mat-label>Email da invitare</mat-label>
+          <mat-icon matPrefix>email</mat-icon>
+          <input matInput [(ngModel)]="inviteEmail" type="email" placeholder="utente@esempio.com">
+        </mat-form-field>
+        <button mat-raised-button color="primary" (click)="inviteUser()" [disabled]="inviting || !inviteEmail">
+          <mat-spinner *ngIf="inviting" diameter="18"></mat-spinner>
+          <span *ngIf="!inviting">Invia invito</span>
+        </button>
+        <button mat-icon-button (click)="showInviteForm = false"><mat-icon>close</mat-icon></button>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Coverage info -->
+  <mat-card class="ns-card cov-card" *ngIf="teamCoverage">
+    <mat-card-content>
+      <div class="cov-grid">
+        <div class="cov-item"><div class="cov-val">{{ teamCoverage.totalRolesCoverage }}</div><div class="cov-label">Ruoli coperti</div></div>
+        <div class="cov-item"><div class="cov-val">{{ teamCoverage.totalRolesToCoverage }}</div><div class="cov-label">Totale ruoli</div></div>
+        <div class="cov-item"><div class="cov-val">{{ users.length }}</div><div class="cov-label">Totale utenti</div></div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Search -->
+  <mat-form-field appearance="outline" class="search-field">
+    <mat-label>Cerca membro</mat-label>
+    <mat-icon matPrefix>search</mat-icon>
+    <input matInput [(ngModel)]="searchText" (ngModelChange)="applyFilter()" placeholder="Nome, cognome, email...">
+  </mat-form-field>
+
+  <div class="loading-overlay" *ngIf="isLoading"><mat-spinner diameter="40"></mat-spinner></div>
+
+  <div class="no-data" *ngIf="!isLoading && filteredUsers.length === 0">
+    <mat-icon>group</mat-icon>
+    <p>Nessun membro nel team.</p>
+  </div>
+
+  <div class="users-grid" *ngIf="!isLoading && filteredUsers.length > 0">
+    <mat-card class="ns-card user-card" *ngFor="let user of filteredUsers">
+      <mat-card-content>
+        <div class="user-header">
+          <div class="user-avatar">{{ getInitials(user) }}</div>
+          <div class="user-info">
+            <div class="user-name">{{ user.name }} {{ user.surname }}</div>
+            <div class="user-email">{{ user.email }}</div>
+          </div>
+          <button mat-icon-button color="warn" (click)="removeUser(user)" title="Rimuovi dall'organizzazione">
+            <mat-icon>person_remove</mat-icon>
+          </button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

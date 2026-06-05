@@ -1,0 +1,15 @@
+.shell-container {
+  height: 100vh;
+}
+
+.shell-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.shell-main {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--ns-bg);
+}

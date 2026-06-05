@@ -1,0 +1,41 @@
+.header-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.role-badge-row { margin-bottom: 24px; }
+.role-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 600;
+  mat-icon { font-size: 16px; width: 16px; height: 16px; }
+  &.organizer { background: rgba(99,102,241,0.15); color: var(--ns-primary); }
+  &.operator  { background: rgba(139,92,246,0.15); color: var(--ns-secondary); }
+}
+
+.summary-card { margin-bottom: 24px; }
+.summary-grid { display: grid; grid-template-columns: repeat(2, 1fr); text-align: center; }
+.sum-val { font-size: 40px; font-weight: 700; &.low { color: var(--ns-danger); } &.full { color: var(--ns-success); } }
+.sum-label { font-size: 13px; color: var(--ns-text-secondary); }
+
+.section-title { margin: 0 0 16px; font-size: 1.1rem; font-weight: 600; }
+.services-list { display: flex; flex-direction: column; gap: 8px; }
+.service-row mat-card-content { padding: 12px 16px !important; }
+.service-row-inner { display: flex; align-items: center; gap: 16px; }
+.service-name { font-weight: 600; width: 200px; flex-shrink: 0; }
+.coverage-bar-wrap { flex: 1; display: flex; align-items: center; gap: 8px; }
+.coverage-bar { flex: 1; height: 8px; background: var(--ns-border); border-radius: 4px; overflow: hidden; }
+.coverage-fill { height: 100%; background: var(--ns-success); border-radius: 4px; transition: width 0.3s;
+  &.low { background: var(--ns-danger); } &.full { background: var(--ns-success); } }
+.cov-label { font-size: 12px; color: var(--ns-text-secondary); white-space: nowrap; }
+.pct-label { font-size: 13px; font-weight: 700; width: 40px; text-align: right; }
+
+.my-shift-row {
+  display: flex; align-items: center; gap: 16px; padding: 12px 0;
+  border-bottom: 1px solid var(--ns-border);
+  &:last-child { border-bottom: none; }
+}
+.shift-date-badge { width: 40px; height: 40px; border-radius: 8px; background: var(--ns-gradient); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; flex-shrink: 0; text-align: center; }
+.shift-details { flex: 1; }
+.shift-service { font-weight: 600; font-size: 14px; }
+.shift-role { font-size: 12px; color: var(--ns-text-secondary); }
+.shift-time { font-size: 13px; font-weight: 600; color: var(--ns-primary); white-space: nowrap; }
+
+.no-data { text-align: center; padding: 48px; color: var(--ns-text-secondary);
+  mat-icon { font-size: 56px; width: 56px; height: 56px; opacity: 0.3; display: block; margin: 0 auto 12px; } }

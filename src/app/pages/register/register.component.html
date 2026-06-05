@@ -1,0 +1,76 @@
+<div class="auth-page">
+  <div class="auth-left">
+    <div class="brand-banner">
+      <div class="brand-logo">NS</div>
+      <h1 class="brand-title">NightShift</h1>
+      <p class="brand-subtitle">Gestione turni intelligente</p>
+    </div>
+  </div>
+
+  <div class="auth-right">
+    <mat-card class="auth-card">
+      <mat-card-header>
+        <mat-card-title>Registrati</mat-card-title>
+        <mat-card-subtitle>Crea il tuo account NightShift</mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <div class="two-col">
+          <mat-form-field appearance="outline">
+            <mat-label>Nome</mat-label>
+            <input matInput [formControl]="name" placeholder="Mario">
+            <mat-error *ngIf="name.invalid">Nome obbligatorio</mat-error>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Cognome</mat-label>
+            <input matInput [formControl]="surname" placeholder="Rossi">
+            <mat-error *ngIf="surname.invalid">Cognome obbligatorio</mat-error>
+          </mat-form-field>
+        </div>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Email</mat-label>
+          <mat-icon matPrefix>email</mat-icon>
+          <input matInput [formControl]="email" type="email" placeholder="mario@esempio.com">
+          <mat-error *ngIf="email.hasError('required')">Email obbligatoria</mat-error>
+          <mat-error *ngIf="email.hasError('email')">Email non valida</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Password</mat-label>
+          <mat-icon matPrefix>lock</mat-icon>
+          <input matInput [formControl]="password" [type]="showPassword ? 'text' : 'password'" placeholder="Minimo 6 caratteri">
+          <button mat-icon-button matSuffix type="button" (click)="showPassword = !showPassword">
+            <mat-icon>{{ showPassword ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+          <mat-error *ngIf="password.hasError('required')">Password obbligatoria</mat-error>
+          <mat-error *ngIf="password.hasError('minlength')">Minimo 6 caratteri</mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="full-width">
+          <mat-label>Conferma Password</mat-label>
+          <mat-icon matPrefix>lock_outline</mat-icon>
+          <input matInput [formControl]="confirmPassword" [type]="showPassword ? 'text' : 'password'" placeholder="Ripeti la password">
+          <mat-error *ngIf="hasPasswordMismatch">Le password non coincidono</mat-error>
+        </mat-form-field>
+
+        <div class="privacy-row">
+          <mat-checkbox [(ngModel)]="privacy" color="primary">
+            Accetto i <a href="#" target="_blank">termini di servizio</a> e la <a href="#" target="_blank">privacy policy</a>
+          </mat-checkbox>
+        </div>
+
+        <button mat-raised-button color="primary" class="full-width submit-btn"
+          (click)="register()" [disabled]="submitProcess || !isFormValid() || !privacy">
+          <mat-spinner *ngIf="submitProcess" diameter="20" color="accent"></mat-spinner>
+          <span *ngIf="!submitProcess">Registrati</span>
+        </button>
+
+        <div class="login-section">
+          Hai già un account? <a class="link" (click)="goToLogin()">Accedi</a>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

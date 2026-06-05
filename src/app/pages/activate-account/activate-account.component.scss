@@ -1,0 +1,32 @@
+.activate-page {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--ns-gradient, linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%));
+}
+
+.activate-card {
+  width: 100%;
+  max-width: 440px;
+  border-radius: 16px !important;
+  margin: 24px;
+}
+
+.activate-inner { padding: 24px; text-align: center; }
+
+.state-loading {
+  p { color: var(--ns-text-secondary); margin-top: 16px; }
+}
+
+.state-icon {
+  font-size: 64px;
+  width: 64px;
+  height: 64px;
+  margin-bottom: 16px;
+  &.success { color: var(--ns-success, #10b981); }
+  &.error   { color: var(--ns-danger, #ef4444); }
+}
+
+h2 { margin: 0 0 8px; font-weight: 700; }
+p  { color: var(--ns-text-secondary); margin-bottom: 24px; }

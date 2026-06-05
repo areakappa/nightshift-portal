@@ -1,0 +1,35 @@
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+}
+
+.menu-btn { margin-right: 4px; }
+
+.topbar-brand {
+  font-size: 18px;
+  font-weight: 700;
+
+  .brand-gradient {
+    background: linear-gradient(90deg, #fff 0%, rgba(255,255,255,0.7) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .brand-suffix {
+    opacity: 0.7;
+    font-weight: 400;
+  }
+}
+
+.spacer { flex: 1; }
+
+.role-badge {
+  font-size: 12px;
+  background: rgba(255,255,255,0.15);
+  padding: 4px 10px;
+  border-radius: 12px;
+  margin-right: 8px;
+}

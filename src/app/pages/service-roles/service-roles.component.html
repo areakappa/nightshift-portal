@@ -1,0 +1,72 @@
+<div class="page-container">
+  <div class="page-header">
+    <div class="header-row">
+      <div class="header-left">
+        <button mat-icon-button (click)="goBack()"><mat-icon>arrow_back</mat-icon></button>
+        <div>
+          <h1>Ruoli servizio</h1>
+          <p>{{ service?.name }}</p>
+        </div>
+      </div>
+      <button mat-raised-button color="primary" (click)="showAddForm = !showAddForm">
+        <mat-icon>{{ showAddForm ? 'close' : 'add' }}</mat-icon> {{ showAddForm ? 'Annulla' : 'Aggiungi ruolo' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Add form -->
+  <mat-card class="ns-card add-form-card" *ngIf="showAddForm">
+    <mat-card-header><mat-card-title>Nuovo ruolo</mat-card-title></mat-card-header>
+    <mat-card-content>
+      <div class="form-row">
+        <mat-form-field appearance="outline">
+          <mat-label>Nome ruolo</mat-label>
+          <input matInput [formControl]="roleName" placeholder="Es. Infermiere">
+          <mat-error *ngIf="roleName.invalid">Nome obbligatorio</mat-error>
+        </mat-form-field>
+        <mat-form-field appearance="outline">
+          <mat-label>Minimo richiesto</mat-label>
+          <input matInput [formControl]="roleMinRequired" type="number" min="1">
+        </mat-form-field>
+      </div>
+      <mat-form-field appearance="outline" class="full-width">
+        <mat-label>Descrizione</mat-label>
+        <textarea matInput [formControl]="roleDescription" rows="2" placeholder="Mansioni e responsabilità..."></textarea>
+      </mat-form-field>
+      <button mat-raised-button color="primary" (click)="addRole()" [disabled]="savingRole || roleName.invalid">
+        <mat-spinner *ngIf="savingRole" diameter="18"></mat-spinner>
+        <span *ngIf="!savingRole">Salva ruolo</span>
+      </button>
+    </mat-card-content>
+  </mat-card>
+
+  <!-- Loading -->
+  <div class="loading-overlay" *ngIf="isLoading"><mat-spinner diameter="40"></mat-spinner></div>
+
+  <!-- Empty state -->
+  <div class="no-data" *ngIf="!isLoading && roles.length === 0">
+    <mat-icon>badge</mat-icon>
+    <p>Nessun ruolo configurato. Aggiungi il primo ruolo.</p>
+  </div>
+
+  <!-- Roles list -->
+  <div class="roles-grid" *ngIf="!isLoading && roles.length > 0">
+    <mat-card class="ns-card role-card" *ngFor="let role of roles">
+      <mat-card-content>
+        <div class="role-header">
+          <div class="role-avatar">{{ role.name?.charAt(0) ?? 'R' }}</div>
+          <div class="role-info">
+            <div class="role-name">{{ role.name }}</div>
+            <div class="role-desc">{{ role.description }}</div>
+          </div>
+          <div class="role-actions">
+            <span class="role-count">Min: {{ role.employeeNumber ?? 1 }}</span>
+            <button mat-icon-button color="warn" (click)="deleteRole(role)">
+              <mat-icon>delete_outline</mat-icon>
+            </button>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+</div>

@@ -1,0 +1,14 @@
+.wizard-container { max-width: 700px; }
+.wizard-header { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; h1 { margin: 0; } }
+.step-content { padding: 16px 0; display: flex; flex-direction: column; gap: 8px; }
+.step-actions { display: flex; gap: 8px; padding: 16px 0; }
+.full-width { width: 100%; }
+.add-email-row { display: flex; align-items: center; gap: 12px; .email-field { flex: 1; } }
+.email-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.email-chip { display: flex; align-items: center; gap: 6px; padding: 4px 8px 4px 12px; border-radius: 20px;
+  background: rgba(99,102,241,0.12); font-size: 13px;
+  mat-icon:first-child { font-size: 14px; width: 14px; height: 14px; color: var(--ns-primary); }
+  button { width: 24px; height: 24px; line-height: 24px; mat-icon { font-size: 14px; width: 14px; height: 14px; } }
+}
+.done-step { align-items: center; text-align: center; padding: 32px 0; }
+.done-icon { font-size: 64px; width: 64px; height: 64px; color: var(--ns-success); margin-bottom: 16px; }

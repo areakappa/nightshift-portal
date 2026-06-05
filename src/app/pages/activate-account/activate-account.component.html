@@ -1,0 +1,26 @@
+<div class="activate-page">
+  <mat-card class="activate-card">
+    <mat-card-content>
+      <div class="activate-inner">
+        <div *ngIf="loading" class="state-loading">
+          <mat-spinner diameter="48"></mat-spinner>
+          <p>Attivazione in corso...</p>
+        </div>
+
+        <div *ngIf="!loading && success" class="state-success">
+          <mat-icon class="state-icon success">check_circle</mat-icon>
+          <h2>Account attivato!</h2>
+          <p>Il tuo account è stato attivato con successo. Puoi ora effettuare l'accesso.</p>
+          <button mat-raised-button color="primary" (click)="goToLogin()">Vai al Login</button>
+        </div>
+
+        <div *ngIf="!loading && !success" class="state-error">
+          <mat-icon class="state-icon error">error_outline</mat-icon>
+          <h2>Attivazione non riuscita</h2>
+          <p>{{ error }}</p>
+          <button mat-raised-button color="primary" (click)="goToLogin()">Vai al Login</button>
+        </div>
+      </div>
+    </mat-card-content>
+  </mat-card>
+</div>

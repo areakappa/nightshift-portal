@@ -1,0 +1,22 @@
+@import '../login/login.component.scss';
+
+.two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+
+  mat-form-field { width: 100%; }
+}
+
+.privacy-row {
+  margin-bottom: 16px;
+  font-size: 13px;
+  a { color: var(--ns-primary); }
+}
+
+.login-section {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 14px;
+  color: var(--ns-text-secondary);
+}

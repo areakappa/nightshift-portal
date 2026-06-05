@@ -1,0 +1,78 @@
+<div class="page-container">
+  <div class="page-header">
+    <div class="header-row">
+      <div class="header-left">
+        <button mat-icon-button (click)="goBack()"><mat-icon>arrow_back</mat-icon></button>
+        <div><h1>Programmazione</h1><p>{{ service?.name }}</p></div>
+      </div>
+      <div class="view-controls">
+        <mat-chip-listbox [(ngModel)]="viewMode" (change)="loadShifts()">
+          <mat-chip-option value="day">Giorno</mat-chip-option>
+          <mat-chip-option value="week">Settimana</mat-chip-option>
+          <mat-chip-option value="month">Mese</mat-chip-option>
+        </mat-chip-listbox>
+      </div>
+    </div>
+  </div>
+
+  <!-- Navigation -->
+  <div class="nav-row">
+    <button mat-icon-button (click)="prevPeriod()"><mat-icon>chevron_left</mat-icon></button>
+    <span class="period-label">{{ selectedDate | date:'MMMM yyyy':'':'it' }}</span>
+    <button mat-icon-button (click)="nextPeriod()"><mat-icon>chevron_right</mat-icon></button>
+    <button mat-stroked-button (click)="goToToday()">Oggi</button>
+  </div>
+
+  <div class="loading-overlay" *ngIf="isLoading"><mat-spinner diameter="40"></mat-spinner></div>
+
+  <!-- Week view -->
+  <div class="week-grid" *ngIf="!isLoading && viewMode === 'week'">
+    <div class="day-col" *ngFor="let day of getWeekDays()" [class.today]="isToday(day)">
+      <div class="day-header">{{ formatDay(day) }}</div>
+      <div class="shift-item" *ngFor="let shift of getShiftsForDate(day)">
+        <div class="shift-name">{{ shift.nameEmployee ?? '—' }}</div>
+        <div class="shift-role">{{ shift.role ?? shift.roleName ?? shift.serviceRole }}</div>
+        <div class="shift-time">{{ shift.startDateTime | date:'HH:mm' }} – {{ shift.endDateTime | date:'HH:mm' }}</div>
+      </div>
+      <div class="no-shifts" *ngIf="getShiftsForDate(day).length === 0">
+        <mat-icon>remove</mat-icon>
+      </div>
+    </div>
+  </div>
+
+  <!-- Day view -->
+  <div class="day-view" *ngIf="!isLoading && viewMode === 'day'">
+    <mat-card class="ns-card shift-card" *ngFor="let shift of getShiftsForDate(selectedDate)">
+      <mat-card-content>
+        <div class="shift-row">
+          <mat-icon>person</mat-icon>
+          <div>
+            <div class="shift-person">{{ shift.nameEmployee ?? '—' }}</div>
+            <div class="shift-info">{{ shift.role ?? shift.roleName ?? shift.serviceRole }}</div>
+            <div class="shift-time-tag">{{ shift.startDateTime | date:'HH:mm' }} – {{ shift.endDateTime | date:'HH:mm' }}</div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+    <div class="no-data" *ngIf="getShiftsForDate(selectedDate).length === 0">
+      <mat-icon>event_busy</mat-icon><p>Nessun turno per questo giorno</p>
+    </div>
+  </div>
+
+  <!-- Month view - simplified list -->
+  <div class="month-list" *ngIf="!isLoading && viewMode === 'month'">
+    <mat-card class="ns-card" *ngIf="shifts.length > 0">
+      <mat-card-content>
+        <div class="shift-row-item" *ngFor="let shift of shifts">
+          <span class="shift-date">{{ shift.startDateTime | date:'d/M' }}</span>
+          <span class="shift-person">{{ shift.nameEmployee ?? '—' }}</span>
+          <span class="shift-role">{{ shift.role ?? shift.roleName ?? shift.serviceRole }}</span>
+          <span class="shift-time-sm">{{ shift.startDateTime | date:'HH:mm' }}</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+    <div class="no-data" *ngIf="shifts.length === 0">
+      <mat-icon>event_busy</mat-icon><p>Nessun turno in questo mese</p>
+    </div>
+  </div>
+</div>

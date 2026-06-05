@@ -1,0 +1,20 @@
+<mat-toolbar class="ns-toolbar topbar">
+  <button mat-icon-button class="menu-btn" (click)="menuToggle.emit()">
+    <mat-icon>menu</mat-icon>
+  </button>
+
+  <div class="topbar-brand">
+    <span class="brand-gradient">NightShift</span>
+    <span class="brand-suffix">&nbsp;Portal</span>
+  </div>
+
+  <span class="spacer"></span>
+
+  <span class="role-badge" *ngIf="currentRole$ | async as role">
+    {{ role === 'organizer' ? '👤 Organizzatore' : '🔧 Operatore' }}
+  </span>
+
+  <a mat-icon-button routerLink="/notifications" matBadge="!" matBadgeColor="warn" matBadgeSize="small">
+    <mat-icon>notifications</mat-icon>
+  </a>
+</mat-toolbar>

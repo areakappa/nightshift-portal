@@ -1,0 +1,4 @@
+.header-left { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; }
+.map-card { overflow: hidden; }
+.no-map { text-align: center; padding: 64px; color: var(--ns-text-secondary);
+  mat-icon { font-size: 64px; width: 64px; height: 64px; opacity: 0.3; display: block; margin: 0 auto 12px; } }
