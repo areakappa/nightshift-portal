@@ -86,7 +86,14 @@ export class ServiceDetailComponent implements OnInit {
     goToShifts(): void { this.router.navigateByUrl('/service-shifts', { state: { service: JSON.stringify(this.service) } }); }
     goToSchedule(): void { this.router.navigateByUrl('/service-schedule', { state: { service: JSON.stringify(this.service) } }); }
     goToMaps(): void { this.router.navigateByUrl('/service-maps', { state: { service: JSON.stringify(this.service) } }); }
-    goToTeam(): void { this.router.navigateByUrl('/wizard/team', { state: { service: JSON.stringify(this.service) } }); }
+    goToTeam(): void {
+        const state = {
+            service: JSON.stringify(this.service),
+            returnToServiceDetail: true
+        };
+        const hasActiveTeam = !!(this.service?.idteam || this.service?.team?.id);
+        this.router.navigateByUrl(hasActiveTeam ? '/team' : '/wizard/team', { state });
+    }
 
     getDate(d: string): string { return d ? new Date(d).toLocaleDateString('it-IT') : '—'; }
     getCoveragePct(): number {

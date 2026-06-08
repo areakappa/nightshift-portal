@@ -1,7 +1,12 @@
 <div class="page-container">
   <div class="page-header">
     <div class="header-row">
-      <div><h1>Team</h1><p>Configura le persone assegnate ai ruoli di ogni servizio</p></div>
+      <div class="header-copy">
+        <button mat-icon-button *ngIf="returnToServiceDetail" (click)="goBack()" aria-label="Torna al servizio">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        <div><h1>Team</h1><p>Configura le persone assegnate ai ruoli di ogni servizio</p></div>
+      </div>
       <div class="header-actions">
         <button mat-stroked-button color="primary" (click)="goToTeamWizard()" [disabled]="!selectedServiceId">
           <mat-icon>group_add</mat-icon> Configura team servizi
@@ -10,12 +15,17 @@
     </div>
   </div>
 
-  <mat-form-field appearance="outline" class="service-field">
+  <mat-form-field appearance="outline" class="service-field" *ngIf="!returnToServiceDetail">
     <mat-label>Servizio</mat-label>
     <mat-select [(ngModel)]="selectedServiceId" (ngModelChange)="onServiceSelected()">
       <mat-option *ngFor="let item of services" [value]="item.id">{{ item.name }}</mat-option>
     </mat-select>
   </mat-form-field>
+
+  <div class="context-service" *ngIf="returnToServiceDetail && service">
+    <span>Servizio</span>
+    <strong>{{ service.name }}</strong>
+  </div>
 
   <!-- Coverage info -->
   <mat-card class="ns-card cov-card" *ngIf="teamCoverage">

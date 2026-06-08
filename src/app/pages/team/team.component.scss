@@ -1,6 +1,10 @@
 .header-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.header-copy { display: flex; align-items: flex-start; gap: 8px; }
+.header-copy h1 { margin-top: 0; }
 .header-actions { display: flex; gap: 8px; }
 .service-field { width: 100%; max-width: 520px; }
+.context-service { display: flex; flex-direction: column; gap: 4px; margin-bottom: 20px; color: var(--ns-text-secondary);
+  span { font-size: 12px; } strong { color: var(--ns-text-primary); font-size: 18px; } }
 .roles-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 20px; }
 .role-card mat-card-content { padding: 18px !important; }
 .role-header { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 14px;

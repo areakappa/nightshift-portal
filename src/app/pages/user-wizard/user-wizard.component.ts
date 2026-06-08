@@ -49,6 +49,7 @@ export class UserWizardComponent implements OnInit {
     inviteEmail = '';
     inviteName = '';
     inviteSurname = '';
+    returnToServiceDetail = false;
 
     typeForm: FormGroup;
     newUserForm: FormGroup;
@@ -76,6 +77,7 @@ export class UserWizardComponent implements OnInit {
         this.serviceSelected = this.tryParse(state.service);
         this.rolesSnapshot = this.tryParse(state.roles) ?? [];
         this.users = this.tryParse(state.organizationUsers) ?? [];
+        this.returnToServiceDetail = state.returnToServiceDetail === true;
     }
 
     async ngOnInit(): Promise<void> {
@@ -181,7 +183,8 @@ export class UserWizardComponent implements OnInit {
             state: {
                 service: JSON.stringify(this.serviceSelected),
                 organizationUsers: JSON.stringify(this.users),
-                roles: JSON.stringify(this.rolesSnapshot)
+                roles: JSON.stringify(this.rolesSnapshot),
+                returnToServiceDetail: this.returnToServiceDetail
             }
         });
     }

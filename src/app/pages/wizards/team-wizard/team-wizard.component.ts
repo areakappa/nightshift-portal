@@ -40,6 +40,7 @@ export class TeamWizardComponent implements OnInit {
     roles: TeamRoleSetup[] = [];
     teamCoverage: TeamCoverage | null = null;
     assignments = new Map<number, number[]>();
+    returnToServiceDetail = false;
 
     constructor(
         private orgService: OrganizationService,
@@ -50,6 +51,7 @@ export class TeamWizardComponent implements OnInit {
         private cdr: ChangeDetectorRef
     ) {
         this.service = this.parseState<ServiceDTO>(history.state?.service);
+        this.returnToServiceDetail = history.state?.returnToServiceDetail === true;
     }
 
     async ngOnInit(): Promise<void> {
@@ -174,13 +176,11 @@ export class TeamWizardComponent implements OnInit {
     }
 
     private finish(): void {
-        this.router.navigateByUrl('/team', { state: { service: JSON.stringify(this.service) } });
+        this.navigateBack();
     }
 
     cancel(): void {
-        this.router.navigateByUrl('/team', {
-            state: this.service ? { service: JSON.stringify(this.service) } : undefined
-        });
+        this.navigateBack();
     }
 
     getUserLabel(user: UserDto): string {
@@ -213,5 +213,12 @@ export class TeamWizardComponent implements OnInit {
         if (!value) return null;
         if (typeof value !== 'string') return value as T;
         try { return JSON.parse(value) as T; } catch { return null; }
+    }
+
+    private navigateBack(): void {
+        const target = this.returnToServiceDetail ? '/service-detail' : '/team';
+        this.router.navigateByUrl(target, {
+            state: this.service ? { service: JSON.stringify(this.service) } : undefined
+        });
     }
 }

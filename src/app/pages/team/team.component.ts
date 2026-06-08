@@ -55,6 +55,7 @@ export class TeamComponent implements OnInit {
     isLoading = false;
     isSaving = false;
     searchText = '';
+    returnToServiceDetail = false;
 
     constructor(
         private organizationService: OrganizationService,
@@ -67,6 +68,7 @@ export class TeamComponent implements OnInit {
     ) {
         const state = history.state;
         if (state?.service) { try { this.service = JSON.parse(state.service); } catch { } }
+        this.returnToServiceDetail = state?.returnToServiceDetail === true;
         if (state?.organizationUsers) { try { this.users = JSON.parse(state.organizationUsers); this.filteredUsers = [...this.users]; } catch { } }
         if (state?.roles) { try { this.roles = JSON.parse(state.roles); } catch { } }
     }
@@ -149,9 +151,20 @@ export class TeamComponent implements OnInit {
                 teamCoverage: JSON.stringify(this.teamCoverage),
                 teamRole: JSON.stringify(roleCoverage),
                 organizationUsers: JSON.stringify(this.users),
-                roles: JSON.stringify(this.roles)
+                roles: JSON.stringify(this.roles),
+                returnToServiceDetail: this.returnToServiceDetail
             }
         });
+    }
+
+    goBack(): void {
+        if (this.returnToServiceDetail && this.service) {
+            this.router.navigateByUrl('/service-detail', {
+                state: { service: JSON.stringify(this.service) }
+            });
+            return;
+        }
+        this.router.navigate(['/services']);
     }
 
     removeLocalAssignee(role: TeamRoleView, user: UserDto): void {
@@ -199,7 +212,12 @@ export class TeamComponent implements OnInit {
             this.snackBar.open('Seleziona prima un servizio', 'Chiudi', { duration: 2500 });
             return;
         }
-        this.router.navigateByUrl('/wizard/team', { state: this.service ? { service: JSON.stringify(this.service) } : undefined });
+        this.router.navigateByUrl('/wizard/team', {
+            state: this.service ? {
+                service: JSON.stringify(this.service),
+                returnToServiceDetail: this.returnToServiceDetail
+            } : undefined
+        });
     }
 
     private async loadServiceTeam(preserveLocalRoles: boolean): Promise<void> {
