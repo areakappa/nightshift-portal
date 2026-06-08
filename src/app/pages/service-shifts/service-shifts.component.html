@@ -3,68 +3,93 @@
     <div class="header-row">
       <div class="header-left">
         <button mat-icon-button (click)="goBack()"><mat-icon>arrow_back</mat-icon></button>
-        <div><h1>Turni servizio</h1><p>{{ service?.name }}</p></div>
+        <div><h1>Giorni e orari</h1><p>{{ service?.name }}</p></div>
       </div>
-      <button mat-raised-button color="primary" (click)="showAddForm = !showAddForm">
-        <mat-icon>{{ showAddForm ? 'close' : 'add' }}</mat-icon>
-        {{ showAddForm ? 'Annulla' : 'Aggiungi turno' }}
+      <button mat-raised-button color="primary" (click)="save()" [disabled]="isSaving || isLoading">
+        <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
+        <mat-icon *ngIf="!isSaving">save</mat-icon>
+        {{ isSaving ? 'Salvataggio...' : 'Salva configurazione' }}
       </button>
     </div>
   </div>
 
-  <mat-card class="ns-card add-form-card" *ngIf="showAddForm">
-    <mat-card-header><mat-card-title>Nuovo turno</mat-card-title></mat-card-header>
-    <mat-card-content>
-      <div class="form-row">
-        <mat-form-field appearance="outline">
-          <mat-label>Nome turno</mat-label>
-          <input matInput [formControl]="shiftName" placeholder="Es. Mattina">
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>Inizio</mat-label>
-          <input matInput [formControl]="shiftStart" type="time">
-        </mat-form-field>
-        <mat-form-field appearance="outline">
-          <mat-label>Fine</mat-label>
-          <input matInput [formControl]="shiftEnd" type="time">
-        </mat-form-field>
-      </div>
-      <button mat-raised-button color="primary" (click)="addShift()" [disabled]="savingShift">
-        <mat-spinner *ngIf="savingShift" diameter="18"></mat-spinner>
-        <span *ngIf="!savingShift">Salva turno</span>
-      </button>
-    </mat-card-content>
-  </mat-card>
-
   <div class="loading-overlay" *ngIf="isLoading"><mat-spinner diameter="40"></mat-spinner></div>
 
-  <div class="no-data" *ngIf="!isLoading && shifts.length === 0">
-    <mat-icon>access_time</mat-icon>
-    <p>Nessun turno configurato. Aggiungi il primo tipo di turno.</p>
-  </div>
+  <ng-container *ngIf="!isLoading">
+    <mat-card class="ns-card hours-card">
+      <mat-card-content>
+        <div class="hours-title">Ore settimanali</div>
+        <p>Il totale configurato non dovrebbe superare quello contrattuale.</p>
+        <div class="hours-row">
+          <div>
+            <span>Ore configurate</span>
+            <strong>{{ totalConfiguredHours | number:'1.0-2' }}h</strong>
+          </div>
+          <mat-progress-bar
+            mode="determinate"
+            [value]="contractHours ? (totalConfiguredHours / contractHours) * 100 : 0">
+          </mat-progress-bar>
+        </div>
+        <div class="hours-foot">
+          <span>Contratto: {{ contractHours }}h</span>
+          <span [class.warning]="residualHours < 0">Residuo: {{ residualHours | number:'1.0-2' }}h</span>
+        </div>
+      </mat-card-content>
+    </mat-card>
 
-  <mat-card class="ns-card shifts-table-card" *ngIf="!isLoading && shifts.length > 0">
-    <table mat-table [dataSource]="shifts" class="shifts-table">
-      <ng-container matColumnDef="name">
-        <th mat-header-cell *matHeaderCellDef>Nome</th>
-        <td mat-cell *matCellDef="let shift">{{ shift.name }}</td>
-      </ng-container>
-      <ng-container matColumnDef="start">
-        <th mat-header-cell *matHeaderCellDef>Inizio</th>
-        <td mat-cell *matCellDef="let shift">{{ formatTime(shift.startTime) }}</td>
-      </ng-container>
-      <ng-container matColumnDef="end">
-        <th mat-header-cell *matHeaderCellDef>Fine</th>
-        <td mat-cell *matCellDef="let shift">{{ formatTime(shift.endTime) }}</td>
-      </ng-container>
-      <ng-container matColumnDef="actions">
-        <th mat-header-cell *matHeaderCellDef></th>
-        <td mat-cell *matCellDef="let shift">
-          <button mat-icon-button color="warn"><mat-icon>delete_outline</mat-icon></button>
-        </td>
-      </ng-container>
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-    </table>
-  </mat-card>
+    <mat-card class="ns-card preset-card">
+      <mat-card-content>
+        <div>
+          <span class="field-label">Preset contratto</span>
+          <mat-form-field appearance="outline">
+            <mat-select [(ngModel)]="selectedPresetId" (selectionChange)="onPresetChange()">
+              <mat-option *ngFor="let preset of presets" [value]="preset.id">{{ preset.name }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-chip-set>
+            <mat-chip *ngFor="let range of selectedPreset.defaultRanges">{{ fmtRange(range) }}</mat-chip>
+          </mat-chip-set>
+        </div>
+        <button mat-stroked-button color="primary" (click)="applySelectedPreset()">Applica</button>
+      </mat-card-content>
+    </mat-card>
+
+    <h2 class="section-title">Settimana</h2>
+    <div class="days-grid">
+      <mat-card class="ns-card day-card" *ngFor="let day of days" [class.disabled]="!day.enabled">
+        <mat-card-content>
+          <div class="day-head">
+            <div>
+              <h3>{{ day.label }}</h3>
+              <span *ngIf="day.enabled">{{ dayHours(day) | number:'1.0-2' }}h</span>
+              <span *ngIf="!day.enabled">Riposo</span>
+            </div>
+            <div class="day-actions">
+              <mat-slide-toggle [checked]="day.enabled" (change)="toggleDay(day)"></mat-slide-toggle>
+              <button mat-icon-button (click)="toggleExpanded(day)" [disabled]="!day.enabled">
+                <mat-icon>{{ day.expanded ? 'expand_less' : 'expand_more' }}</mat-icon>
+              </button>
+            </div>
+          </div>
+
+          <mat-chip-set class="range-chips" *ngIf="day.enabled && day.ranges.length">
+            <mat-chip *ngFor="let range of day.ranges">{{ fmtRange(range) }}</mat-chip>
+          </mat-chip-set>
+
+          <div class="day-editor" *ngIf="day.enabled && day.expanded">
+            <div class="range-row" *ngFor="let range of day.ranges; let index = index">
+              <input type="time" [value]="fmtTime(range.start)" (change)="updateTime(day, index, 'start', $any($event.target).value)">
+              <span>–</span>
+              <input type="time" [value]="fmtTime(range.end)" (change)="updateTime(day, index, 'end', $any($event.target).value)">
+              <button mat-icon-button color="warn" (click)="removeRange(day, index)"><mat-icon>delete_outline</mat-icon></button>
+            </div>
+            <button mat-stroked-button (click)="addRange(day)" [disabled]="day.ranges.length >= 2">
+              <mat-icon>add</mat-icon> Aggiungi fascia
+            </button>
+            <div class="day-error" *ngIf="dayErrors[day.key]">{{ dayErrors[day.key] }}</div>
+          </div>
+        </mat-card-content>
+      </mat-card>
+    </div>
+  </ng-container>
 </div>

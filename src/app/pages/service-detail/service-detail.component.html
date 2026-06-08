@@ -61,17 +61,17 @@
       <mat-card class="ns-card action-card" (click)="goToShifts()">
         <mat-card-content>
           <mat-icon class="action-icon">access_time</mat-icon>
-          <div class="action-title">Turni</div>
-          <div class="action-desc">Configura i tipi di turno</div>
-          <div class="action-count">{{ service.serviceShifts?.length ?? 0 }} turni</div>
+          <div class="action-title">Giorni e orari</div>
+          <div class="action-desc">Configura la settimana del servizio</div>
+          <div class="action-count">{{ service.serviceShifts?.length ?? 0 }} giorni configurati</div>
         </mat-card-content>
       </mat-card>
 
       <mat-card class="ns-card action-card" (click)="goToSchedule()">
         <mat-card-content>
           <mat-icon class="action-icon">calendar_month</mat-icon>
-          <div class="action-title">Programmazione</div>
-          <div class="action-desc">Visualizza e gestisci il calendario</div>
+          <div class="action-title">Generazione turni</div>
+          <div class="action-desc">Genera ora o pianifica automaticamente</div>
         </mat-card-content>
       </mat-card>
 

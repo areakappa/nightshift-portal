@@ -1,78 +1,186 @@
 <div class="page-container">
   <div class="page-header">
-    <div class="header-row">
-      <div class="header-left">
-        <button mat-icon-button (click)="goBack()"><mat-icon>arrow_back</mat-icon></button>
-        <div><h1>Programmazione</h1><p>{{ service?.name }}</p></div>
-      </div>
-      <div class="view-controls">
-        <mat-chip-listbox [(ngModel)]="viewMode" (change)="loadShifts()">
-          <mat-chip-option value="day">Giorno</mat-chip-option>
-          <mat-chip-option value="week">Settimana</mat-chip-option>
-          <mat-chip-option value="month">Mese</mat-chip-option>
-        </mat-chip-listbox>
+    <div class="header-left">
+      <button mat-icon-button (click)="goBack()"><mat-icon>arrow_back</mat-icon></button>
+      <div>
+        <h1>Generazione turni</h1>
+        <p>{{ service?.name }}</p>
       </div>
     </div>
   </div>
 
-  <!-- Navigation -->
-  <div class="nav-row">
-    <button mat-icon-button (click)="prevPeriod()"><mat-icon>chevron_left</mat-icon></button>
-    <span class="period-label">{{ selectedDate | date:'MMMM yyyy':'':'it' }}</span>
-    <button mat-icon-button (click)="nextPeriod()"><mat-icon>chevron_right</mat-icon></button>
-    <button mat-stroked-button (click)="goToToday()">Oggi</button>
+  <div class="hero">
+    <h2>Configura come e quando generare</h2>
+    <p>La modalità manuale genera subito il periodo scelto. Quella automatica pianifica la generazione futura.</p>
   </div>
 
-  <div class="loading-overlay" *ngIf="isLoading"><mat-spinner diameter="40"></mat-spinner></div>
+  <div class="loading-overlay" *ngIf="isLoadingAutomation"><mat-spinner diameter="40"></mat-spinner></div>
 
-  <!-- Week view -->
-  <div class="week-grid" *ngIf="!isLoading && viewMode === 'week'">
-    <div class="day-col" *ngFor="let day of getWeekDays()" [class.today]="isToday(day)">
-      <div class="day-header">{{ formatDay(day) }}</div>
-      <div class="shift-item" *ngFor="let shift of getShiftsForDate(day)">
-        <div class="shift-name">{{ shift.nameEmployee ?? '—' }}</div>
-        <div class="shift-role">{{ shift.role ?? shift.roleName ?? shift.serviceRole }}</div>
-        <div class="shift-time">{{ shift.startDateTime | date:'HH:mm' }} – {{ shift.endDateTime | date:'HH:mm' }}</div>
-      </div>
-      <div class="no-shifts" *ngIf="getShiftsForDate(day).length === 0">
-        <mat-icon>remove</mat-icon>
-      </div>
-    </div>
-  </div>
-
-  <!-- Day view -->
-  <div class="day-view" *ngIf="!isLoading && viewMode === 'day'">
-    <mat-card class="ns-card shift-card" *ngFor="let shift of getShiftsForDate(selectedDate)">
+  <ng-container *ngIf="!isLoadingAutomation">
+    <mat-card class="ns-card">
+      <mat-card-header>
+        <mat-card-title>Modalità</mat-card-title>
+        <mat-card-subtitle>Decidi se il sistema genera da solo o se lo fai tu</mat-card-subtitle>
+      </mat-card-header>
       <mat-card-content>
-        <div class="shift-row">
-          <mat-icon>person</mat-icon>
-          <div>
-            <div class="shift-person">{{ shift.nameEmployee ?? '—' }}</div>
-            <div class="shift-info">{{ shift.role ?? shift.roleName ?? shift.serviceRole }}</div>
-            <div class="shift-time-tag">{{ shift.startDateTime | date:'HH:mm' }} – {{ shift.endDateTime | date:'HH:mm' }}</div>
+        <mat-chip-listbox [value]="mode" (change)="onModeChanged($event.value)">
+          <mat-chip-option value="manual">Manuale</mat-chip-option>
+          <mat-chip-option value="auto">Automatica</mat-chip-option>
+        </mat-chip-listbox>
+
+        <div class="info-banner" *ngIf="mode === 'manual'">
+          <div class="info-title"><mat-icon>info</mat-icon> Generazione manuale</div>
+          <p>Seleziona il periodo da coprire e genera i turni immediatamente.</p>
+
+          <mat-form-field appearance="outline">
+            <mat-label>Periodo da generare</mat-label>
+            <mat-select [(ngModel)]="generationPeriodSelection">
+              <mat-option value="automatic" *ngIf="hasActiveShiftAutomation">Automatico (da configurazione)</mat-option>
+              <mat-option value="current_week">Settimana corrente (lun-dom)</mat-option>
+              <mat-option value="next_week">Settimana prossima</mat-option>
+              <mat-option value="current_month">Mese corrente</mat-option>
+              <mat-option value="next_month">Mese prossimo</mat-option>
+              <mat-option value="custom">Date personalizzate</mat-option>
+            </mat-select>
+          </mat-form-field>
+
+          <div class="form-grid" *ngIf="generationPeriodSelection === 'custom'">
+            <mat-form-field appearance="outline">
+              <mat-label>Data inizio</mat-label>
+              <input matInput type="date" [(ngModel)]="customStartDate">
+            </mat-form-field>
+            <mat-form-field appearance="outline">
+              <mat-label>Data fine</mat-label>
+              <input matInput type="date" [(ngModel)]="customEndDate">
+            </mat-form-field>
+          </div>
+
+          <button mat-raised-button color="primary" (click)="generateNow()" [disabled]="isGenerating">
+            <mat-spinner *ngIf="isGenerating" diameter="18"></mat-spinner>
+            <mat-icon *ngIf="!isGenerating">auto_awesome</mat-icon>
+            {{ isGenerating ? 'Generazione in corso...' : 'Genera ora' }}
+          </button>
+        </div>
+
+        <div class="automation-pill" *ngIf="mode === 'auto'">
+          <mat-icon>sparkles</mat-icon>
+          La generazione automatica verrà eseguita secondo le regole sotto.
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="ns-card" *ngIf="mode === 'auto'">
+      <mat-card-header>
+        <mat-card-title>Periodo</mat-card-title>
+        <mat-card-subtitle>Definisce l'orizzonte di turnazione</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <mat-chip-listbox [value]="period" (change)="onPeriodChanged($event.value)">
+          <mat-chip-option value="weekly">Settimanale</mat-chip-option>
+          <mat-chip-option value="monthly">Mensile</mat-chip-option>
+        </mat-chip-listbox>
+        <p class="hint">Mensile copre il mese intero; settimanale copre la settimana.</p>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="ns-card" *ngIf="mode === 'auto'">
+      <mat-card-header>
+        <mat-card-title>Quando eseguire la generazione</mat-card-title>
+        <mat-card-subtitle>Regola l'esecuzione prima dell'inizio del periodo</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="form-grid" *ngIf="period === 'weekly'">
+          <mat-form-field appearance="outline">
+            <mat-label>Giorno esecuzione</mat-label>
+            <mat-select [(ngModel)]="autoWeekly.runAtWeekday">
+              <mat-option *ngFor="let weekday of weekdays" [value]="weekday.value">{{ weekday.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Ora</mat-label>
+            <input matInput type="time" [(ngModel)]="autoWeekly.runAtTime">
+          </mat-form-field>
+        </div>
+
+        <div class="form-grid" *ngIf="period === 'monthly'">
+          <mat-form-field appearance="outline">
+            <mat-label>Regola mensile</mat-label>
+            <mat-select [(ngModel)]="monthlyRuleType">
+              <mat-option value="last_weekday">Ultimo giorno della settimana del mese</mat-option>
+              <mat-option value="last_day">Ultimo giorno del mese</mat-option>
+              <mat-option value="nth_weekday">N-esimo giorno della settimana</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" *ngIf="monthlyRuleType === 'last_weekday'">
+            <mat-label>Quale giorno?</mat-label>
+            <mat-select [(ngModel)]="monthlyLastWeekday">
+              <mat-option *ngFor="let weekday of weekdays" [value]="weekday.value">{{ weekday.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" *ngIf="monthlyRuleType === 'nth_weekday'">
+            <mat-label>N</mat-label>
+            <mat-select [(ngModel)]="monthlyNth">
+              <mat-option *ngFor="let nth of [1, 2, 3, 4]" [value]="nth">{{ nth }}°</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline" *ngIf="monthlyRuleType === 'nth_weekday'">
+            <mat-label>Giorno</mat-label>
+            <mat-select [(ngModel)]="monthlyNthWeekday">
+              <mat-option *ngFor="let weekday of weekdays" [value]="weekday.value">{{ weekday.label }}</mat-option>
+            </mat-select>
+          </mat-form-field>
+          <mat-form-field appearance="outline">
+            <mat-label>Ora</mat-label>
+            <input matInput type="time" [(ngModel)]="autoMonthly.runAtTime">
+          </mat-form-field>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="ns-card summary-card" *ngIf="mode === 'auto'">
+      <mat-card-content>
+        <div>
+          <strong>Riepilogo</strong>
+          <p>{{ summaryText }}</p>
+        </div>
+        <button mat-raised-button color="primary" (click)="save()" [disabled]="isSaving">
+          <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
+          <mat-icon *ngIf="!isSaving">save</mat-icon>
+          {{ isSaving ? 'Salvataggio...' : 'Salva impostazioni' }}
+        </button>
+      </mat-card-content>
+    </mat-card>
+
+    <mat-card class="ns-card report-card" *ngIf="generationReport">
+      <mat-card-header>
+        <mat-card-title>Report generazione</mat-card-title>
+        <mat-card-subtitle>{{ generationReport.globalMessage }}</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="report-final-status" [attr.data-tone]="getGenerationFinalStatusTone(generationReport)">
+          <strong>{{ generationReport.finalStatusLabel }}</strong>
+          <span>Completamento: {{ generationReport.completionRate }}% · Incongruenze: {{ generationReport.inconsistencies }}</span>
+        </div>
+        <p class="period-label" *ngIf="generationReport.periodLabel">Periodo: {{ generationReport.periodLabel }}</p>
+        <div class="report-stats">
+          <div class="report-stat success">OK: {{ generationReport.success }}</div>
+          <div class="report-stat warning">Attenzione: {{ generationReport.warnings }}</div>
+          <div class="report-stat error">Errori: {{ generationReport.errors }}</div>
+          <div class="report-stat">Totale: {{ generationReport.total }}</div>
+        </div>
+        <div class="report-items">
+          <div class="report-item" *ngFor="let item of generationReport.items">
+            <div class="report-item-top">
+              <strong>#{{ item.index }}</strong>
+              <span [attr.data-status]="item.status">{{ getGenerationReportStatusLabel(item.status) }}</span>
+            </div>
+            <div>{{ item.date }} · {{ item.startTime }}-{{ item.endTime }}</div>
+            <div>Ruolo: {{ item.role }}</div>
+            <div>Assegnato a: {{ item.assignee }}</div>
+            <p>{{ item.message }}</p>
           </div>
         </div>
       </mat-card-content>
     </mat-card>
-    <div class="no-data" *ngIf="getShiftsForDate(selectedDate).length === 0">
-      <mat-icon>event_busy</mat-icon><p>Nessun turno per questo giorno</p>
-    </div>
-  </div>
-
-  <!-- Month view - simplified list -->
-  <div class="month-list" *ngIf="!isLoading && viewMode === 'month'">
-    <mat-card class="ns-card" *ngIf="shifts.length > 0">
-      <mat-card-content>
-        <div class="shift-row-item" *ngFor="let shift of shifts">
-          <span class="shift-date">{{ shift.startDateTime | date:'d/M' }}</span>
-          <span class="shift-person">{{ shift.nameEmployee ?? '—' }}</span>
-          <span class="shift-role">{{ shift.role ?? shift.roleName ?? shift.serviceRole }}</span>
-          <span class="shift-time-sm">{{ shift.startDateTime | date:'HH:mm' }}</span>
-        </div>
-      </mat-card-content>
-    </mat-card>
-    <div class="no-data" *ngIf="shifts.length === 0">
-      <mat-icon>event_busy</mat-icon><p>Nessun turno in questo mese</p>
-    </div>
-  </div>
+  </ng-container>
 </div>
