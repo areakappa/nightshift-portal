@@ -159,6 +159,7 @@ export class TeamWizardComponent implements OnInit {
         if (!this.selectedServiceId) return;
 
         this.teamCoverage = await this.servicesService.getTeamServiceRoles(this.selectedServiceId);
+        const selectedService = this.services.find(service => service.id === this.selectedServiceId);
         const rolesById = new Map<number, ServiceRoleDto>();
         const assignments = new Map<number, number[]>();
 
@@ -171,6 +172,11 @@ export class TeamWizardComponent implements OnInit {
                 userIds.push(roleCoverage.user.id);
             }
             assignments.set(role.id, userIds);
+        }
+
+        for (const role of selectedService?.serviceRoles ?? []) {
+            rolesById.set(role.id, role);
+            if (!assignments.has(role.id)) assignments.set(role.id, []);
         }
 
         this.roles = [...rolesById.values()];

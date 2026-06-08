@@ -108,15 +108,27 @@
             <strong>{{ serviceContextAIResponse.indice }}%</strong>
           </div>
           <div class="roles-list">
-            <mat-checkbox class="role-row" *ngFor="let role of serviceContextAIResponse.ruoli" [(ngModel)]="role.selected" color="primary">
-              <strong>{{ role.ruolo }}</strong>
-              <small>{{ role.mansione }}</small>
-            </mat-checkbox>
+            <div class="role-row" *ngFor="let role of serviceContextAIResponse.ruoli" [class.selected]="role.selected">
+              <mat-checkbox [(ngModel)]="role.selected" color="primary">
+                <strong>{{ role.ruolo }}</strong>
+                <small>{{ role.mansione }}</small>
+              </mat-checkbox>
+              <mat-form-field appearance="outline" class="role-count-field">
+                <mat-label>Persone necessarie</mat-label>
+                <input matInput type="number" min="1" step="1"
+                  [(ngModel)]="role.employeeNumber"
+                  (blur)="normalizeRoleEmployeeNumber(role)"
+                  [disabled]="!role.selected">
+              </mat-form-field>
+            </div>
           </div>
           <button mat-stroked-button color="primary" (click)="addCustomRole()">
             <mat-icon>add</mat-icon> Aggiungi ruolo personalizzato
           </button>
-          <div class="summary-box">Ruoli selezionati: {{ getSelectedRoles().length }} / {{ serviceContextAIResponse.ruoli.length }}</div>
+          <div class="summary-box">
+            <span>Ruoli selezionati: {{ getSelectedRoles().length }} / {{ serviceContextAIResponse.ruoli.length }}</span>
+            <strong>Persone necessarie: {{ getTotalRequiredEmployees() }}</strong>
+          </div>
         </ng-container>
       </div>
       <div class="step-actions">

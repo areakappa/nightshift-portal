@@ -185,7 +185,10 @@ export class ServiceWizardComponent implements OnInit {
                 stepper.previous();
                 return;
             }
-            this.serviceContextAIResponse.ruoli.forEach(role => role.selected = true);
+            this.serviceContextAIResponse.ruoli.forEach(role => {
+                role.selected = true;
+                role.employeeNumber = this.normalizeEmployeeNumber(role.employeeNumber);
+            });
         } catch {
             this.snackBar.open('Errore nell\'analisi del servizio. Riprova.', 'Chiudi', { duration: 3500 });
             stepper.previous();
@@ -245,7 +248,13 @@ export class ServiceWizardComponent implements OnInit {
                 this.mapCenter.lng
             );
             demoInformations.Roles = this.getSelectedRoles()
-                .map(role => new ServiceRoleCrud(role.ruolo, role.mansione ?? '', 0, 1));
+                .map(role => new ServiceRoleCrud(
+                    role.ruolo,
+                    role.mansione ?? '',
+                    0,
+                    1,
+                    this.normalizeEmployeeNumber(role.employeeNumber)
+                ));
             demoInformations.ServiceShifts = this.buildServiceShifts(orgId, serviceCrud);
 
             const result = await this.demoService.addDemoInformations(demoInformations);
@@ -268,7 +277,13 @@ export class ServiceWizardComponent implements OnInit {
     private async saveRoles(): Promise<void> {
         if (!this.createdService) return;
         for (const role of this.getSelectedRoles()) {
-            const roleCrud = new ServiceRoleCrud(role.ruolo, role.mansione ?? '', 0, 1);
+            const roleCrud = new ServiceRoleCrud(
+                role.ruolo,
+                role.mansione ?? '',
+                0,
+                1,
+                this.normalizeEmployeeNumber(role.employeeNumber)
+            );
             roleCrud.Idservice = this.createdService.id;
             await this.servicesService.postServiceRole(roleCrud);
         }
@@ -329,11 +344,25 @@ export class ServiceWizardComponent implements OnInit {
         if (!this.serviceContextAIResponse) {
             this.serviceContextAIResponse = { indice: 100, servizio: '', contesto: '', ruoli: [], punti_non_chiari: [], coerente_con_ccnl: true };
         }
-        this.serviceContextAIResponse.ruoli.push({ ruolo: roleName.trim(), mansione: roleDescription.trim(), selected: true });
+        this.serviceContextAIResponse.ruoli.push({
+            ruolo: roleName.trim(),
+            mansione: roleDescription.trim(),
+            selected: true,
+            employeeNumber: 1
+        });
     }
 
     getSelectedRoles(): ServiceRoleAIResponse[] {
         return this.serviceContextAIResponse?.ruoli.filter(role => role.selected) ?? [];
+    }
+
+    getTotalRequiredEmployees(): number {
+        return this.getSelectedRoles()
+            .reduce((total, role) => total + this.normalizeEmployeeNumber(role.employeeNumber), 0);
+    }
+
+    normalizeRoleEmployeeNumber(role: ServiceRoleAIResponse): void {
+        role.employeeNumber = this.normalizeEmployeeNumber(role.employeeNumber);
     }
 
     toggleDay(day: WorkDay): void {
@@ -530,6 +559,10 @@ export class ServiceWizardComponent implements OnInit {
 
     private toDateInputValue(date: Date): string {
         return date.toISOString().slice(0, 10);
+    }
+
+    private normalizeEmployeeNumber(value: number | null | undefined): number {
+        return Math.max(1, Math.trunc(Number(value) || 1));
     }
 
     private parseJsonObject<T>(response: string): T {

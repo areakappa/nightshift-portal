@@ -74,12 +74,14 @@ export class ServiceRolesComponent implements OnInit {
         if (this.roleName.invalid || !this.service?.id) return;
         this.savingRole = true;
         try {
-            const crud: ServiceRoleCrud = {
-                name: this.roleName.value!,
-                description: this.roleDescription.value ?? '',
-                minRequired: this.roleMinRequired.value ?? 1,
-                idService: this.service.id,
-            } as any;
+            const crud = new ServiceRoleCrud(
+                this.roleName.value!,
+                this.roleDescription.value ?? '',
+                0,
+                1,
+                this.roleMinRequired.value ?? 1
+            );
+            crud.Idservice = this.service.id;
             await this.servicesService.postServiceRole(crud);
             this.snackBar.open('Ruolo aggiunto', 'Ok', { duration: 2000 });
             this.resetForm();
