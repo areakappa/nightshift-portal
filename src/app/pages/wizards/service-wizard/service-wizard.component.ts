@@ -27,6 +27,10 @@ import { ServiceContextAIResponse } from '../../../models/generic/openAi/Service
 import { ServiceRoleAIResponse } from '../../../models/generic/openAi/ServiceRoleAIResponse';
 import { OpenAIRequest } from '../../../models/generic/openAi/OpenAIRequest';
 import { environment } from '../../../../environments/environment';
+import { DemoService } from '../../../services/demo.service';
+import { DemoInformations } from '../../../models/generic/DemoInformations';
+import { ClientCrud } from '../../../models/crud/ClientCrud';
+import { AddressCrud } from '../../../models/crud/AddressCrud';
 
 type ServiceFor = 'internal' | 'external';
 
@@ -77,6 +81,7 @@ export class ServiceWizardComponent implements OnInit {
     private addressSearchTimer: ReturnType<typeof setTimeout> | null = null;
     placePredictions: google.maps.places.AutocompletePrediction[] = [];
     isLoadingPlaces = false;
+    selectedPlaceResult: google.maps.GeocoderResult | null = null;
     private placesSessionToken: google.maps.places.AutocompleteSessionToken | null = null;
 
     anagraphicForm: FormGroup;
@@ -98,6 +103,7 @@ export class ServiceWizardComponent implements OnInit {
         private servicesService: ServicesService,
         private orgService: OrganizationService,
         private openAiService: OpenAiService,
+        private demoService: DemoService,
         private router: Router,
         private snackBar: MatSnackBar,
         private cdr: ChangeDetectorRef
@@ -216,22 +222,39 @@ export class ServiceWizardComponent implements OnInit {
         this.isSaving = true;
         try {
             const orgId = this.orgService.getOrganizationSelectedId();
-            const description = `${this.descriptionForm.value.serviceType}\nIndirizzo: ${this.addressForm.value.address}`;
+            await this.geocodeAddress();
             const serviceCrud = new ServiceCrud(
                 orgId,
+                2,
                 0,
-                0,
-                0,
+                this.serviceTypeSelected === 'internal' ? 1 : 2,
                 this.anagraphicForm.value.name.trim(),
-                description.trim(),
-                this.anagraphicForm.value.startDate,
+                this.descriptionForm.value.serviceType.trim(),
+                this.toApiDate(this.anagraphicForm.value.startDate),
                 1
             );
-            serviceCrud.StopValidityDate = this.anagraphicForm.value.endDate || null;
+            serviceCrud.StopValidityDate = this.anagraphicForm.value.endDate ? this.toApiDate(this.anagraphicForm.value.endDate) : null;
 
-            this.createdService = await this.servicesService.postService(serviceCrud);
-            await this.saveRoles();
-            await this.saveShifts();
+            const demoInformations = new DemoInformations();
+            demoInformations.IdOrganization = orgId;
+            demoInformations.Client = new ClientCrud(orgId, 2, '', '', '', '', new Date(), 1);
+            demoInformations.Service = serviceCrud;
+            demoInformations.Address = new AddressCrud(
+                this.addressForm.value.address?.trim() ?? '',
+                this.mapCenter.lat,
+                this.mapCenter.lng
+            );
+            demoInformations.Roles = this.getSelectedRoles()
+                .map(role => new ServiceRoleCrud(role.ruolo, role.mansione ?? '', 0, 1));
+            demoInformations.ServiceShifts = this.buildServiceShifts(orgId, serviceCrud);
+
+            const result = await this.demoService.addDemoInformations(demoInformations);
+            if (!result) {
+                this.snackBar.open('Errore nel salvataggio del servizio', 'Chiudi', { duration: 3500 });
+                return;
+            }
+
+            this.createdService = await this.findCreatedService(orgId, serviceCrud.Name);
             this.snackBar.open('Servizio creato con successo!', 'Ok', { duration: 2500 });
             stepper.next();
         } catch {
@@ -269,6 +292,30 @@ export class ServiceWizardComponent implements OnInit {
             1
         ));
         if (shifts.length) await this.servicesService.postServiceShifts(shifts);
+    }
+
+    private buildServiceShifts(orgId: number, serviceCrud: ServiceCrud): ServiceShiftCrud[] {
+        return this.getSelectedDays()
+            .filter(day => !day.isRestDay)
+            .map(day => new ServiceShiftCrud(
+                orgId,
+                0,
+                day.startMorning || '',
+                day.stopMorning || '',
+                day.startAfternoon || '',
+                day.stopAfternoon || '',
+                day.index,
+                serviceCrud.StartValidityDate,
+                serviceCrud.StopValidityDate || '',
+                1
+            ));
+    }
+
+    private async findCreatedService(orgId: number, serviceName: string): Promise<ServiceDTO | null> {
+        const services = await this.servicesService.getServicesbyIDOrganization(orgId);
+        return [...services]
+            .sort((first, second) => second.id - first.id)
+            .find(service => service.name === serviceName) ?? null;
     }
 
     toggleRoleSelection(role: ServiceRoleAIResponse): void {
@@ -413,8 +460,10 @@ export class ServiceWizardComponent implements OnInit {
         try {
             const geocoder = new google.maps.Geocoder();
             const response = await geocoder.geocode({ placeId: prediction.place_id });
-            const location = response.results[0]?.geometry.location;
+            const result = response.results[0];
+            const location = result?.geometry.location;
             if (!location) return;
+            this.selectedPlaceResult = result;
             this.mapCenter = { lat: location.lat(), lng: location.lng() };
             this.mapZoom = 16;
             this.placesSessionToken = null;
@@ -435,8 +484,10 @@ export class ServiceWizardComponent implements OnInit {
         try {
             const geocoder = new google.maps.Geocoder();
             const response = await geocoder.geocode({ address });
-            const location = response.results[0]?.geometry.location;
+            const result = response.results[0];
+            const location = result?.geometry.location;
             if (!location) return;
+            this.selectedPlaceResult = result;
             this.mapCenter = { lat: location.lat(), lng: location.lng() };
             this.mapZoom = 16;
         } catch {
@@ -445,6 +496,36 @@ export class ServiceWizardComponent implements OnInit {
             this.isGeocoding = false;
             this.cdr.detectChanges();
         }
+    }
+
+    private buildAddressPayload(): {
+        address1: string;
+        streetNumber: string;
+        city: string;
+        postalCode: string;
+    } {
+        const components = this.selectedPlaceResult?.address_components ?? [];
+        const getComponent = (type: string) =>
+            components.find(component => component.types.includes(type))?.long_name ?? '';
+        const route = getComponent('route');
+        const streetNumber = getComponent('street_number');
+        const city = getComponent('locality') || getComponent('administrative_area_level_3') || getComponent('administrative_area_level_2');
+        const postalCode = getComponent('postal_code');
+        const address1 = this.selectedPlaceResult?.formatted_address
+            ?? this.addressForm.value.address?.trim()
+            ?? '';
+
+        return {
+            address1: route && streetNumber ? `${route} ${streetNumber}` : address1,
+            streetNumber,
+            city,
+            postalCode
+        };
+    }
+
+    private toApiDate(value: string): string {
+        const [year, month, day] = value.split('-');
+        return year && month && day ? `${day}/${month}/${year}` : value;
     }
 
     private toDateInputValue(date: Date): string {

@@ -100,9 +100,9 @@ export class ServicesService {
         );
     }
 
-    public async postService(service: ServiceCrud): Promise<ServiceDTO> {
+    public async postService(service: ServiceCrud): Promise<ServiceDTO | number> {
         return await firstValueFrom(
-            this.http.post<ServiceDTO>(
+            this.http.post<ServiceDTO | number>(
                 this.serviceUrl + '/PostService',
                 service,
                 { headers: Utility.getAuthHeader() }

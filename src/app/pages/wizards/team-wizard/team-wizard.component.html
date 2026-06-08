@@ -1,15 +1,29 @@
 <div class="page-container wizard-container">
   <div class="wizard-header">
-    <button mat-icon-button (click)="cancel()"><mat-icon>close</mat-icon></button>
-    <h1>Wizard Team</h1>
+    <button mat-icon-button class="close-button" aria-label="Annulla configurazione team" (click)="cancel()">
+      <mat-icon>close</mat-icon>
+    </button>
+    <div>
+      <p class="eyebrow">Gestione team</p>
+      <h1>Configura team</h1>
+      <p class="header-copy">Seleziona un servizio e assegna le persone ai ruoli necessari.</p>
+    </div>
   </div>
 
   <div class="loading-overlay" *ngIf="isLoading"><mat-spinner diameter="40"></mat-spinner></div>
 
-  <mat-stepper linear *ngIf="!isLoading">
+  <mat-stepper linear class="team-stepper" *ngIf="!isLoading">
     <!-- Step 1: Selezione servizio -->
-    <mat-step label="Seleziona servizio">
+    <mat-step>
+      <ng-template matStepLabel>Servizio</ng-template>
       <div class="step-content">
+        <div class="step-intro">
+          <mat-icon>domain</mat-icon>
+          <div>
+            <h2>Scegli il servizio</h2>
+            <p>Il team sarà configurato in base ai ruoli previsti dal servizio selezionato.</p>
+          </div>
+        </div>
         <mat-form-field appearance="outline" class="full-width">
           <mat-label>Servizio</mat-label>
           <mat-select [(ngModel)]="selectedServiceId" (ngModelChange)="onServiceSelected()">
@@ -18,28 +32,42 @@
         </mat-form-field>
       </div>
       <div class="step-actions">
-        <button mat-raised-button color="primary" matStepperNext [disabled]="!selectedServiceId || roles.length === 0">Avanti</button>
+        <button mat-raised-button color="primary" class="primary-action" matStepperNext [disabled]="!selectedServiceId || roles.length === 0">Avanti</button>
       </div>
     </mat-step>
 
     <!-- Step 2: Assegnazione ruoli -->
-    <mat-step label="Assegna utenti ai ruoli">
+    <mat-step>
+      <ng-template matStepLabel>Assegnazioni</ng-template>
       <div class="step-content">
+        <div class="step-intro">
+          <mat-icon>groups</mat-icon>
+          <div>
+            <h2>Assegna le persone ai ruoli</h2>
+            <p>Seleziona una o più persone per ciascun ruolo previsto dal servizio.</p>
+          </div>
+        </div>
         <div class="role-section" *ngFor="let role of roles">
-          <h3>{{ role.name }}</h3>
+          <div class="role-heading">
+            <span class="role-icon"><mat-icon>badge</mat-icon></span>
+            <div>
+              <h3>{{ role.name }}</h3>
+              <small>{{ getAssignedUsers(role.id).length }} utenti assegnati</small>
+            </div>
+          </div>
           <div class="users-for-role">
-            <div class="user-chip" *ngFor="let user of users"
+            <button type="button" class="user-chip" *ngFor="let user of users"
               [class.assigned]="isAssigned(role.id, user.id!)"
               (click)="toggleUserRole(role.id, user.id!)">
               <mat-icon>{{ isAssigned(role.id, user.id!) ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
               {{ getUserLabel(user) }}
-            </div>
+            </button>
           </div>
         </div>
       </div>
       <div class="step-actions">
         <button mat-button matStepperPrevious>Indietro</button>
-        <button mat-raised-button color="primary" matStepperNext (click)="saveAssignments()" [disabled]="isSaving">
+        <button mat-raised-button color="primary" class="primary-action" matStepperNext (click)="saveAssignments()" [disabled]="isSaving">
           <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
           <span *ngIf="!isSaving">Salva assegnazioni</span>
         </button>
@@ -47,13 +75,15 @@
     </mat-step>
 
     <!-- Step 3: Fine -->
-    <mat-step label="Completato">
+    <mat-step>
+      <ng-template matStepLabel>Completato</ng-template>
       <div class="step-content done-step">
-        <mat-icon class="done-icon">check_circle</mat-icon>
+        <div class="success-orb"><mat-icon class="done-icon">check_circle</mat-icon></div>
         <h2>Team configurato!</h2>
+        <p>Le assegnazioni sono pronte. Puoi ora visualizzare e gestire il team.</p>
       </div>
       <div class="step-actions">
-        <button mat-raised-button color="primary" (click)="finish()">Vai al team</button>
+        <button mat-raised-button color="primary" class="primary-action" (click)="finish()">Vai al team</button>
       </div>
     </mat-step>
   </mat-stepper>
