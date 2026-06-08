@@ -22,11 +22,13 @@
   <div class="week-grid" *ngIf="!isLoading && viewMode === 'week'">
     <div class="day-col" *ngFor="let day of getWeekDays()" [class.today]="isToday(day)">
       <div class="day-header">{{ formatDay(day) }}</div>
-      <div class="shift-item" *ngFor="let shift of getShiftsForDate(day)">
+      <button type="button" class="shift-item" *ngFor="let shift of getShiftsForDate(day)"
+        [class.selected]="selectedShift?.idShift === shift.idShift" (click)="selectShift(shift)">
+        <div class="shift-service">{{ shift.serviceName }}</div>
         <div class="shift-name">{{ shift.nameEmployee ?? '—' }}</div>
         <div class="shift-detail">{{ shift.role ?? shift.roleName ?? shift.serviceRole }}</div>
-        <div class="shift-time">{{ shift.startDateTime | date:'HH:mm' }}</div>
-      </div>
+        <div class="shift-time">{{ shift.startDateTime | date:'HH:mm' }} - {{ shift.endDateTime | date:'HH:mm' }}</div>
+      </button>
       <div class="no-shifts" *ngIf="getShiftsForDate(day).length === 0"><mat-icon>remove</mat-icon></div>
     </div>
   </div>
@@ -34,19 +36,53 @@
   <div class="list-view" *ngIf="!isLoading && viewMode !== 'week'">
     <mat-card class="ns-card" *ngIf="shifts.length > 0">
       <mat-card-content>
-        <div class="shift-row-item" *ngFor="let shift of shifts">
+        <button type="button" class="shift-row-item" *ngFor="let shift of shifts"
+          [class.selected]="selectedShift?.idShift === shift.idShift" (click)="selectShift(shift)">
           <span class="shift-date">{{ shift.startDateTime | date:'d/M' }}</span>
           <div class="shift-avatar">{{ shift.nameEmployee?.charAt(0) ?? '?' }}</div>
           <div class="shift-info">
+            <div class="shift-service">{{ shift.serviceName }}</div>
             <div class="shift-person">{{ shift.nameEmployee ?? '—' }}</div>
             <div class="shift-meta">{{ shift.role ?? shift.roleName ?? shift.serviceRole }}</div>
           </div>
-          <span class="shift-time-badge">{{ shift.startDateTime | date:'HH:mm' }}</span>
-        </div>
+          <span class="shift-time-badge">{{ shift.startDateTime | date:'HH:mm' }} - {{ shift.endDateTime | date:'HH:mm' }}</span>
+        </button>
       </mat-card-content>
     </mat-card>
     <div class="no-data" *ngIf="shifts.length === 0">
       <mat-icon>event_busy</mat-icon><p>Nessun turno in questo periodo</p>
     </div>
   </div>
+
+  <mat-card class="ns-card shift-details" *ngIf="selectedShift as shift">
+    <mat-card-content>
+      <div class="details-header">
+        <div>
+          <h2>Dettaglio turno · {{ shift.serviceName }}</h2>
+          <p>{{ shift.nameEmployee ?? 'Da assegnare' }} · {{ shift.serviceRole ?? shift.roleName ?? shift.role ?? 'Operatore' }}</p>
+        </div>
+        <button mat-icon-button (click)="closeShiftDetails()" aria-label="Chiudi dettaglio"><mat-icon>close</mat-icon></button>
+      </div>
+
+      <div class="time-summary">
+        <mat-icon>schedule</mat-icon>
+        <strong>{{ shift.startDateTime | date:'dd/MM/yyyy HH:mm' }} - {{ shift.endDateTime | date:'dd/MM/yyyy HH:mm' }}</strong>
+      </div>
+
+      <div class="edit-grid" *ngIf="canManageShiftActions">
+        <label>Inizio<input type="datetime-local" [(ngModel)]="editStart"></label>
+        <label>Fine<input type="datetime-local" [(ngModel)]="editEnd"></label>
+      </div>
+
+      <div class="details-actions" *ngIf="canManageShiftActions">
+        <button mat-stroked-button color="warn" (click)="deleteSelectedShift()" [disabled]="isShiftBusy(shift)">
+          <mat-icon>delete_outline</mat-icon> Elimina turno
+        </button>
+        <button mat-raised-button color="primary" (click)="saveShiftChanges()" [disabled]="isShiftBusy(shift)">
+          <mat-spinner *ngIf="isShiftBusy(shift)" diameter="18"></mat-spinner>
+          <span *ngIf="!isShiftBusy(shift)">Salva modifica</span>
+        </button>
+      </div>
+    </mat-card-content>
+  </mat-card>
 </div>

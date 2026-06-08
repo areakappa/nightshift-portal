@@ -13,6 +13,12 @@ import { ShiftsSearch } from '../../models/generic/Shift/ShiftsSearch';
 import { ScheduleService } from '../../services/schedule.service';
 import { ServicesService } from '../../services/services.service';
 import { OrganizationService } from '../../services/organization.service';
+import { AuthenticationService } from '../../services/authentication.service';
+
+type CalendarShift = ShiftItemDTO & {
+    serviceId: number;
+    serviceName: string;
+};
 
 @Component({
     selector: 'app-calendar',
@@ -26,21 +32,28 @@ import { OrganizationService } from '../../services/organization.service';
     styleUrls: ['./calendar.component.scss']
 })
 export class CalendarComponent implements OnInit {
-    shifts: ShiftItemDTO[] = [];
+    shifts: CalendarShift[] = [];
     isLoading = false;
     selectedDate = new Date();
     viewMode: 'day' | 'week' | 'month' = 'week';
+    selectedShift: CalendarShift | null = null;
+    editStart = '';
+    editEnd = '';
+    canManageShiftActions = false;
+    processingShiftId: number | null = null;
     private loadPromise: Promise<void> | null = null;
 
     constructor(
         private scheduleService: ScheduleService,
         private servicesService: ServicesService,
         private organizationService: OrganizationService,
+        private authenticationService: AuthenticationService,
         private snackBar: MatSnackBar,
         private cdr: ChangeDetectorRef
     ) { }
 
     async ngOnInit(): Promise<void> {
+        await this.resolveShiftActionsPermissions();
         await this.loadShifts();
     }
 
@@ -66,15 +79,22 @@ export class CalendarComponent implements OnInit {
 
             const services = await this.servicesService.getServicesbyIDOrganization(orgId);
             const shiftsByService = await Promise.all(
-                services.map(service => this.scheduleService.getShiftsByService(
+                services.map(async service => (await this.scheduleService.getShiftsByService(
                     new ShiftsSearch(
                         service.id,
                         this.scheduleService.getStringFromDate(start),
                         this.scheduleService.getStringFromDate(end)
                     )
-                ).catch(() => [] as ShiftItemDTO[]))
+                ).catch(() => [] as ShiftItemDTO[])).map(shift => ({
+                    ...shift,
+                    serviceId: service.id,
+                    serviceName: service.name
+                })))
             );
             this.shifts = shiftsByService.flat();
+            if (this.selectedShift?.idShift) {
+                this.selectedShift = this.shifts.find(shift => shift.idShift === this.selectedShift!.idShift) ?? null;
+            }
         } catch {
             this.snackBar.open('Errore nel caricamento turni', 'Chiudi', { duration: 3000 });
         } finally {
@@ -99,9 +119,76 @@ export class CalendarComponent implements OnInit {
         return Array.from({ length: 7 }, (_, i) => { const d = new Date(start); d.setDate(start.getDate() + i); return d; });
     }
 
-    getShiftsForDate(date: Date): ShiftItemDTO[] {
+    getShiftsForDate(date: Date): CalendarShift[] {
         const dateStr = date.toISOString().split('T')[0];
         return this.shifts.filter(s => s.startDateTime?.startsWith(dateStr));
+    }
+
+    selectShift(shift: CalendarShift): void {
+        this.selectedShift = shift;
+        this.editStart = this.toDateTimeLocal(shift.startDateTime);
+        this.editEnd = this.toDateTimeLocal(shift.endDateTime);
+    }
+
+    closeShiftDetails(): void {
+        this.selectedShift = null;
+    }
+
+    async saveShiftChanges(): Promise<void> {
+        const shift = this.selectedShift;
+        if (!this.canManageShiftActions || !shift?.idShift) return;
+        const start = new Date(this.editStart);
+        const end = new Date(this.editEnd);
+        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start >= end) {
+            this.snackBar.open('L\'orario di inizio deve essere precedente alla fine', 'Chiudi', { duration: 3000 });
+            return;
+        }
+
+        this.processingShiftId = shift.idShift;
+        try {
+            const saved = await this.scheduleService.putShift({
+                idShift: shift.idShift,
+                idUser: shift.idUser,
+                idEmployee: shift.idEmployee,
+                startDateTime: start.toISOString(),
+                endDateTime: end.toISOString()
+            });
+            if (!saved) {
+                this.snackBar.open('Impossibile modificare il turno', 'Chiudi', { duration: 3000 });
+                return;
+            }
+            this.snackBar.open('Turno aggiornato correttamente', 'Ok', { duration: 2500 });
+            await this.loadShifts();
+        } catch {
+            this.snackBar.open('Impossibile modificare il turno', 'Chiudi', { duration: 3000 });
+        } finally {
+            this.processingShiftId = null;
+            this.cdr.detectChanges();
+        }
+    }
+
+    async deleteSelectedShift(): Promise<void> {
+        const shift = this.selectedShift;
+        if (!this.canManageShiftActions || !shift?.idShift) return;
+        if (!window.confirm('Confermi l\'eliminazione del turno selezionato?')) return;
+
+        this.processingShiftId = shift.idShift;
+        try {
+            const response = await this.scheduleService.deleteShift(shift.idShift);
+            const message = Array.isArray(response) && response.length ? response[0] : 'Turno eliminato';
+            this.snackBar.open(message, 'Ok', { duration: 2500 });
+            this.selectedShift = null;
+            await this.loadShifts();
+        } catch {
+            this.snackBar.open('Impossibile eliminare il turno', 'Chiudi', { duration: 3000 });
+        } finally {
+            this.processingShiftId = null;
+            this.cdr.detectChanges();
+        }
+    }
+
+    isShiftBusy(shift: CalendarShift): boolean {
+        return !!shift.idShift && this.processingShiftId === shift.idShift;
     }
 
     prevPeriod(): void {
@@ -123,4 +210,29 @@ export class CalendarComponent implements OnInit {
     formatDay(d: Date): string { return d.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric' }); }
     isToday(d: Date): boolean { return d.toDateString() === new Date().toDateString(); }
     goToToday(): void { this.selectedDate = new Date(); void this.loadShifts(); }
+
+    private async resolveShiftActionsPermissions(): Promise<void> {
+        const user = this.authenticationService.getUser();
+        if (!user) return;
+        if (user.isAdmin || user.isCustomerAdmin) {
+            this.canManageShiftActions = true;
+            return;
+        }
+        try {
+            const organizationId = this.organizationService.getOrganizationSelectedId();
+            const organizations = await this.organizationService.getOrganizationsTeams(user.id);
+            const roleName = organizations.find(item => item.organization?.id === organizationId)
+                ?.organizationRole?.name?.trim().toLowerCase() ?? '';
+            this.canManageShiftActions = roleName.includes('manager');
+        } catch {
+            this.canManageShiftActions = false;
+        }
+    }
+
+    private toDateTimeLocal(value: string): string {
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return '';
+        const offset = date.getTimezoneOffset() * 60000;
+        return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+    }
 }

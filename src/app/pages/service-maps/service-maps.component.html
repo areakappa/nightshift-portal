@@ -6,14 +6,41 @@
     </div>
   </div>
 
-  <mat-card class="ns-card map-card" *ngIf="apiLoaded">
-    <google-map height="500px" width="100%" [center]="mapCenter" [zoom]="mapZoom" [options]="mapOptions">
-      <map-marker [position]="mapCenter" [options]="markerOptions"></map-marker>
+  <div class="loading-map" *ngIf="isLoading">
+    <mat-spinner diameter="40"></mat-spinner>
+    <p>Caricamento mappa...</p>
+  </div>
+
+  <mat-card class="ns-card map-card" *ngIf="!isLoading && apiLoaded">
+    <div class="map-actions">
+      <div>
+        <strong>Posizione del servizio</strong>
+        <span>{{ editableAddress || 'Indirizzo non disponibile' }}</span>
+      </div>
+      <button mat-stroked-button color="primary" (click)="toggleEditMode()" [disabled]="isSaving">
+        <mat-icon>{{ isEditMode ? 'close' : 'edit_location_alt' }}</mat-icon>
+        {{ isEditMode ? 'Annulla modifica' : 'Modifica posizione' }}
+      </button>
+    </div>
+
+    <div class="edit-position" *ngIf="isEditMode">
+      <input [(ngModel)]="editableAddress" placeholder="Inserisci o cerca indirizzo" (keyup.enter)="searchAddress()">
+      <button mat-stroked-button (click)="searchAddress()"><mat-icon>search</mat-icon> Cerca</button>
+      <button mat-raised-button color="primary" (click)="savePosition()" [disabled]="isSaving">
+        <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
+        <span *ngIf="!isSaving">Salva posizione</span>
+      </button>
+      <p>Trascina il marker oppure clicca sulla mappa, poi salva.</p>
+    </div>
+
+    <google-map height="500px" width="100%" [center]="mapCenter" [zoom]="mapZoom" [options]="mapOptions"
+      (mapClick)="onMapClick($event)">
+      <map-marker [position]="mapCenter" [options]="markerOptions" (mapDragend)="onMarkerDragEnd($event)"></map-marker>
     </google-map>
   </mat-card>
 
-  <div class="no-map" *ngIf="!apiLoaded">
+  <div class="no-map" *ngIf="!isLoading && !apiLoaded">
     <mat-icon>map</mat-icon>
-    <p>Google Maps API non configurata. Configurare la chiave API nell'ambiente.</p>
+    <p>{{ loadError || 'Google Maps non disponibile.' }}</p>
   </div>
 </div>

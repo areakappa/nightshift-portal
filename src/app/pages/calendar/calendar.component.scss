@@ -6,8 +6,10 @@
 .day-col { border: 1px solid var(--ns-border); border-radius: 8px; min-height: 120px; padding: 8px; }
 .day-col.today { border-color: var(--ns-primary); background: rgba(99,102,241,0.04); }
 .day-header { font-size: 12px; font-weight: 600; color: var(--ns-text-secondary); margin-bottom: 8px; text-align: center; }
-.shift-item { background: rgba(99,102,241,0.1); border-radius: 6px; padding: 6px; margin-bottom: 4px; font-size: 11px; }
+.shift-item { display: block; width: 100%; border: 1px solid transparent; color: inherit; text-align: left; background: rgba(99,102,241,0.1); border-radius: 6px; padding: 6px; margin-bottom: 4px; font: inherit; font-size: 11px; cursor: pointer; }
+.shift-item:hover, .shift-item.selected, .shift-row-item:hover, .shift-row-item.selected { border-color: var(--ns-primary); background: rgba(99,102,241,0.18); }
 .shift-name { font-weight: 600; }
+.shift-service { overflow: hidden; color: var(--ns-primary-light); font-size: 10px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
 .shift-role { color: var(--ns-text-secondary); }
 .shift-time { color: var(--ns-primary); }
 .no-shifts { text-align: center; color: var(--ns-border); mat-icon { font-size: 16px; } }
@@ -18,16 +20,34 @@
 .shift-time-tag { font-size: 12px; color: var(--ns-primary); font-weight: 600; }
 .shift-row-item {
   display: grid;
-  grid-template-columns: 48px 1fr 1fr 60px;
+  width: 100%;
+  grid-template-columns: 48px 1fr 1fr 130px;
   gap: 12px;
   padding: 8px 0;
-  border-bottom: 1px solid var(--ns-border);
+  border: 1px solid transparent;
+  border-bottom-color: var(--ns-border);
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  cursor: pointer;
   font-size: 13px;
   .shift-date { font-weight: 600; color: var(--ns-primary); }
 }
+.shift-details { margin-top: 20px; }
+.details-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  h2 { margin: 0 0 4px; } p { margin: 0; color: var(--ns-text-secondary); } }
+.time-summary { display: flex; align-items: center; gap: 8px; margin: 18px 0; color: var(--ns-primary-light); }
+.edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+  label { display: grid; gap: 6px; color: var(--ns-text-secondary); font-size: 12px; font-weight: 700; }
+  input { padding: 12px; border: 1px solid var(--ns-border); border-radius: 8px; color: var(--ns-text); background: rgba(15,23,42,.3); font: inherit; color-scheme: dark; } }
+.details-actions { display: flex; justify-content: space-between; gap: 12px; margin-top: 18px; }
 .no-data {
   text-align: center;
   padding: 48px;
   color: var(--ns-text-secondary);
   mat-icon { font-size: 56px; width: 56px; height: 56px; opacity: 0.3; display: block; margin: 0 auto 12px; }
+}
+@media (max-width: 900px) {
+  .week-grid { grid-template-columns: 1fr; }
+  .edit-grid { grid-template-columns: 1fr; }
 }

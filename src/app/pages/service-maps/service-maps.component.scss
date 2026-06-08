@@ -1,4 +1,15 @@
 .header-left { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; }
 .map-card { overflow: hidden; }
+.map-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px;
+  div { display: grid; gap: 4px; } span { color: var(--ns-text-secondary); font-size: 13px; } }
+.edit-position { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; padding: 0 16px 16px;
+  input { padding: 11px 13px; border: 1px solid var(--ns-border); border-radius: 8px; color: var(--ns-text); background: rgba(15,23,42,.32); font: inherit; }
+  p { grid-column: 1 / -1; margin: 0; color: var(--ns-text-secondary); font-size: 12px; } }
+.loading-map { display: grid; min-height: 300px; place-content: center; justify-items: center; gap: 12px; color: var(--ns-text-secondary); }
 .no-map { text-align: center; padding: 64px; color: var(--ns-text-secondary);
   mat-icon { font-size: 64px; width: 64px; height: 64px; opacity: 0.3; display: block; margin: 0 auto 12px; } }
+@media (max-width: 720px) {
+  .map-actions { align-items: stretch; flex-direction: column; }
+  .edit-position { grid-template-columns: 1fr; }
+  .edit-position p { grid-column: auto; }
+}
