@@ -11,6 +11,8 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ShiftItemDTO } from '../../models/dto/ShiftItemDTO';
 import { ShiftsSearch } from '../../models/generic/Shift/ShiftsSearch';
 import { ScheduleService } from '../../services/schedule.service';
+import { ServicesService } from '../../services/services.service';
+import { OrganizationService } from '../../services/organization.service';
 
 @Component({
     selector: 'app-calendar',
@@ -28,9 +30,12 @@ export class CalendarComponent implements OnInit {
     isLoading = false;
     selectedDate = new Date();
     viewMode: 'day' | 'week' | 'month' = 'week';
+    private loadPromise: Promise<void> | null = null;
 
     constructor(
         private scheduleService: ScheduleService,
+        private servicesService: ServicesService,
+        private organizationService: OrganizationService,
         private snackBar: MatSnackBar,
         private cdr: ChangeDetectorRef
     ) { }
@@ -40,15 +45,36 @@ export class CalendarComponent implements OnInit {
     }
 
     async loadShifts(): Promise<void> {
+        if (this.loadPromise) return this.loadPromise;
+        this.loadPromise = this.loadShiftsInternal();
+        try {
+            await this.loadPromise;
+        } finally {
+            this.loadPromise = null;
+        }
+    }
+
+    private async loadShiftsInternal(): Promise<void> {
         this.isLoading = true;
         try {
             const { start, end } = this.getDateRange();
-            const search = new ShiftsSearch(
-                null,
-                this.scheduleService.getStringFromDate(start),
-                this.scheduleService.getStringFromDate(end)
+            const orgId = this.organizationService.getOrganizationSelectedId();
+            if (!orgId) {
+                this.shifts = [];
+                return;
+            }
+
+            const services = await this.servicesService.getServicesbyIDOrganization(orgId);
+            const shiftsByService = await Promise.all(
+                services.map(service => this.scheduleService.getShiftsByService(
+                    new ShiftsSearch(
+                        service.id,
+                        this.scheduleService.getStringFromDate(start),
+                        this.scheduleService.getStringFromDate(end)
+                    )
+                ).catch(() => [] as ShiftItemDTO[]))
             );
-            this.shifts = await this.scheduleService.getShiftsByService(search);
+            this.shifts = shiftsByService.flat();
         } catch {
             this.snackBar.open('Errore nel caricamento turni', 'Chiudi', { duration: 3000 });
         } finally {
