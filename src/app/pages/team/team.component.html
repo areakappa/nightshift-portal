@@ -1,38 +1,21 @@
 <div class="page-container">
   <div class="page-header">
     <div class="header-row">
-      <div><h1>Team</h1><p>Gestisci i membri dell'organizzazione</p></div>
+      <div><h1>Team</h1><p>Configura le persone assegnate ai ruoli di ogni servizio</p></div>
       <div class="header-actions">
-        <button mat-stroked-button color="primary" (click)="goToTeamWizard()">
+        <button mat-stroked-button color="primary" (click)="goToTeamWizard()" [disabled]="!selectedServiceId">
           <mat-icon>group_add</mat-icon> Configura team servizi
-        </button>
-        <button mat-stroked-button (click)="showInviteForm = !showInviteForm">
-          <mat-icon>person_add</mat-icon> Invita utente
-        </button>
-        <button mat-raised-button color="primary" (click)="goToUserWizard()">
-          <mat-icon>add</mat-icon> Nuovo utente
         </button>
       </div>
     </div>
   </div>
 
-  <!-- Invite form -->
-  <mat-card class="ns-card invite-card" *ngIf="showInviteForm">
-    <mat-card-content>
-      <div class="invite-row">
-        <mat-form-field appearance="outline" class="invite-field">
-          <mat-label>Email da invitare</mat-label>
-          <mat-icon matPrefix>email</mat-icon>
-          <input matInput [(ngModel)]="inviteEmail" type="email" placeholder="utente@esempio.com">
-        </mat-form-field>
-        <button mat-raised-button color="primary" (click)="inviteUser()" [disabled]="inviting || !inviteEmail">
-          <mat-spinner *ngIf="inviting" diameter="18"></mat-spinner>
-          <span *ngIf="!inviting">Invia invito</span>
-        </button>
-        <button mat-icon-button (click)="showInviteForm = false"><mat-icon>close</mat-icon></button>
-      </div>
-    </mat-card-content>
-  </mat-card>
+  <mat-form-field appearance="outline" class="service-field">
+    <mat-label>Servizio</mat-label>
+    <mat-select [(ngModel)]="selectedServiceId" (ngModelChange)="onServiceSelected()">
+      <mat-option *ngFor="let item of services" [value]="item.id">{{ item.name }}</mat-option>
+    </mat-select>
+  </mat-form-field>
 
   <!-- Coverage info -->
   <mat-card class="ns-card cov-card" *ngIf="teamCoverage">
@@ -54,6 +37,49 @@
 
   <div class="loading-overlay" *ngIf="isLoading"><mat-spinner diameter="40"></mat-spinner></div>
 
+  <div class="no-data" *ngIf="!isLoading && !selectedServiceId">
+    <mat-icon>domain</mat-icon>
+    <p>Seleziona un servizio per gestirne il team.</p>
+  </div>
+
+  <div class="roles-grid" *ngIf="!isLoading && selectedServiceId">
+    <mat-card class="ns-card role-card" *ngFor="let role of roles">
+      <mat-card-content>
+        <div class="role-header">
+          <div>
+            <h3>{{ role.name }}</h3>
+            <p>Richiesti: <b>{{ role.required }}</b> · Assegnati: <b>{{ role.users.length }}</b></p>
+          </div>
+          <span class="role-status" [class.complete]="role.users.length >= role.required">
+            {{ role.users.length >= role.required ? 'OK' : 'Da completare' }}
+          </span>
+        </div>
+        <div class="assignees" *ngIf="role.users.length; else noAssignees">
+          <div class="assignee" *ngFor="let user of role.users">
+            <div class="user-avatar">{{ getInitials(user) }}</div>
+            <div class="user-info">
+              <div class="user-name">{{ user.name }} {{ user.surname }}</div>
+              <div class="user-email">{{ user.email }}</div>
+            </div>
+            <button mat-icon-button color="warn" (click)="removeLocalAssignee(role, user)"><mat-icon>close</mat-icon></button>
+          </div>
+        </div>
+        <ng-template #noAssignees><p class="empty-role">Nessuna persona assegnata</p></ng-template>
+        <button mat-stroked-button color="primary" class="add-person" (click)="openUserWizard(role)">
+          <mat-icon>person_add</mat-icon> Aggiungi persona
+        </button>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <div class="save-row" *ngIf="!isLoading && roles.length">
+    <button mat-raised-button color="primary" (click)="saveAssignments()" [disabled]="isSaving">
+      <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
+      <span *ngIf="!isSaving">Salva team</span>
+    </button>
+  </div>
+
+  <h2 class="members-title">Membri dell'organizzazione</h2>
   <div class="no-data" *ngIf="!isLoading && filteredUsers.length === 0">
     <mat-icon>group</mat-icon>
     <p>Nessun membro nel team.</p>

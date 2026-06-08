@@ -13,15 +13,23 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { MatDividerModule } from '@angular/material/divider';
+import { MatSelectModule } from '@angular/material/select';
 import { UserDto } from '../../models/dto/userDto';
 import { TeamCoverage } from '../../models/generic/team/TeamCoverage';
+import { TeamRoleCoverage } from '../../models/generic/team/TeamRoleCoverage';
 import { ServiceDTO } from '../../models/dto/serviceDTO';
 import { OrganizationService } from '../../services/organization.service';
 import { ServicesService } from '../../services/services.service';
 import { TeamsService } from '../../services/team.service';
 import { AuthenticationService } from '../../services/authentication.service';
-import { UsersService } from '../../services/users.service';
-import { InviteUser } from '../../models/generic/team/InviteUser';
+import { TeamContentCrud } from '../../models/crud/TeamContentCrud';
+
+interface TeamRoleView {
+    id: number;
+    name: string;
+    required: number;
+    users: UserDto[];
+}
 
 @Component({
     selector: 'app-team',
@@ -31,7 +39,7 @@ import { InviteUser } from '../../models/generic/team/InviteUser';
         MatCardModule, MatButtonModule, MatIconModule,
         MatProgressSpinnerModule, MatFormFieldModule, MatInputModule,
         MatListModule, MatChipsModule, MatSnackBarModule,
-        MatDialogModule, MatDividerModule
+        MatDialogModule, MatDividerModule, MatSelectModule
     ],
     templateUrl: './team.component.html',
     styleUrls: ['./team.component.scss']
@@ -39,19 +47,20 @@ import { InviteUser } from '../../models/generic/team/InviteUser';
 export class TeamComponent implements OnInit {
     users: UserDto[] = [];
     filteredUsers: UserDto[] = [];
+    services: ServiceDTO[] = [];
+    roles: TeamRoleView[] = [];
     teamCoverage: TeamCoverage | null = null;
     service: ServiceDTO | null = null;
+    selectedServiceId: number | null = null;
     isLoading = false;
+    isSaving = false;
     searchText = '';
-    inviteEmail = '';
-    showInviteForm = false;
-    inviting = false;
 
     constructor(
         private organizationService: OrganizationService,
         private servicesService: ServicesService,
+        private teamsService: TeamsService,
         private authService: AuthenticationService,
-        private usersService: UsersService,
         private router: Router,
         private snackBar: MatSnackBar,
         private cdr: ChangeDetectorRef
@@ -59,6 +68,7 @@ export class TeamComponent implements OnInit {
         const state = history.state;
         if (state?.service) { try { this.service = JSON.parse(state.service); } catch { } }
         if (state?.organizationUsers) { try { this.users = JSON.parse(state.organizationUsers); this.filteredUsers = [...this.users]; } catch { } }
+        if (state?.roles) { try { this.roles = JSON.parse(state.roles); } catch { } }
     }
 
     async ngOnInit(): Promise<void> {
@@ -69,13 +79,38 @@ export class TeamComponent implements OnInit {
         this.isLoading = true;
         try {
             const orgId = this.organizationService.getOrganizationSelectedId();
-            this.users = await this.organizationService.getUsersbyOrganization(orgId);
+            [this.users, this.services] = await Promise.all([
+                this.organizationService.getUsersbyOrganization(orgId),
+                this.servicesService.getServicesbyIDOrganization(orgId)
+            ]);
             this.applyFilter();
-            if (this.service?.id) {
-                this.teamCoverage = await this.servicesService.getTeamServiceRoles(this.service.id);
+            if (this.service?.id && this.services.some(item => item.id === this.service!.id)) {
+                this.selectedServiceId = this.service.id;
+            } else if (this.services.length === 1) {
+                this.selectedServiceId = this.services[0].id;
+                this.service = this.services[0];
+            }
+            if (this.selectedServiceId) {
+                await this.loadServiceTeam(this.roles.length > 0);
             }
         } catch {
             this.snackBar.open('Errore nel caricamento team', 'Chiudi', { duration: 3000 });
+        } finally {
+            this.isLoading = false;
+            this.cdr.detectChanges();
+        }
+    }
+
+    async onServiceSelected(): Promise<void> {
+        this.service = this.services.find(item => item.id === this.selectedServiceId) ?? null;
+        this.roles = [];
+        this.teamCoverage = null;
+        if (!this.service) return;
+        this.isLoading = true;
+        try {
+            await this.loadServiceTeam(false);
+        } catch {
+            this.snackBar.open('Errore nel caricamento del team del servizio', 'Chiudi', { duration: 3000 });
         } finally {
             this.isLoading = false;
             this.cdr.detectChanges();
@@ -87,25 +122,6 @@ export class TeamComponent implements OnInit {
         this.filteredUsers = q
             ? this.users.filter(u => `${u.name} ${u.surname} ${u.email}`.toLowerCase().includes(q))
             : [...this.users];
-    }
-
-    async inviteUser(): Promise<void> {
-        if (!this.inviteEmail) return;
-        this.inviting = true;
-        try {
-            const invite: InviteUser = {
-                email: this.inviteEmail,
-                idOrganization: this.organizationService.getOrganizationSelectedId(),
-            } as any;
-            await this.usersService.sendInviteUser(invite);
-            this.snackBar.open('Invito inviato!', 'Ok', { duration: 3000 });
-            this.inviteEmail = ''; this.showInviteForm = false;
-            await this.loadData();
-        } catch {
-            this.snackBar.open('Errore nell\'invio dell\'invito', 'Chiudi', { duration: 3000 });
-        } finally {
-            this.inviting = false;
-        }
     }
 
     async removeUser(user: UserDto): Promise<void> {
@@ -123,8 +139,100 @@ export class TeamComponent implements OnInit {
         return `${user.name?.charAt(0) ?? ''}${user.surname?.charAt(0) ?? ''}`.toUpperCase();
     }
 
-    goToUserWizard(): void { this.router.navigate(['/user-wizard']); }
+    openUserWizard(role: TeamRoleView): void {
+        if (!this.service) return;
+        const roleCoverage = this.teamCoverage?.rolesCoverage.find(item => item.serviceRole?.id === role.id)
+            ?? { serviceRole: { id: role.id, name: role.name } } as TeamRoleCoverage;
+        this.router.navigateByUrl('/user-wizard', {
+            state: {
+                service: JSON.stringify(this.service),
+                teamCoverage: JSON.stringify(this.teamCoverage),
+                teamRole: JSON.stringify(roleCoverage),
+                organizationUsers: JSON.stringify(this.users),
+                roles: JSON.stringify(this.roles)
+            }
+        });
+    }
+
+    removeLocalAssignee(role: TeamRoleView, user: UserDto): void {
+        const persisted = this.teamCoverage?.rolesCoverage.some(item =>
+            item.serviceRole?.id === role.id && item.user?.id === user.id
+        );
+        if (persisted) {
+            this.snackBar.open('La rimozione di assegnazioni già salvate non è disponibile', 'Chiudi', { duration: 3000 });
+            return;
+        }
+        role.users = role.users.filter(item => item.id !== user.id);
+    }
+
+    async saveAssignments(): Promise<void> {
+        if (!this.service?.idteam) {
+            this.snackBar.open('Il servizio non ha un team associato', 'Chiudi', { duration: 3000 });
+            return;
+        }
+        const existing = new Set((this.teamCoverage?.rolesCoverage ?? [])
+            .filter(item => item.serviceRole?.id && item.user?.id)
+            .map(item => `${item.serviceRole.id}_${item.user!.id}`));
+        const payload = this.roles.flatMap(role => role.users
+            .filter(user => user.id && !existing.has(`${role.id}_${user.id}`))
+            .map(user => new TeamContentCrud(this.service!.idteam, user.id, null, role.id, 1)));
+
+        if (!payload.length) {
+            this.snackBar.open('Nessuna nuova assegnazione da salvare', 'Ok', { duration: 2500 });
+            return;
+        }
+        this.isSaving = true;
+        try {
+            await this.teamsService.postTeamContents(payload);
+            this.snackBar.open('Team salvato con successo', 'Ok', { duration: 2500 });
+            await this.loadServiceTeam(false);
+        } catch {
+            this.snackBar.open('Errore durante il salvataggio del team', 'Chiudi', { duration: 3000 });
+        } finally {
+            this.isSaving = false;
+            this.cdr.detectChanges();
+        }
+    }
+
     goToTeamWizard(): void {
+        if (!this.service) {
+            this.snackBar.open('Seleziona prima un servizio', 'Chiudi', { duration: 2500 });
+            return;
+        }
         this.router.navigateByUrl('/wizard/team', { state: this.service ? { service: JSON.stringify(this.service) } : undefined });
+    }
+
+    private async loadServiceTeam(preserveLocalRoles: boolean): Promise<void> {
+        if (!this.selectedServiceId) return;
+        this.teamCoverage = await this.servicesService.getTeamServiceRoles(this.selectedServiceId);
+        if (preserveLocalRoles) return;
+
+        const roles = new Map<number, TeamRoleView>();
+        for (const coverage of this.teamCoverage?.rolesCoverage ?? []) {
+            const serviceRole = coverage.serviceRole;
+            if (!serviceRole?.id) continue;
+            const role = roles.get(serviceRole.id) ?? {
+                id: serviceRole.id,
+                name: serviceRole.name ?? 'Ruolo',
+                required: 0,
+                users: []
+            };
+            if (!coverage.isExtra) role.required++;
+            if (coverage.user?.id && !role.users.some(user => user.id === coverage.user!.id)) {
+                role.users.push(coverage.user);
+            }
+            roles.set(role.id, role);
+        }
+        for (const serviceRole of this.service?.serviceRoles ?? []) {
+            if (!roles.has(serviceRole.id)) {
+                roles.set(serviceRole.id, {
+                    id: serviceRole.id,
+                    name: serviceRole.name ?? 'Ruolo',
+                    required: serviceRole.employeeNumber ?? 0,
+                    users: []
+                });
+            }
+        }
+        this.roles = [...roles.values()];
     }
 }

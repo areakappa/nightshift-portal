@@ -1,59 +1,73 @@
 <div class="page-container wizard-container">
   <div class="wizard-header">
     <button mat-icon-button class="close-button" aria-label="Annulla configurazione team" (click)="cancel()">
-      <mat-icon>close</mat-icon>
+      <mat-icon>arrow_back</mat-icon>
     </button>
     <div>
-      <p class="eyebrow">Gestione team</p>
-      <h1>Configura team</h1>
-      <p class="header-copy">Seleziona un servizio e assegna le persone ai ruoli necessari.</p>
+      <p class="eyebrow">Team</p>
+      <h1>Costruisci il team</h1>
+      <p class="header-copy">Definisci ruoli, assegna persone, conferma.</p>
     </div>
   </div>
 
   <div class="loading-overlay" *ngIf="isLoading"><mat-spinner diameter="40"></mat-spinner></div>
 
   <mat-stepper #teamStepper linear class="team-stepper" *ngIf="!isLoading">
-    <!-- Step 1: Selezione servizio -->
     <mat-step>
-      <ng-template matStepLabel>Servizio</ng-template>
+      <ng-template matStepLabel>Ruoli</ng-template>
       <div class="step-content">
+        <div class="section-title">Step 1 · Ruoli del servizio</div>
+        <div class="resource-count">Risorse richieste: <b>{{ totalRequired }}</b></div>
+
         <div class="step-intro">
-          <mat-icon>domain</mat-icon>
+          <mat-icon>auto_awesome</mat-icon>
           <div>
-            <h2>Scegli il servizio</h2>
-            <p>Il team sarà configurato in base ai ruoli previsti dal servizio selezionato.</p>
+            <h2>Suggeriti automaticamente</h2>
+            <p>Modifica il numero minimo di persone richieste per ciascun ruolo.</p>
           </div>
         </div>
-        <mat-form-field appearance="outline" class="full-width">
-          <mat-label>Servizio</mat-label>
-          <mat-select [(ngModel)]="selectedServiceId" (ngModelChange)="onServiceSelected()">
-            <mat-option *ngFor="let svc of services" [value]="svc.id">{{ svc.name }}</mat-option>
-          </mat-select>
-        </mat-form-field>
+
+        <div class="role-definition" *ngFor="let role of roles">
+          <span class="role-icon"><mat-icon>business_center</mat-icon></span>
+          <div class="role-copy">
+            <h3>{{ role.name }}</h3>
+            <small>Minimo richiesto: {{ role.required }}</small>
+          </div>
+          <div class="quantity-actions">
+            <button mat-icon-button (click)="decrementRequired(role)" aria-label="Riduci quantità"><mat-icon>remove_circle_outline</mat-icon></button>
+            <strong>{{ role.required }}</strong>
+            <button mat-icon-button (click)="incrementRequired(role)" aria-label="Aumenta quantità"><mat-icon>add_circle_outline</mat-icon></button>
+            <button mat-icon-button color="warn" (click)="removeRole(role)" aria-label="Rimuovi ruolo"><mat-icon>delete_outline</mat-icon></button>
+          </div>
+        </div>
       </div>
       <div class="step-actions">
-        <button mat-raised-button color="primary" class="primary-action" matStepperNext [disabled]="!selectedServiceId || roles.length === 0">Avanti</button>
+        <button mat-raised-button color="primary" class="primary-action" matStepperNext [disabled]="roles.length === 0">Assegna persone</button>
       </div>
     </mat-step>
 
-    <!-- Step 2: Assegnazione ruoli -->
     <mat-step>
-      <ng-template matStepLabel>Assegnazioni</ng-template>
+      <ng-template matStepLabel>Assegna</ng-template>
       <div class="step-content">
+        <div class="section-title">Step 2 · Assegna persone ai ruoli</div>
         <div class="step-intro">
           <mat-icon>groups</mat-icon>
           <div>
-            <h2>Assegna le persone ai ruoli</h2>
-            <p>Seleziona una o più persone per ciascun ruolo previsto dal servizio.</p>
+            <h2>Riempimento per ruolo</h2>
+            <p>Seleziona le persone disponibili per ciascun ruolo.</p>
           </div>
         </div>
-        <div class="role-section" *ngFor="let role of roles">
+
+        <div class="role-assignment" *ngFor="let role of roles">
           <div class="role-heading">
             <span class="role-icon"><mat-icon>badge</mat-icon></span>
             <div>
               <h3>{{ role.name }}</h3>
-              <small>{{ getAssignedUsers(role.id).length }} utenti assegnati</small>
+              <small>Richiesti: <b>{{ role.required }}</b> · Assegnati: <b>{{ getAssignedUsers(role.id).length }}</b></small>
             </div>
+            <span class="coverage-status" [class.complete]="roleIsComplete(role)">
+              {{ roleIsComplete(role) ? 'OK' : 'Da completare' }}
+            </span>
           </div>
           <div class="users-for-role">
             <button type="button" class="user-chip" *ngFor="let user of users"
@@ -65,25 +79,39 @@
           </div>
         </div>
       </div>
-      <div class="step-actions">
+      <div class="step-actions split-actions">
         <button mat-button matStepperPrevious>Indietro</button>
-        <button mat-raised-button color="primary" class="primary-action" (click)="saveAssignments(teamStepper)" [disabled]="isSaving">
-          <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
-          <span *ngIf="!isSaving">Salva assegnazioni</span>
-        </button>
+        <button mat-raised-button color="primary" class="primary-action" matStepperNext>Review</button>
       </div>
     </mat-step>
 
-    <!-- Step 3: Fine -->
     <mat-step>
-      <ng-template matStepLabel>Completato</ng-template>
-      <div class="step-content done-step">
-        <div class="success-orb"><mat-icon class="done-icon">check_circle</mat-icon></div>
-        <h2>Team configurato!</h2>
-        <p>Le assegnazioni sono pronte. Puoi ora visualizzare e gestire il team.</p>
+      <ng-template matStepLabel>Review</ng-template>
+      <div class="step-content">
+        <div class="section-title">Step 3 · Review</div>
+        <div class="summary-grid">
+          <div><strong>{{ roles.length }}</strong><span>Ruoli</span></div>
+          <div><strong>{{ totalRequired }}</strong><span>Risorse richieste</span></div>
+          <div><strong>{{ totalAssigned }}</strong><span>Persone assegnate</span></div>
+          <div><strong>{{ completedRoles }}/{{ roles.length }}</strong><span>Ruoli completi</span></div>
+        </div>
+        <div class="review-role" *ngFor="let role of roles">
+          <div>
+            <h3>{{ role.name }}</h3>
+            <small>{{ getAssignedUsers(role.id).length }}/{{ role.required }} persone</small>
+          </div>
+          <div class="review-users">
+            <span *ngFor="let user of getAssignedUsers(role.id)">{{ getUserLabel(user) }}</span>
+            <em *ngIf="getAssignedUsers(role.id).length === 0">Nessuna persona assegnata</em>
+          </div>
+        </div>
       </div>
-      <div class="step-actions">
-        <button mat-raised-button color="primary" class="primary-action" (click)="finish()">Vai al team</button>
+      <div class="step-actions split-actions">
+        <button mat-button matStepperPrevious>Indietro</button>
+        <button mat-raised-button color="primary" class="primary-action" (click)="save()" [disabled]="isSaving">
+          <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
+          <span *ngIf="!isSaving">Conferma e salva</span>
+        </button>
       </div>
     </mat-step>
   </mat-stepper>

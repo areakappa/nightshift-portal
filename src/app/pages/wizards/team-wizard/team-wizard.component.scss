@@ -107,6 +107,19 @@
   padding: 18px 0 4px;
 }
 
+.section-title {
+  color: var(--ns-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.resource-count {
+  color: var(--ns-text-secondary);
+  font-size: 0.9rem;
+}
+
 .step-intro {
   display: flex;
   gap: 14px;
@@ -163,6 +176,54 @@
   background: rgba(15, 23, 42, 0.22);
 }
 
+.role-definition,
+.role-assignment,
+.review-role {
+  padding: 18px;
+  border: 1px solid rgba(129, 140, 248, 0.34);
+  border-radius: 18px;
+  background: rgba(15, 23, 42, 0.28);
+}
+
+.role-definition {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.role-copy {
+  flex: 1;
+
+  h3 {
+    margin: 0 0 5px;
+    font-weight: 800;
+  }
+
+  small {
+    color: var(--ns-text-secondary);
+  }
+}
+
+.quantity-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+
+  strong {
+    display: grid;
+    width: 38px;
+    height: 38px;
+    place-items: center;
+    border-radius: 999px;
+    background: rgba(148, 163, 184, 0.14);
+  }
+}
+
+.role-assignment {
+  display: grid;
+  gap: 14px;
+}
+
 .role-heading {
   display: flex;
   gap: 12px;
@@ -177,6 +238,24 @@
 
   small {
     color: var(--ns-text-secondary);
+  }
+}
+
+.role-heading > div {
+  flex: 1;
+}
+
+.coverage-status {
+  padding: 5px 9px;
+  border-radius: 999px;
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.14);
+  font-size: 0.7rem;
+  font-weight: 900;
+
+  &.complete {
+    color: var(--ns-success);
+    background: rgba(16, 185, 129, 0.14);
   }
 }
 
@@ -232,6 +311,64 @@
   }
 }
 
+.split-actions {
+  justify-content: space-between;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+
+  div {
+    display: grid;
+    gap: 4px;
+    padding: 16px;
+    border-radius: 16px;
+    text-align: center;
+    background: rgba(99, 102, 241, 0.12);
+  }
+
+  strong {
+    font-size: 1.5rem;
+  }
+
+  span {
+    color: var(--ns-text-secondary);
+    font-size: 0.72rem;
+  }
+}
+
+.review-role {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+
+  h3 {
+    margin: 0 0 4px;
+  }
+
+  small,
+  em {
+    color: var(--ns-text-secondary);
+  }
+}
+
+.review-users {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+
+  span {
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(99, 102, 241, 0.18);
+    font-size: 0.76rem;
+  }
+}
+
 .done-step {
   align-items: center;
   padding: 34px 0 10px;
@@ -283,6 +420,21 @@
 
   .step-actions {
     flex-direction: column-reverse;
+  }
+
+  .role-definition,
+  .review-role {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .quantity-actions,
+  .review-users {
+    justify-content: flex-start;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr 1fr;
   }
 
   .primary-action {

@@ -1,5 +1,18 @@
 .header-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
 .header-actions { display: flex; gap: 8px; }
+.service-field { width: 100%; max-width: 520px; }
+.roles-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-bottom: 20px; }
+.role-card mat-card-content { padding: 18px !important; }
+.role-header { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 14px;
+  h3 { margin: 0 0 4px; } p { margin: 0; color: var(--ns-text-secondary); font-size: 13px; } }
+.role-status { height: fit-content; padding: 5px 9px; border-radius: 999px; color: #fbbf24; background: rgba(245, 158, 11, .14); font-size: 11px; font-weight: 800;
+  &.complete { color: var(--ns-success); background: rgba(16, 185, 129, .14); } }
+.assignees { display: grid; gap: 8px; margin-bottom: 14px; }
+.assignee { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 12px; background: rgba(15, 23, 42, .25); }
+.empty-role { padding: 18px; text-align: center; color: var(--ns-text-secondary); background: rgba(15, 23, 42, .2); border-radius: 12px; }
+.add-person { width: 100%; }
+.save-row { display: flex; justify-content: flex-end; margin-bottom: 28px; }
+.members-title { margin: 24px 0 14px; font-size: 18px; }
 .invite-card { margin-bottom: 16px; }
 .invite-row { display: flex; align-items: center; gap: 12px; }
 .invite-field { flex: 1; }
