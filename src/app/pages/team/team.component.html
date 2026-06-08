@@ -3,6 +3,9 @@
     <div class="header-row">
       <div><h1>Team</h1><p>Gestisci i membri dell'organizzazione</p></div>
       <div class="header-actions">
+        <button mat-stroked-button color="primary" (click)="goToTeamWizard()">
+          <mat-icon>group_add</mat-icon> Configura team servizi
+        </button>
         <button mat-stroked-button (click)="showInviteForm = !showInviteForm">
           <mat-icon>person_add</mat-icon> Invita utente
         </button>

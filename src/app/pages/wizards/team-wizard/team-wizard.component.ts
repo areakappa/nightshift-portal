@@ -9,7 +9,7 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
-import { MatStepperModule } from '@angular/material/stepper';
+import { MatStepper, MatStepperModule } from '@angular/material/stepper';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatListModule } from '@angular/material/list';
 import { ServiceDTO } from '../../../models/dto/serviceDTO';
@@ -18,6 +18,8 @@ import { ServiceRoleDto } from '../../../models/dto/ServiceRoleDto';
 import { TeamCoverage } from '../../../models/generic/team/TeamCoverage';
 import { OrganizationService } from '../../../services/organization.service';
 import { ServicesService } from '../../../services/services.service';
+import { TeamsService } from '../../../services/team.service';
+import { TeamContentCrud } from '../../../models/crud/TeamContentCrud';
 
 @Component({
     selector: 'app-team-wizard',
@@ -39,14 +41,23 @@ export class TeamWizardComponent implements OnInit {
     teamCoverage: TeamCoverage | null = null;
     selectedServiceId: number | null = null;
     assignments: Map<number, number[]> = new Map(); // roleId -> userIds
+    private requestedServiceId: number | null = null;
 
     constructor(
         private orgService: OrganizationService,
         private servicesService: ServicesService,
+        private teamsService: TeamsService,
         private router: Router,
         private snackBar: MatSnackBar,
         private cdr: ChangeDetectorRef
-    ) { }
+    ) {
+        const state = history.state;
+        if (state?.service) {
+            try {
+                this.requestedServiceId = (JSON.parse(state.service) as ServiceDTO).id;
+            } catch { }
+        }
+    }
 
     async ngOnInit(): Promise<void> {
         this.isLoading = true;
@@ -56,6 +67,12 @@ export class TeamWizardComponent implements OnInit {
                 this.servicesService.getServicesbyIDOrganization(orgId),
                 this.orgService.getUsersbyOrganization(orgId)
             ]);
+            if (this.requestedServiceId && this.services.some(service => service.id === this.requestedServiceId)) {
+                this.selectedServiceId = this.requestedServiceId;
+                await this.loadSelectedServiceTeam();
+            }
+        } catch {
+            this.snackBar.open('Errore nel caricamento dei dati del team', 'Chiudi', { duration: 3000 });
         } finally {
             this.isLoading = false;
             this.cdr.detectChanges();
@@ -66,11 +83,12 @@ export class TeamWizardComponent implements OnInit {
         if (!this.selectedServiceId) return;
         this.isLoading = true;
         try {
-            this.teamCoverage = await this.servicesService.getTeamServiceRoles(this.selectedServiceId);
-            this.roles = (this.teamCoverage?.rolesCoverage ?? []).map(rc => rc.serviceRole).filter(Boolean) as ServiceRoleDto[];
-            this.assignments = new Map(this.roles.map(r => [r.id, []]));
+            await this.loadSelectedServiceTeam();
+        } catch {
+            this.snackBar.open('Errore nel caricamento del team del servizio', 'Chiudi', { duration: 3000 });
         } finally {
             this.isLoading = false;
+            this.cdr.detectChanges();
         }
     }
 
@@ -93,14 +111,69 @@ export class TeamWizardComponent implements OnInit {
 
     isAssigned(roleId: number, userId: number): boolean { return (this.assignments.get(roleId) ?? []).includes(userId); }
 
-    async saveAssignments(): Promise<void> {
+    async saveAssignments(stepper: MatStepper): Promise<void> {
+        const selectedService = this.services.find(service => service.id === this.selectedServiceId);
+        if (!selectedService) return;
+
         this.isSaving = true;
-        // Assignment persistence would go through schedule API; for now just report success
-        this.isSaving = false;
-        this.snackBar.open('Team configurato!', 'Ok', { duration: 2000 });
+        try {
+            const teamContents = [...this.assignments.entries()].flatMap(([roleId, userIds]) =>
+                userIds.map(userId => new TeamContentCrud(
+                    selectedService.idteam ?? selectedService.team?.id ?? null,
+                    userId,
+                    null,
+                    roleId,
+                    1
+                ))
+            );
+
+            if (teamContents.length === 0) {
+                this.snackBar.open('Assegna almeno una persona prima di salvare', 'Ok', { duration: 2500 });
+                return;
+            }
+
+            const saved = await this.teamsService.postTeamContents(teamContents);
+            if (!saved) {
+                this.snackBar.open('Impossibile salvare le assegnazioni', 'Chiudi', { duration: 3000 });
+                return;
+            }
+
+            this.snackBar.open('Team configurato!', 'Ok', { duration: 2000 });
+            stepper.next();
+        } catch {
+            this.snackBar.open('Errore durante il salvataggio del team', 'Chiudi', { duration: 3000 });
+        } finally {
+            this.isSaving = false;
+            this.cdr.detectChanges();
+        }
     }
 
     getUserLabel(user: UserDto): string { return `${user.name ?? ''} ${user.surname ?? ''}`.trim() || user.email || ''; }
-    finish(): void { this.router.navigate(['/team']); }
+    finish(): void {
+        const service = this.services.find(item => item.id === this.selectedServiceId);
+        this.router.navigateByUrl('/team', { state: service ? { service: JSON.stringify(service) } : undefined });
+    }
     cancel(): void { this.router.navigate(['/team']); }
+
+    private async loadSelectedServiceTeam(): Promise<void> {
+        if (!this.selectedServiceId) return;
+
+        this.teamCoverage = await this.servicesService.getTeamServiceRoles(this.selectedServiceId);
+        const rolesById = new Map<number, ServiceRoleDto>();
+        const assignments = new Map<number, number[]>();
+
+        for (const roleCoverage of this.teamCoverage?.rolesCoverage ?? []) {
+            const role = roleCoverage.serviceRole;
+            if (!role) continue;
+            rolesById.set(role.id, role);
+            const userIds = assignments.get(role.id) ?? [];
+            if (roleCoverage.user?.id && !userIds.includes(roleCoverage.user.id)) {
+                userIds.push(roleCoverage.user.id);
+            }
+            assignments.set(role.id, userIds);
+        }
+
+        this.roles = [...rolesById.values()];
+        this.assignments = assignments;
+    }
 }

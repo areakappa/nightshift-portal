@@ -124,4 +124,7 @@ export class TeamComponent implements OnInit {
     }
 
     goToUserWizard(): void { this.router.navigate(['/user-wizard']); }
+    goToTeamWizard(): void {
+        this.router.navigateByUrl('/wizard/team', { state: this.service ? { service: JSON.stringify(this.service) } : undefined });
+    }
 }
