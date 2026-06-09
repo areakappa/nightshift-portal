@@ -17,6 +17,7 @@ import { ThemeService } from '../../services/theme.service';
 import { OrganizationDto } from '../../models/dto/OrganizationDto';
 import { Utility } from '../../models/utility';
 import { AccountContext, AccountContextService } from '../../services/account-context.service';
+import { ServicesService } from '../../services/services.service';
 
 interface NavItem {
     label: string;
@@ -24,6 +25,7 @@ interface NavItem {
     route: string;
     roles?: Array<'manager' | 'operator'>;
     requiresOrganization?: boolean;
+    requiresService?: boolean;
 }
 
 @Component({
@@ -42,16 +44,17 @@ export class SidenavComponent implements OnInit {
 
     navItems: NavItem[] = [
         { label: 'Home', icon: 'home', route: '/home', roles: ['manager'] },
-        { label: 'Servizi', icon: 'business_center', route: '/services', requiresOrganization: true, roles: ['manager'] },
-        { label: 'Calendario', icon: 'calendar_month', route: '/calendar', requiresOrganization: true },
-        { label: 'Dashboard', icon: 'dashboard', route: '/dashboard', requiresOrganization: true },
-        { label: 'Team', icon: 'group', route: '/team', requiresOrganization: true, roles: ['manager'] },
-        { label: 'Notifiche', icon: 'notifications', route: '/notifications', requiresOrganization: true },
-        { label: 'Indisponibilità', icon: 'event_busy', route: '/unavailability', requiresOrganization: true },
+        { label: 'Servizi', icon: 'business_center', route: '/services', requiresService: true, roles: ['manager'] },
+        { label: 'Calendario', icon: 'calendar_month', route: '/calendar', requiresService: true },
+        { label: 'Dashboard', icon: 'dashboard', route: '/dashboard', requiresService: true },
+        { label: 'Team', icon: 'group', route: '/team', requiresService: true, roles: ['manager'] },
+        { label: 'Notifiche', icon: 'notifications', route: '/notifications', requiresService: true },
+        { label: 'Indisponibilità', icon: 'event_busy', route: '/unavailability', requiresService: true },
     ];
 
     organizations: OrganizationDto[] = [];
     selectedOrgId: number = 0;
+    hasServices = false;
     isDark = false;
     currentRoute = '';
     user: any = null;
@@ -61,6 +64,7 @@ export class SidenavComponent implements OnInit {
         private router: Router,
         public authService: AuthenticationService,
         private orgService: OrganizationService,
+        private servicesService: ServicesService,
         private themeService: ThemeService,
         private accountContextService: AccountContextService
     ) {
@@ -74,11 +78,22 @@ export class SidenavComponent implements OnInit {
 
         this.router.events.pipe(filter(e => e instanceof NavigationEnd)).subscribe((e: any) => {
             this.currentRoute = e.urlAfterRedirects;
+            void this.refreshWorkspaceState();
+        });
+        this.servicesService.servicesChanged$.subscribe(orgId => {
+            if (orgId === this.selectedOrgId) void this.loadServicesState();
         });
         this.currentRoute = this.router.url;
 
+        await this.refreshWorkspaceState();
+    }
+
+    private async refreshWorkspaceState(): Promise<void> {
         await this.loadOrganizations();
-        await this.accountContextService.refresh();
+        await Promise.all([
+            this.loadServicesState(),
+            this.accountContextService.refresh()
+        ]);
     }
 
     private async loadOrganizations(): Promise<void> {
@@ -103,6 +118,7 @@ export class SidenavComponent implements OnInit {
         this.selectedOrgId = id;
         this.orgService.setOrganizationSelectedId(id);
         void this.accountContextService.refresh();
+        void this.loadServicesState();
     }
 
     toggleTheme(): void {
@@ -116,6 +132,7 @@ export class SidenavComponent implements OnInit {
     }
 
     canNavigate(item: NavItem): boolean {
+        if (item.requiresService) return this.hasOrganization && this.hasServices;
         return !item.requiresOrganization || this.hasOrganization;
     }
 
@@ -131,7 +148,10 @@ export class SidenavComponent implements OnInit {
     }
 
     getDisabledTooltip(item: NavItem): string {
-        return this.canNavigate(item) ? '' : 'Crea prima un\'organizzazione';
+        if (this.canNavigate(item)) return '';
+        return item.requiresService && this.hasOrganization
+            ? 'Crea prima un servizio'
+            : 'Crea prima un\'organizzazione';
     }
 
     navigateItem(item: NavItem): void {
@@ -141,6 +161,19 @@ export class SidenavComponent implements OnInit {
 
     get hasOrganization(): boolean {
         return this.selectedOrgId > 0 && this.organizations.length > 0;
+    }
+
+    private async loadServicesState(): Promise<void> {
+        if (!this.hasOrganization) {
+            this.hasServices = false;
+            return;
+        }
+        try {
+            const services = await this.servicesService.getServicesbyIDOrganization(this.selectedOrgId);
+            this.hasServices = services.length > 0;
+        } catch {
+            this.hasServices = false;
+        }
     }
 
     async logout(): Promise<void> {

@@ -264,6 +264,7 @@ export class ServiceWizardComponent implements OnInit {
             }
 
             this.createdService = await this.findCreatedService(orgId, serviceCrud.Name);
+            this.servicesService.notifyServicesChanged(orgId);
             this.snackBar.open('Servizio creato con successo!', 'Ok', { duration: 2500 });
             stepper.next();
         } catch {

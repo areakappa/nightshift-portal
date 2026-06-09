@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, Subject } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { ServiceDTO } from '../models/dto/serviceDTO';
 import { ServiceCrud } from '../models/crud/ServiceCrud';
@@ -22,8 +22,15 @@ export class ServicesService {
         `${environment.api}/api/station`,
         `${environment.api}/api/stations`
     ];
+    private readonly servicesChangedSubject = new Subject<number>();
+
+    readonly servicesChanged$ = this.servicesChangedSubject.asObservable();
 
     constructor(private http: HttpClient) { }
+
+    public notifyServicesChanged(idOrganization: number): void {
+        this.servicesChangedSubject.next(idOrganization);
+    }
 
     public async getServicesbyIDOrganization(
         idOrganization: number
