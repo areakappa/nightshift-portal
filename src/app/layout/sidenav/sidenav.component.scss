@@ -182,7 +182,14 @@
       display: block;
       font-size: 11px;
       color: #64748b;
-      text-transform: capitalize;
+    }
+
+    .user-tier {
+      display: block;
+      margin-top: 2px;
+      color: #fbbf24;
+      font-size: 10px;
+      font-weight: 800;
     }
   }
 

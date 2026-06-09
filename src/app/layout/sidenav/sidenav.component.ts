@@ -14,15 +14,15 @@ import { filter } from 'rxjs/operators';
 import { AuthenticationService } from '../../services/authentication.service';
 import { OrganizationService } from '../../services/organization.service';
 import { ThemeService } from '../../services/theme.service';
-import { RoleService, UserRole } from '../../services/role.service';
 import { OrganizationDto } from '../../models/dto/OrganizationDto';
 import { Utility } from '../../models/utility';
+import { AccountContext, AccountContextService } from '../../services/account-context.service';
 
 interface NavItem {
     label: string;
     icon: string;
     route: string;
-    roles?: string[];
+    roles?: Array<'manager' | 'operator'>;
     requiresOrganization?: boolean;
 }
 
@@ -41,11 +41,11 @@ export class SidenavComponent implements OnInit {
     @Output() closeSidenav = new EventEmitter<void>();
 
     navItems: NavItem[] = [
-        { label: 'Home', icon: 'home', route: '/home' },
-        { label: 'Servizi', icon: 'business_center', route: '/services', requiresOrganization: true },
+        { label: 'Home', icon: 'home', route: '/home', roles: ['manager'] },
+        { label: 'Servizi', icon: 'business_center', route: '/services', requiresOrganization: true, roles: ['manager'] },
         { label: 'Calendario', icon: 'calendar_month', route: '/calendar', requiresOrganization: true },
         { label: 'Dashboard', icon: 'dashboard', route: '/dashboard', requiresOrganization: true },
-        { label: 'Team', icon: 'group', route: '/team', requiresOrganization: true },
+        { label: 'Team', icon: 'group', route: '/team', requiresOrganization: true, roles: ['manager'] },
         { label: 'Notifiche', icon: 'notifications', route: '/notifications', requiresOrganization: true },
         { label: 'Indisponibilità', icon: 'event_busy', route: '/unavailability', requiresOrganization: true },
     ];
@@ -55,17 +55,17 @@ export class SidenavComponent implements OnInit {
     isDark = false;
     currentRoute = '';
     user: any = null;
-    currentRole$!: Observable<UserRole>;
+    accountContext$!: Observable<AccountContext>;
 
     constructor(
         private router: Router,
         public authService: AuthenticationService,
         private orgService: OrganizationService,
         private themeService: ThemeService,
-        private roleService: RoleService
+        private accountContextService: AccountContextService
     ) {
         this.user = this.authService.getUser();
-        this.currentRole$ = this.roleService.getRole$();
+        this.accountContext$ = this.accountContextService.context$;
     }
 
     async ngOnInit(): Promise<void> {
@@ -78,6 +78,7 @@ export class SidenavComponent implements OnInit {
         this.currentRoute = this.router.url;
 
         await this.loadOrganizations();
+        await this.accountContextService.refresh();
     }
 
     private async loadOrganizations(): Promise<void> {
@@ -101,6 +102,7 @@ export class SidenavComponent implements OnInit {
     onOrgChange(id: number): void {
         this.selectedOrgId = id;
         this.orgService.setOrganizationSelectedId(id);
+        void this.accountContextService.refresh();
     }
 
     toggleTheme(): void {
@@ -115,6 +117,17 @@ export class SidenavComponent implements OnInit {
 
     canNavigate(item: NavItem): boolean {
         return !item.requiresOrganization || this.hasOrganization;
+    }
+
+    isVisible(item: NavItem): boolean {
+        if (!item.roles?.length) return true;
+        const context = this.accountContextService.snapshot;
+        return (context.isManager && item.roles.includes('manager'))
+            || (context.isOperator && item.roles.includes('operator'));
+    }
+
+    get isManager(): boolean {
+        return this.accountContextService.snapshot.isManager;
     }
 
     getDisabledTooltip(item: NavItem): string {

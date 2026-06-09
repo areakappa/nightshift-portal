@@ -25,23 +25,25 @@
 
   <!-- Navigation -->
   <nav class="nav-list">
-    <a *ngFor="let item of navItems"
-       class="nav-item"
-       [class.active]="isActive(item.route)"
-       [class.disabled]="!canNavigate(item)"
-       [attr.aria-disabled]="!canNavigate(item)"
-       [matTooltip]="getDisabledTooltip(item)"
-       (click)="navigateItem(item)">
-      <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
-      <span class="nav-label">{{ item.label }}</span>
-    </a>
+    <ng-container *ngFor="let item of navItems">
+      <a *ngIf="isVisible(item)"
+         class="nav-item"
+         [class.active]="isActive(item.route)"
+         [class.disabled]="!canNavigate(item)"
+         [attr.aria-disabled]="!canNavigate(item)"
+         [matTooltip]="getDisabledTooltip(item)"
+         (click)="navigateItem(item)">
+        <mat-icon class="nav-icon">{{ item.icon }}</mat-icon>
+        <span class="nav-label">{{ item.label }}</span>
+      </a>
+    </ng-container>
   </nav>
 
   <mat-divider class="divider"></mat-divider>
 
   <!-- Wizards -->
-  <div class="section-label">Configurazione</div>
-  <nav class="nav-list">
+  <div class="section-label" *ngIf="isManager">Configurazione</div>
+  <nav class="nav-list" *ngIf="isManager">
     <a class="nav-item" [class.active]="isActive('/wizard/organization')" (click)="navigate('/wizard/organization')">
       <mat-icon class="nav-icon">add_business</mat-icon>
       <span class="nav-label">Nuova Organizzazione</span>
@@ -74,7 +76,10 @@
       <div class="user-avatar">{{ getInitials(user) }}</div>
       <div class="user-info">
         <span class="user-name">{{ user.name }} {{ user.surname }}</span>
-        <span class="user-role" *ngIf="currentRole$ | async as role">{{ role }}</span>
+        <ng-container *ngIf="accountContext$ | async as context">
+          <span class="user-role" *ngIf="context.roleLabel">{{ context.roleLabel }}</span>
+          <span class="user-tier" *ngIf="context.tierLabel">Piano {{ context.tierLabel }}</span>
+        </ng-container>
       </div>
       <button mat-icon-button (click)="logout()" matTooltip="Logout" class="logout-btn">
         <mat-icon>logout</mat-icon>

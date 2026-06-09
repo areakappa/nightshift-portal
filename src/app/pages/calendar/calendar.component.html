@@ -1,7 +1,7 @@
 <div class="page-container">
   <div class="page-header">
     <div class="header-row">
-      <div><h1>Calendario</h1><p>Tutti i turni dell'organizzazione</p></div>
+      <div><h1>Calendario</h1><p>{{ canViewAllShifts ? 'Tutti i turni dell’organizzazione' : 'I miei turni' }}</p></div>
       <mat-chip-listbox [(ngModel)]="viewMode" (change)="loadShifts()">
         <mat-chip-option value="day">Giorno</mat-chip-option>
         <mat-chip-option value="week">Settimana</mat-chip-option>

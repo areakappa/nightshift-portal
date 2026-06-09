@@ -21,6 +21,7 @@ import { ServicesService } from '../../services/services.service';
 import { ScheduleService } from '../../services/schedule.service';
 import { DemoLimitService } from '../../services/demo-limit.service';
 import { UpgradeService } from '../../services/upgrade.service';
+import { OrganizationPermissionsService } from '../../services/organization-permissions.service';
 
 type ServiceStatus = 'Pronto' | 'Setup';
 
@@ -60,7 +61,8 @@ export class HomeComponent implements OnInit {
         private organizationService: OrganizationService,
         private demoLimitService: DemoLimitService,
         private router: Router,
-        private upgradeService: UpgradeService
+        private upgradeService: UpgradeService,
+        private organizationPermissionsService: OrganizationPermissionsService
     ) {
         const now = new Date();
         const start = new Date(now); start.setDate(now.getDate() - now.getDay() + 1);
@@ -126,22 +128,27 @@ export class HomeComponent implements OnInit {
             }
             this.teamAssigned = totalAssigned; this.teamNeeded = totalNeeded;
             this.coveragePct = totalNeeded > 0 ? Math.round((totalAssigned / totalNeeded) * 100) : 0;
-            await this.loadRecentShifts(orgId);
+            await this.loadRecentShifts();
         } finally {
             this.isServicesLoading = false;
             this.cdr.detectChanges();
         }
     }
 
-    private async loadRecentShifts(orgId: number): Promise<void> {
+    private async loadRecentShifts(): Promise<void> {
         try {
             const today = new Date();
-            const search = new ShiftsSearch(
-                null,
-                this.scheduleService.getStringFromDate(today),
-                this.scheduleService.getStringFromDate(today)
+            const date = this.scheduleService.getStringFromDate(today);
+            const canViewAllShifts = await this.organizationPermissionsService.canViewAllShifts();
+            const userId = this.currentUser?.id;
+            const shiftsByService = await Promise.all(
+                this.services.map(service => this.scheduleService.getShiftsByService(
+                    new ShiftsSearch(service.id, date, date)
+                ).catch(() => []))
             );
-            const shifts = await this.scheduleService.getShiftsByService(search);
+            const shifts = shiftsByService.flat()
+                .filter(shift => canViewAllShifts || shift.idUser === userId || shift.idEmployee === userId)
+                .sort((a, b) => a.startDateTime.localeCompare(b.startDateTime));
             this.recentActivity = shifts.length > 0
                 ? shifts.slice(0, 5).map(s => `${s.nameEmployee ?? '—'} · ${s.nameServiceType ?? ''} · ${s.role ?? s.roleName ?? ''}`)
                 : ['Nessun turno per oggi'];
