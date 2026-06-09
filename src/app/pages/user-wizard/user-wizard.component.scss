@@ -50,9 +50,8 @@
   padding: 22px;
   border: 1px solid rgba(148, 163, 184, 0.2);
   border-radius: 28px;
-  background:
-    radial-gradient(circle at top left, rgba(99, 102, 241, 0.2), transparent 34%),
-    linear-gradient(145deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.86));
+  background: var(--ns-card-bg);
+  box-shadow: var(--ns-card-shadow);
   box-shadow: 0 24px 70px rgba(2, 6, 23, 0.36);
 }
 
@@ -114,7 +113,7 @@
   padding: 18px;
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 20px;
-  background: rgba(15, 23, 42, 0.28);
+  background: var(--ns-inset-bg);
 
   > mat-icon {
     flex: 0 0 auto;
@@ -215,7 +214,7 @@
   overflow: hidden;
   border: 1px solid rgba(148, 163, 184, 0.18);
   border-radius: 18px;
-  background: rgba(15, 23, 42, 0.24);
+  background: var(--ns-inset-bg);
 
   mat-list-item {
     cursor: pointer;

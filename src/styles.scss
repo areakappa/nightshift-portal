@@ -31,6 +31,14 @@ $ns-dark-theme: mat.m2-define-dark-theme((
   --ns-text-secondary: #94a3b8;
   --ns-border: #334155;
   --ns-sidenav-bg: #1e293b;
+  --ns-card-bg:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.16), transparent 34%),
+    linear-gradient(145deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.86));
+  --ns-card-border: rgba(148, 163, 184, 0.2);
+  --ns-card-shadow: 0 18px 46px rgba(2, 6, 23, 0.28);
+  --ns-inset-bg: rgba(15, 23, 42, 0.25);
+  --ns-input-bg: rgba(15, 23, 42, 0.32);
+  --ns-overlay-bg: #111827;
 }
 
 // ─── CSS Variables ────────────────────────────────────────────────────────────
@@ -54,6 +62,14 @@ $ns-dark-theme: mat.m2-define-dark-theme((
   --ns-sidenav-bg: #1e293b;
   --ns-sidenav-text: #f1f5f9;
   --ns-sidenav-width: 260px;
+  --ns-card-bg:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.09), transparent 38%),
+    linear-gradient(145deg, #ffffff, #f8fafc);
+  --ns-card-border: #dbe3ef;
+  --ns-card-shadow: 0 14px 34px rgba(15, 23, 42, 0.09);
+  --ns-inset-bg: #f1f5f9;
+  --ns-input-bg: #ffffff;
+  --ns-overlay-bg: #ffffff;
 }
 
 // ─── Base Resets ──────────────────────────────────────────────────────────────
@@ -76,12 +92,10 @@ html, body {
 }
 
 .ns-card {
-  border: 1px solid rgba(148, 163, 184, 0.2) !important;
+  border: 1px solid var(--ns-card-border) !important;
   border-radius: 22px !important;
-  background:
-    radial-gradient(circle at top left, rgba(99, 102, 241, 0.16), transparent 34%),
-    linear-gradient(145deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.86)) !important;
-  box-shadow: 0 18px 46px rgba(2, 6, 23, 0.28) !important;
+  background: var(--ns-card-bg) !important;
+  box-shadow: var(--ns-card-shadow) !important;
   color: var(--ns-text) !important;
 }
 
@@ -90,9 +104,9 @@ html, body {
 }
 
 .organization-stepper.mat-stepper-horizontal {
-  background:
-    radial-gradient(circle at top left, rgba(99, 102, 241, 0.2), transparent 34%),
-    linear-gradient(145deg, rgba(30, 41, 59, 0.92), rgba(15, 23, 42, 0.86)) !important;
+  border: 1px solid var(--ns-card-border);
+  background: var(--ns-card-bg) !important;
+  box-shadow: var(--ns-card-shadow);
 }
 
 .organization-stepper .mat-horizontal-stepper-wrapper,
@@ -105,14 +119,14 @@ html, body {
   overflow: hidden;
   border: 1px solid rgba(129, 140, 248, 0.34);
   border-radius: 18px;
-  background: rgba(15, 23, 42, 0.22);
+  background: var(--ns-inset-bg);
 }
 
 .service-stepper .map-refresh {
   position: absolute;
   right: 12px;
   bottom: 12px;
-  background: rgba(15, 23, 42, 0.9) !important;
+  background: var(--ns-overlay-bg) !important;
   backdrop-filter: blur(10px);
 
   mat-spinner,
@@ -134,8 +148,8 @@ html, body {
   overflow: hidden;
   border: 1px solid rgba(129, 140, 248, 0.38);
   border-radius: 16px;
-  background: #111827;
-  box-shadow: 0 20px 45px rgba(2, 6, 23, 0.42);
+  background: var(--ns-overlay-bg);
+  box-shadow: var(--ns-card-shadow);
 }
 
 .service-stepper .place-option {

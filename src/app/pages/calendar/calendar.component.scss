@@ -39,7 +39,9 @@
 .time-summary { display: flex; align-items: center; gap: 8px; margin: 18px 0; color: var(--ns-primary-light); }
 .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
   label { display: grid; gap: 6px; color: var(--ns-text-secondary); font-size: 12px; font-weight: 700; }
-  input { padding: 12px; border: 1px solid var(--ns-border); border-radius: 8px; color: var(--ns-text); background: rgba(15,23,42,.3); font: inherit; color-scheme: dark; } }
+  input { padding: 12px; border: 1px solid var(--ns-border); border-radius: 8px; color: var(--ns-text); background: var(--ns-input-bg); font: inherit; } }
+
+.dark .edit-grid input { color-scheme: dark; }
 .details-actions { display: flex; justify-content: space-between; gap: 12px; margin-top: 18px; }
 .no-data {
   text-align: center;

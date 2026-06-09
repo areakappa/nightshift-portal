@@ -12,8 +12,8 @@
 .role-status { height: fit-content; padding: 5px 9px; border-radius: 999px; color: #fbbf24; background: rgba(245, 158, 11, .14); font-size: 11px; font-weight: 800;
   &.complete { color: var(--ns-success); background: rgba(16, 185, 129, .14); } }
 .assignees { display: grid; gap: 8px; margin-bottom: 14px; }
-.assignee { display: flex; align-items: center; gap: 10px; padding: 8px; border-radius: 12px; background: rgba(15, 23, 42, .25); }
-.empty-role { padding: 18px; text-align: center; color: var(--ns-text-secondary); background: rgba(15, 23, 42, .2); border-radius: 12px; }
+.assignee { display: flex; align-items: center; gap: 10px; padding: 8px; border: 1px solid var(--ns-border); border-radius: 12px; background: var(--ns-inset-bg); }
+.empty-role { padding: 18px; text-align: center; color: var(--ns-text-secondary); background: var(--ns-inset-bg); border-radius: 12px; }
 .add-person { width: 100%; }
 .save-row { display: flex; justify-content: flex-end; margin-bottom: 28px; }
 .members-title { margin: 24px 0 14px; font-size: 18px; }
