@@ -4,14 +4,13 @@ import { Observable } from 'rxjs';
 import { MatToolbarModule } from '@angular/material/toolbar';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { MatBadgeModule } from '@angular/material/badge';
 import { RouterModule } from '@angular/router';
 import { AccountContext, AccountContextService } from '../../services/account-context.service';
 
 @Component({
     selector: 'app-topbar',
     standalone: true,
-    imports: [CommonModule, RouterModule, MatToolbarModule, MatIconModule, MatButtonModule, MatBadgeModule],
+    imports: [CommonModule, RouterModule, MatToolbarModule, MatIconModule, MatButtonModule],
     templateUrl: './topbar.component.html',
     styleUrls: ['./topbar.component.scss']
 })
