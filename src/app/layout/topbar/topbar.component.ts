@@ -15,7 +15,7 @@ import { AccountContext, AccountContextService } from '../../services/account-co
     styleUrls: ['./topbar.component.scss']
 })
 export class TopbarComponent implements OnInit {
-    @Input() title = 'NightShift Portal';
+    @Input() title = 'NightShiftAI Portal';
     @Output() menuToggle = new EventEmitter<void>();
 
     accountContext$: Observable<AccountContext>;
