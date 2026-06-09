@@ -10,6 +10,25 @@
     </div>
   </div>
 
+  <div class="service-filter-bar" *ngIf="serviceFilters.length > 0">
+    <span class="filter-label">Servizi</span>
+    <div class="service-filters">
+      <button type="button" class="service-filter-pill all-services"
+        [class.selected]="allServicesSelected" [attr.aria-pressed]="allServicesSelected"
+        (click)="toggleAllServices()">
+        Tutti
+      </button>
+      <button type="button" class="service-filter-pill" *ngFor="let service of serviceFilters"
+        [class.selected]="isServiceSelected(service.id)"
+        [attr.aria-pressed]="isServiceSelected(service.id)"
+        (click)="toggleService(service.id)">
+        <span class="service-color" [style.background-color]="service.color"></span>
+        {{ service.name }}
+        <mat-icon>{{ isServiceSelected(service.id) ? 'check' : 'add' }}</mat-icon>
+      </button>
+    </div>
+  </div>
+
   <div class="nav-row">
     <button mat-icon-button (click)="prevPeriod()"><mat-icon>chevron_left</mat-icon></button>
     <span class="period-label">{{ selectedDate | date:'MMMM yyyy':'':'it' }}</span>
@@ -34,9 +53,9 @@
   </div>
 
   <div class="list-view" *ngIf="!isLoading && viewMode !== 'week'">
-    <mat-card class="ns-card" *ngIf="shifts.length > 0">
+    <mat-card class="ns-card" *ngIf="filteredShifts.length > 0">
       <mat-card-content>
-        <button type="button" class="shift-row-item" *ngFor="let shift of shifts"
+        <button type="button" class="shift-row-item" *ngFor="let shift of filteredShifts"
           [class.selected]="selectedShift?.idShift === shift.idShift" (click)="selectShift(shift)">
           <span class="shift-date">{{ shift.startDateTime | date:'d/M' }}</span>
           <div class="shift-avatar">{{ shift.nameEmployee?.charAt(0) ?? '?' }}</div>
@@ -49,8 +68,9 @@
         </button>
       </mat-card-content>
     </mat-card>
-    <div class="no-data" *ngIf="shifts.length === 0">
-      <mat-icon>event_busy</mat-icon><p>Nessun turno in questo periodo</p>
+    <div class="no-data" *ngIf="filteredShifts.length === 0">
+      <mat-icon>event_busy</mat-icon>
+      <p>{{ selectedServiceIds.size === 0 ? 'Seleziona almeno un servizio' : 'Nessun turno in questo periodo' }}</p>
     </div>
   </div>
 

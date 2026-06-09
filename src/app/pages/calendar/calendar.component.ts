@@ -21,6 +21,12 @@ type CalendarShift = ShiftItemDTO & {
     serviceName: string;
 };
 
+type CalendarServiceFilter = {
+    id: number;
+    name: string;
+    color: string;
+};
+
 @Component({
     selector: 'app-calendar',
     standalone: true,
@@ -34,6 +40,8 @@ type CalendarShift = ShiftItemDTO & {
 })
 export class CalendarComponent implements OnInit {
     shifts: CalendarShift[] = [];
+    serviceFilters: CalendarServiceFilter[] = [];
+    selectedServiceIds = new Set<number>();
     isLoading = false;
     selectedDate = new Date();
     viewMode: 'day' | 'week' | 'month' = 'week';
@@ -44,6 +52,7 @@ export class CalendarComponent implements OnInit {
     canViewAllShifts = false;
     processingShiftId: number | null = null;
     private loadPromise: Promise<void> | null = null;
+    private readonly serviceColors = ['#6366f1', '#8b5cf6', '#10b981', '#f59e0b', '#06b6d4', '#ef4444'];
 
     constructor(
         private scheduleService: ScheduleService,
@@ -78,10 +87,19 @@ export class CalendarComponent implements OnInit {
             const orgId = this.organizationService.getOrganizationSelectedId();
             if (!orgId) {
                 this.shifts = [];
+                this.serviceFilters = [];
+                this.selectedServiceIds = new Set<number>();
                 return;
             }
 
             const services = await this.servicesService.getServicesbyIDOrganization(orgId);
+            this.serviceFilters = services.map((service, index) => ({
+                id: service.id,
+                name: service.name,
+                color: this.serviceColors[index % this.serviceColors.length]
+            }));
+            this.initializeSelectedServices();
+
             const shiftsByService = await Promise.all(
                 services.map(async service => (await this.scheduleService.getShiftsByService(
                     new ShiftsSearch(
@@ -101,6 +119,9 @@ export class CalendarComponent implements OnInit {
                 .sort((a, b) => a.startDateTime.localeCompare(b.startDateTime));
             if (this.selectedShift?.idShift) {
                 this.selectedShift = this.shifts.find(shift => shift.idShift === this.selectedShift!.idShift) ?? null;
+                if (this.selectedShift && !this.selectedServiceIds.has(this.selectedShift.serviceId)) {
+                    this.selectedShift = null;
+                }
             }
         } catch {
             this.snackBar.open('Errore nel caricamento turni', 'Chiudi', { duration: 3000 });
@@ -128,7 +149,37 @@ export class CalendarComponent implements OnInit {
 
     getShiftsForDate(date: Date): CalendarShift[] {
         const dateStr = date.toISOString().split('T')[0];
-        return this.shifts.filter(s => s.startDateTime?.startsWith(dateStr));
+        return this.filteredShifts.filter(s => s.startDateTime?.startsWith(dateStr));
+    }
+
+    get filteredShifts(): CalendarShift[] {
+        return this.shifts.filter(shift => this.selectedServiceIds.has(shift.serviceId));
+    }
+
+    get allServicesSelected(): boolean {
+        return this.serviceFilters.length > 0 &&
+            this.serviceFilters.every(service => this.selectedServiceIds.has(service.id));
+    }
+
+    toggleService(serviceId: number): void {
+        if (this.selectedServiceIds.has(serviceId)) {
+            this.selectedServiceIds.delete(serviceId);
+        } else {
+            this.selectedServiceIds.add(serviceId);
+        }
+        this.selectedServiceIds = new Set(this.selectedServiceIds);
+        this.closeHiddenShiftDetails();
+    }
+
+    toggleAllServices(): void {
+        this.selectedServiceIds = this.allServicesSelected
+            ? new Set<number>()
+            : new Set(this.serviceFilters.map(service => service.id));
+        this.closeHiddenShiftDetails();
+    }
+
+    isServiceSelected(serviceId: number): boolean {
+        return this.selectedServiceIds.has(serviceId);
     }
 
     selectShift(shift: CalendarShift): void {
@@ -223,5 +274,26 @@ export class CalendarComponent implements OnInit {
         if (Number.isNaN(date.getTime())) return '';
         const offset = date.getTimezoneOffset() * 60000;
         return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+    }
+
+    private initializeSelectedServices(): void {
+        const availableIds = this.serviceFilters.map(service => service.id);
+        const preservedSelection = Array.from(this.selectedServiceIds)
+            .filter(id => availableIds.includes(id));
+        if (preservedSelection.length > 0) {
+            this.selectedServiceIds = new Set(preservedSelection);
+            return;
+        }
+
+        const preferredServiceId = this.authenticationService.getSelectedServiceId();
+        this.selectedServiceIds = preferredServiceId && availableIds.includes(preferredServiceId)
+            ? new Set([preferredServiceId])
+            : new Set(availableIds);
+    }
+
+    private closeHiddenShiftDetails(): void {
+        if (this.selectedShift && !this.selectedServiceIds.has(this.selectedShift.serviceId)) {
+            this.closeShiftDetails();
+        }
     }
 }
