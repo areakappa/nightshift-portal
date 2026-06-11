@@ -395,7 +395,16 @@ export class ServiceWizardComponent implements OnInit {
 
     createTeamYes(): void {
         if (!this.createdService) return;
-        this.router.navigateByUrl('/wizard/team', { state: { service: JSON.stringify(this.createdService) } });
+        const initialRoleRequirements = this.getSelectedRoles().map(role => ({
+            name: role.ruolo,
+            required: this.normalizeEmployeeNumber(role.employeeNumber)
+        }));
+        this.router.navigateByUrl('/wizard/team', {
+            state: {
+                service: JSON.stringify(this.createdService),
+                initialRoleRequirements: JSON.stringify(initialRoleRequirements)
+            }
+        });
     }
 
     createTeamNo(): void {

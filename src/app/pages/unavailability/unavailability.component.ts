@@ -13,11 +13,14 @@ import { MatChipsModule } from '@angular/material/chips';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialogModule, MatDialog } from '@angular/material/dialog';
 import { UnavailabilityEntry, UnavailabilityType } from '../../models/generic/unavailability/UnavailabilityEntry';
+import { AuthenticateUser } from '../../models/authenticateUser';
+import { ServiceDTO } from '../../models/dto/serviceDTO';
 import { UserDto } from '../../models/dto/userDto';
 import { AuthenticationService } from '../../services/authentication.service';
 import { OrganizationService } from '../../services/organization.service';
 import { RoleService } from '../../services/role.service';
 import { ScheduleService } from '../../services/schedule.service';
+import { ServicesService } from '../../services/services.service';
 import { UnavailabilityService } from '../../services/unavailability.service';
 
 type PageMode = 'operator' | 'manager';
@@ -45,6 +48,8 @@ interface UnavailabilityDraft {
 export class UnavailabilityComponent implements OnInit {
     mode: PageMode = 'operator';
     isLoading = false;
+    services: ServiceDTO[] = [];
+    selectedServiceId: number | null = null;
     users: UserDto[] = [];
     entries: UnavailabilityEntry[] = [];
     draft: UnavailabilityDraft = this.buildEmptyDraft();
@@ -63,6 +68,7 @@ export class UnavailabilityComponent implements OnInit {
         private organizationService: OrganizationService,
         private roleService: RoleService,
         private scheduleService: ScheduleService,
+        private servicesService: ServicesService,
         private unavailabilityService: UnavailabilityService,
         private snackBar: MatSnackBar,
         private cdr: ChangeDetectorRef
@@ -75,7 +81,10 @@ export class UnavailabilityComponent implements OnInit {
     get visibleEntries(): UnavailabilityEntry[] {
         const user = this.authentication.getUser();
         if (!user) return [];
-        if (this.mode === 'manager') return this.entries;
+        if (this.mode === 'manager') {
+            const teamUserIds = this.getTeamUserIds();
+            return this.entries.filter(entry => entry.userId !== user.id && teamUserIds.has(entry.userId));
+        }
         return this.entries.filter(e => e.userId === user.id);
     }
 
@@ -90,7 +99,10 @@ export class UnavailabilityComponent implements OnInit {
 
         const startDateIso = this.toDayStartIso(this.draft.startDate);
         const endDateIso = this.toDayEndIso(this.draft.endDate);
-        if (!startDateIso || !endDateIso) { this.snackBar.open('Date non valide.', 'Chiudi', { duration: 2000 }); return; }
+        if (!startDateIso || !endDateIso || new Date(startDateIso).getTime() > new Date(endDateIso).getTime()) {
+            this.snackBar.open('Intervallo date non valido.', 'Chiudi', { duration: 2000 });
+            return;
+        }
 
         try {
             if (this.mode === 'manager') {
@@ -119,21 +131,11 @@ export class UnavailabilityComponent implements OnInit {
     }
 
     async approve(entry: UnavailabilityEntry): Promise<void> {
-        if (entry.notificationId) {
-            await this.scheduleService.handleOperatorUnavailabilityDecision({ idNotification: entry.notificationId, approved: true });
-        }
-        this.unavailabilityService.decideEntry(entry.id, 'approved', '');
-        this.snackBar.open('Approvata.', 'Ok', { duration: 2000 });
-        await this.loadPage();
+        await this.handleDecision(entry, true);
     }
 
     async reject(entry: UnavailabilityEntry): Promise<void> {
-        if (entry.notificationId) {
-            await this.scheduleService.handleOperatorUnavailabilityDecision({ idNotification: entry.notificationId, approved: false });
-        }
-        this.unavailabilityService.decideEntry(entry.id, 'rejected', '');
-        this.snackBar.open('Rifiutata.', 'Ok', { duration: 2000 });
-        await this.loadPage();
+        await this.handleDecision(entry, false);
     }
 
     getStatusLabel(status: UnavailabilityEntry['status']): string {
@@ -162,6 +164,18 @@ export class UnavailabilityComponent implements OnInit {
         return `${user.name ?? ''} ${user.surname ?? ''}`.trim() || user.email || 'Collaboratore';
     }
 
+    async onServiceSelected(): Promise<void> {
+        if (!this.selectedServiceId) {
+            this.users = [];
+            this.draft.targetUserId = null;
+            return;
+        }
+
+        this.authentication.saveSelectedServiceId(this.selectedServiceId);
+        await this.loadTeamUsers(this.selectedServiceId);
+        this.cdr.detectChanges();
+    }
+
     private async loadPage(): Promise<void> {
         this.isLoading = true;
         try {
@@ -170,7 +184,23 @@ export class UnavailabilityComponent implements OnInit {
             this.mode = this.resolvePageMode(user);
             const orgId = this.organizationService.getOrganizationSelectedId();
             if (this.mode === 'manager' && orgId) {
-                this.users = (await this.organizationService.getUsersbyOrganization(orgId)).filter(u => u.id !== null && u.state !== 0);
+                this.services = await this.servicesService.getServicesbyIDOrganization(orgId);
+                const preferredServiceId = this.authentication.getSelectedServiceId();
+                this.selectedServiceId = preferredServiceId && this.services.some(service => service.id === preferredServiceId)
+                    ? preferredServiceId
+                    : this.services[0]?.id ?? null;
+                if (this.selectedServiceId) {
+                    await this.loadTeamUsers(this.selectedServiceId);
+                } else {
+                    this.users = [];
+                }
+            } else {
+                this.services = [];
+                this.selectedServiceId = null;
+                this.users = [];
+            }
+
+            if (this.mode === 'manager') {
                 const notifications = await this.scheduleService.getScheduledNotificationsByIDUser(user.id).catch(() => []);
                 this.unavailabilityService.importManagerNotifications(notifications);
             }
@@ -184,10 +214,76 @@ export class UnavailabilityComponent implements OnInit {
         }
     }
 
-    private resolvePageMode(user: any): PageMode {
-        const role = this.roleService.getRoleSnapshot();
-        if (role === 'operator') return 'operator';
-        return (user?.isCustomerAdmin || user?.isAdmin) ? 'manager' : 'operator';
+    private async handleDecision(entry: UnavailabilityEntry, approved: boolean): Promise<void> {
+        try {
+            if (this.mode !== 'manager' || !this.canManageEntry(entry)) {
+                this.snackBar.open(
+                    'Puoi gestire solo le indisponibilità degli altri utenti del team selezionato.',
+                    'Chiudi',
+                    { duration: 3500 }
+                );
+                return;
+            }
+
+            let effectiveEntry = entry;
+
+            if (!effectiveEntry.notificationId && effectiveEntry.flow === 'operator_to_manager') {
+                const user = this.authentication.getUser();
+                if (!user?.id) throw new Error('Utente non autenticato');
+
+                const notifications = await this.scheduleService.getScheduledNotificationsByIDUser(user.id).catch(() => []);
+                this.unavailabilityService.importManagerNotifications(notifications);
+                this.entries = this.unavailabilityService.getEntries();
+
+                effectiveEntry =
+                    this.entries.find(item => item.id === entry.id) ??
+                    this.entries.find(item =>
+                        item.flow === entry.flow &&
+                        item.userId === entry.userId &&
+                        item.shiftId === entry.shiftId &&
+                        item.startDateIso === entry.startDateIso &&
+                        item.endDateIso === entry.endDateIso
+                    ) ??
+                    entry;
+            }
+
+            if (effectiveEntry.flow === 'operator_to_manager' && !effectiveEntry.notificationId) {
+                this.snackBar.open(
+                    'Richiesta non ancora sincronizzata col backend. Riprova tra pochi secondi.',
+                    'Chiudi',
+                    { duration: 3500 }
+                );
+                return;
+            }
+
+            if (!this.canManageEntry(effectiveEntry)) {
+                throw new Error('La richiesta non appartiene al team selezionato');
+            }
+
+            if (effectiveEntry.notificationId) {
+                const decisionApplied = await this.scheduleService.handleOperatorUnavailabilityDecision({
+                    idNotification: effectiveEntry.notificationId,
+                    approved
+                });
+                if (!decisionApplied) throw new Error('Decisione non applicata dal backend');
+            }
+
+            this.unavailabilityService.decideEntry(effectiveEntry.id, approved ? 'approved' : 'rejected', '');
+            this.snackBar.open(approved ? 'Approvata.' : 'Rifiutata.', 'Ok', { duration: 2000 });
+            await this.loadPage();
+        } catch (error) {
+            console.error('handleDecision() ERROR:: ', error);
+            this.snackBar.open('Non sono riuscito a salvare la decisione.', 'Chiudi', { duration: 3000 });
+        }
+    }
+
+    private resolvePageMode(user: AuthenticateUser): PageMode {
+        const selectedRole = this.roleService.getRoleSnapshot();
+        const hasManagerPrivileges = !!user?.isCustomerAdmin || !!user?.isAdmin;
+
+        if (selectedRole === 'operator') return 'operator';
+        if (selectedRole === 'organizer' && hasManagerPrivileges) return 'manager';
+        return !!user?.isUser && !user?.isCustomerAdmin ? 'operator' : 'manager';
     }
 
     private isDraftValid(): boolean {
@@ -197,12 +293,18 @@ export class UnavailabilityComponent implements OnInit {
 
     private toDayStartIso(value: string): string | null {
         if (!value) return null;
-        const d = new Date(value); d.setHours(0, 0, 0, 0); return isNaN(d.getTime()) ? null : d.toISOString();
+        const date = this.parseLocalDate(value);
+        if (!date) return null;
+        date.setHours(0, 0, 0, 0);
+        return date.toISOString();
     }
 
     private toDayEndIso(value: string): string | null {
         if (!value) return null;
-        const d = new Date(value); d.setHours(23, 59, 59, 999); return isNaN(d.getTime()) ? null : d.toISOString();
+        const date = this.parseLocalDate(value);
+        if (!date) return null;
+        date.setHours(23, 59, 59, 999);
+        return date.toISOString();
     }
 
     private buildCurrentUserName(): string {
@@ -211,7 +313,57 @@ export class UnavailabilityComponent implements OnInit {
     }
 
     private buildEmptyDraft(): UnavailabilityDraft {
-        const today = new Date().toISOString().split('T')[0];
+        const today = this.formatLocalDateInput(new Date());
         return { targetUserId: null, type: 'vacation', startDate: today, endDate: today, reason: '' };
+    }
+
+    private parseLocalDate(value: string): Date | null {
+        const parts = value.split('-').map(segment => Number(segment));
+        if (parts.length !== 3 || parts.some(segment => !Number.isFinite(segment))) return null;
+
+        const [year, month, day] = parts;
+        const date = new Date(year, month - 1, day);
+        if (
+            Number.isNaN(date.getTime()) ||
+            date.getFullYear() !== year ||
+            date.getMonth() !== month - 1 ||
+            date.getDate() !== day
+        ) {
+            return null;
+        }
+
+        return date;
+    }
+
+    private formatLocalDateInput(date: Date): string {
+        const year = date.getFullYear();
+        const month = `${date.getMonth() + 1}`.padStart(2, '0');
+        const day = `${date.getDate()}`.padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    private async loadTeamUsers(serviceId: number): Promise<void> {
+        const currentUserId = this.authentication.getUser()?.id;
+        this.users = (await this.organizationService.getUsersbyService(serviceId))
+            .filter(user => user.id !== null && user.state !== 0 && user.id !== currentUserId);
+
+        if (!this.users.some(user => user.id === this.draft.targetUserId)) {
+            this.draft.targetUserId = this.users[0]?.id ?? null;
+        }
+    }
+
+    private getTeamUserIds(): Set<number> {
+        return new Set(
+            this.users
+                .map(user => user.id)
+                .filter((id): id is number => id !== null)
+        );
+    }
+
+    private canManageEntry(entry: UnavailabilityEntry): boolean {
+        const currentUserId = this.authentication.getUser()?.id;
+        return entry.flow === 'operator_to_manager'
+            && entry.userId !== currentUserId
+            && this.getTeamUserIds().has(entry.userId);
     }
 }

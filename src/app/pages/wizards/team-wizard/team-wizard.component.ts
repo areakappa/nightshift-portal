@@ -22,6 +22,11 @@ interface TeamRoleSetup {
     required: number;
 }
 
+interface InitialRoleRequirement {
+    name: string;
+    required: number;
+}
+
 @Component({
     selector: 'app-team-wizard',
     standalone: true,
@@ -41,6 +46,7 @@ export class TeamWizardComponent implements OnInit {
     teamCoverage: TeamCoverage | null = null;
     assignments = new Map<number, number[]>();
     returnToServiceDetail = false;
+    initialRoleRequirements: InitialRoleRequirement[] = [];
 
     constructor(
         private orgService: OrganizationService,
@@ -51,6 +57,9 @@ export class TeamWizardComponent implements OnInit {
         private cdr: ChangeDetectorRef
     ) {
         this.service = this.parseState<ServiceDTO>(history.state?.service);
+        this.initialRoleRequirements = this.parseState<InitialRoleRequirement[]>(
+            history.state?.initialRoleRequirements
+        ) ?? [];
         this.returnToServiceDetail = history.state?.returnToServiceDetail === true;
     }
 
@@ -201,12 +210,21 @@ export class TeamWizardComponent implements OnInit {
         this.roles = (this.service?.serviceRoles ?? []).map(role => ({
             id: role.id,
             name: role.name ?? 'Ruolo',
-            required: requiredByRole.get(role.id) ?? Math.max(1, role.employeeNumber ?? 1)
+            required: this.getInitialRequired(role.name, requiredByRole.get(role.id), role.employeeNumber)
         }));
         for (const role of this.roles) {
             if (!assignments.has(role.id)) assignments.set(role.id, []);
         }
         this.assignments = assignments;
+    }
+
+    private getInitialRequired(
+        roleName: string | null,
+        coverageRequired: number | undefined,
+        employeeNumber: number | undefined
+    ): number {
+        const requirement = this.initialRoleRequirements.find(item => item.name === roleName);
+        return requirement?.required ?? coverageRequired ?? Math.max(1, employeeNumber ?? 1);
     }
 
     private parseState<T>(value: unknown): T | null {

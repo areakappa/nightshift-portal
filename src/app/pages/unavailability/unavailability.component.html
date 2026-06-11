@@ -11,6 +11,17 @@
     </div>
   </div>
 
+  <mat-card class="ns-card form-card" *ngIf="mode === 'manager'">
+    <mat-card-content>
+      <mat-form-field appearance="outline">
+        <mat-label>Team del servizio</mat-label>
+        <mat-select [(ngModel)]="selectedServiceId" (ngModelChange)="onServiceSelected()">
+          <mat-option *ngFor="let service of services" [value]="service.id">{{ service.name }}</mat-option>
+        </mat-select>
+      </mat-form-field>
+    </mat-card-content>
+  </mat-card>
+
   <!-- New request form -->
   <mat-card class="ns-card form-card" *ngIf="showForm">
     <mat-card-header><mat-card-title>Nuova indisponibilità</mat-card-title></mat-card-header>

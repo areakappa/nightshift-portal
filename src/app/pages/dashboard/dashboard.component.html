@@ -2,7 +2,7 @@
   <div class="page-header">
     <div class="header-row">
       <div><h1>Dashboard</h1><p>Panoramica generale</p></div>
-      <button mat-stroked-button (click)="switchRole()">
+      <button mat-stroked-button *ngIf="!organizerSwitchDisabled" (click)="switchRole()">
         <mat-icon>swap_horiz</mat-icon>
         Passa a {{ currentRole === 'organizer' ? 'Operatore' : 'Organizzatore' }}
       </button>

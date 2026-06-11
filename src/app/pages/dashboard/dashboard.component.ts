@@ -16,6 +16,7 @@ import { ServicesService } from '../../services/services.service';
 import { OrganizationService } from '../../services/organization.service';
 import { AuthenticationService } from '../../services/authentication.service';
 import { RoleService, UserRole } from '../../services/role.service';
+import { AccountContextService } from '../../services/account-context.service';
 
 @Component({
     selector: 'app-dashboard',
@@ -45,12 +46,18 @@ export class DashboardComponent implements OnInit {
         private orgService: OrganizationService,
         private authService: AuthenticationService,
         private roleService: RoleService,
+        private accountContextService: AccountContextService,
         private snackBar: MatSnackBar,
         private cdr: ChangeDetectorRef
     ) { }
 
     async ngOnInit(): Promise<void> {
+        await this.accountContextService.refresh();
         this.currentRole = this.roleService.getRoleSnapshot();
+        if (this.currentRole === 'organizer' && !this.accountContextService.snapshot.isManager) {
+            this.currentRole = 'operator';
+            this.roleService.setRole(this.currentRole);
+        }
         await this.loadData();
     }
 
@@ -102,10 +109,16 @@ export class DashboardComponent implements OnInit {
     }
 
     switchRole(): void {
+        if (this.organizerSwitchDisabled) return;
+
         const newRole: UserRole = this.currentRole === 'organizer' ? 'operator' : 'organizer';
         this.roleService.setRole(newRole);
         this.currentRole = newRole;
         void this.loadData();
+    }
+
+    get organizerSwitchDisabled(): boolean {
+        return this.currentRole === 'operator' && !this.accountContextService.snapshot.isManager;
     }
 
     getCoverage(service: ServiceDTO): TeamCoverage | null { return this.coverageMap.get(service.id) ?? null; }
