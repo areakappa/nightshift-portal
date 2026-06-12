@@ -41,7 +41,8 @@ export class NotificationsComponent implements OnInit {
         if (!user) return;
         this.isLoading = true;
         try {
-            this.notifications = await this.scheduleService.getScheduledNotificationsByIDUser(user.id);
+            this.notifications = (await this.scheduleService.getScheduledNotificationsByIDUser(user.id))
+                .sort((left, right) => this.getNotificationTimestamp(right) - this.getNotificationTimestamp(left));
         } catch {
             this.snackBar.open('Errore nel caricamento notifiche', 'Chiudi', { duration: 3000 });
         } finally {
@@ -71,9 +72,50 @@ export class NotificationsComponent implements OnInit {
     }
 
     getNotificationIcon(notification: ScheduledNotificationDTO): string {
-        const type = notification.nameScheduleTask?.toLowerCase() ?? '';
-        if (type.includes('unavailab')) return 'event_busy';
-        if (type.includes('shift')) return 'swap_horiz';
+        const type = `${notification.title ?? ''} ${notification.nameScheduleTask ?? ''}`.toLowerCase();
+        if (type.includes('indispon') || type.includes('unavailab')) return 'event_busy';
+        if (type.includes('turno') || type.includes('shift')) return 'calendar_month';
         return 'notifications';
+    }
+
+    getSenderName(notification: ScheduledNotificationDTO): string {
+        return notification.nameUserSender?.trim()
+            || notification.nameEmployee?.trim()
+            || notification.nameUser?.trim()
+            || 'NightShift';
+    }
+
+    getSenderInitials(notification: ScheduledNotificationDTO): string {
+        const parts = this.getSenderName(notification).split(/\s+/).filter(Boolean);
+        return parts.slice(0, 2).map(part => part.charAt(0).toUpperCase()).join('') || 'NS';
+    }
+
+    getStatusLabel(notification: ScheduledNotificationDTO): string {
+        if (notification.state === 0) return 'Da gestire';
+        if (notification.state === 1) return 'Attiva';
+        return 'Archiviata';
+    }
+
+    getServiceLabel(notification: ScheduledNotificationDTO): string {
+        return notification.nameService?.trim()
+            || notification.nameServiceType?.trim()
+            || notification.nameClient?.trim()
+            || 'Aggiornamento operativo';
+    }
+
+    getOrganizationLabel(notification: ScheduledNotificationDTO): string | null {
+        const service = this.getServiceLabel(notification);
+        const organization = notification.nameClient?.trim();
+        return organization && organization !== service ? organization : null;
+    }
+
+    hasShiftRange(notification: ScheduledNotificationDTO): boolean {
+        return !!notification.startDate;
+    }
+
+    private getNotificationTimestamp(notification: ScheduledNotificationDTO): number {
+        const value = notification.created ?? notification.startDate;
+        const timestamp = value ? new Date(value).getTime() : 0;
+        return Number.isNaN(timestamp) ? 0 : timestamp;
     }
 }
