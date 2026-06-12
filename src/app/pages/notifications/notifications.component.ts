@@ -43,6 +43,7 @@ export class NotificationsComponent implements OnInit {
         try {
             this.notifications = (await this.scheduleService.getScheduledNotificationsByIDUser(user.id))
                 .sort((left, right) => this.getNotificationTimestamp(right) - this.getNotificationTimestamp(left));
+                this.notifications  = this.notifications.filter(notification => notification.idmediaType == 3); // Mostra solo notifiche attive o da gestire
         } catch {
             this.snackBar.open('Errore nel caricamento notifiche', 'Chiudi', { duration: 3000 });
         } finally {
