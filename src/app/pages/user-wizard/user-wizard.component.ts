@@ -50,6 +50,9 @@ export class UserWizardComponent implements OnInit {
     inviteName = '';
     inviteSurname = '';
     returnToServiceDetail = false;
+    returnToTeamWizard = false;
+    returnToAssignmentStep = false;
+    initialRoleRequirements: Array<{ name: string; required: number }> = [];
 
     typeForm: FormGroup;
     newUserForm: FormGroup;
@@ -77,6 +80,9 @@ export class UserWizardComponent implements OnInit {
         this.serviceSelected = this.tryParse(state.service);
         this.rolesSnapshot = this.tryParse(state.roles) ?? [];
         this.users = this.tryParse(state.organizationUsers) ?? [];
+        this.initialRoleRequirements = this.tryParse(state.initialRoleRequirements) ?? [];
+        this.returnToTeamWizard = state.returnToTeamWizard === true;
+        this.returnToAssignmentStep = state.returnToAssignmentStep === true;
         this.returnToServiceDetail = state.returnToServiceDetail === true;
     }
 
@@ -178,12 +184,14 @@ export class UserWizardComponent implements OnInit {
     getUserLabel(user: UserDto): string { return `${user.name ?? ''} ${user.surname ?? ''}`.trim() || user.email || ''; }
 
     private navigateBack(): void {
-        this.router.navigateByUrl('/team', {
+        this.router.navigateByUrl(this.returnToTeamWizard ? '/wizard/team' : '/team', {
             replaceUrl: true,
             state: {
                 service: JSON.stringify(this.serviceSelected),
                 organizationUsers: JSON.stringify(this.users),
                 roles: JSON.stringify(this.rolesSnapshot),
+                initialRoleRequirements: JSON.stringify(this.initialRoleRequirements),
+                returnToAssignmentStep: this.returnToAssignmentStep,
                 returnToServiceDetail: this.returnToServiceDetail
             }
         });

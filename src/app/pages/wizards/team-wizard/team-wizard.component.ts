@@ -15,6 +15,7 @@ import { ServicesService } from '../../../services/services.service';
 import { TeamsService } from '../../../services/team.service';
 import { TeamContentCrud } from '../../../models/crud/TeamContentCrud';
 import { ServiceAvailabilityRequestedCrud } from '../../../models/crud/ServiceAvailabilityRequestedCrud';
+import { TeamRoleCoverage } from '../../../models/generic/team/TeamRoleCoverage';
 
 interface TeamRoleSetup {
     id: number;
@@ -47,6 +48,9 @@ export class TeamWizardComponent implements OnInit {
     assignments = new Map<number, number[]>();
     returnToServiceDetail = false;
     initialRoleRequirements: InitialRoleRequirement[] = [];
+    returnedRoles: Array<TeamRoleSetup & { users?: UserDto[] }> = [];
+    returnedUsers: UserDto[] = [];
+    selectedStepIndex = 0;
 
     constructor(
         private orgService: OrganizationService,
@@ -60,6 +64,9 @@ export class TeamWizardComponent implements OnInit {
         this.initialRoleRequirements = this.parseState<InitialRoleRequirement[]>(
             history.state?.initialRoleRequirements
         ) ?? [];
+        this.returnedRoles = this.parseState<Array<TeamRoleSetup & { users?: UserDto[] }>>(history.state?.roles) ?? [];
+        this.returnedUsers = this.parseState<UserDto[]>(history.state?.organizationUsers) ?? [];
+        this.selectedStepIndex = history.state?.returnToAssignmentStep === true ? 1 : 0;
         this.returnToServiceDetail = history.state?.returnToServiceDetail === true;
     }
 
@@ -78,7 +85,9 @@ export class TeamWizardComponent implements OnInit {
                 this.orgService.getUsersbyOrganization(this.orgService.getOrganizationSelectedId()),
                 this.servicesService.getTeamServiceRoles(this.service.id)
             ]);
+            this.mergeReturnedUsers();
             this.initializeRoles();
+            this.applyReturnedAssignments();
         } catch {
             this.snackBar.open('Errore nel caricamento della configurazione team', 'Chiudi', { duration: 3000 });
         } finally {
@@ -145,6 +154,26 @@ export class TeamWizardComponent implements OnInit {
 
     isAssigned(roleId: number, userId: number): boolean {
         return (this.assignments.get(roleId) ?? []).includes(userId);
+    }
+
+    openUserWizard(role: TeamRoleSetup): void {
+        if (!this.service) return;
+        const roleCoverage = this.teamCoverage?.rolesCoverage.find(item => item.serviceRole?.id === role.id)
+            ?? { serviceRole: { id: role.id, name: role.name } } as TeamRoleCoverage;
+
+        this.router.navigateByUrl('/user-wizard', {
+            state: {
+                service: JSON.stringify(this.service),
+                teamCoverage: JSON.stringify(this.teamCoverage),
+                teamRole: JSON.stringify(roleCoverage),
+                organizationUsers: JSON.stringify(this.users),
+                roles: JSON.stringify(this.buildRolesSnapshot()),
+                initialRoleRequirements: JSON.stringify(this.roles.map(item => ({ name: item.name, required: item.required }))),
+                returnToTeamWizard: true,
+                returnToAssignmentStep: true,
+                returnToServiceDetail: this.returnToServiceDetail
+            }
+        });
     }
 
     roleIsComplete(role: TeamRoleSetup): boolean {
@@ -216,6 +245,30 @@ export class TeamWizardComponent implements OnInit {
             if (!assignments.has(role.id)) assignments.set(role.id, []);
         }
         this.assignments = assignments;
+    }
+
+    private buildRolesSnapshot(): Array<TeamRoleSetup & { users: UserDto[] }> {
+        return this.roles.map(role => ({ ...role, users: this.getAssignedUsers(role.id) }));
+    }
+
+    private mergeReturnedUsers(): void {
+        const returnedRoleUsers = this.returnedRoles.flatMap(role => role.users ?? []);
+        for (const user of [...this.returnedUsers, ...returnedRoleUsers]) {
+            if (user.id && !this.users.some(item => item.id === user.id)) this.users.push(user);
+        }
+    }
+
+    private applyReturnedAssignments(): void {
+        for (const returnedRole of this.returnedRoles) {
+            const role = this.roles.find(item => item.id === returnedRole.id);
+            if (!role) continue;
+            role.required = returnedRole.required;
+            const current = this.assignments.get(role.id) ?? [];
+            const returnedIds = (returnedRole.users ?? [])
+                .map(user => user.id)
+                .filter((id): id is number => id !== null);
+            this.assignments.set(role.id, [...new Set([...current, ...returnedIds])]);
+        }
     }
 
     private getInitialRequired(

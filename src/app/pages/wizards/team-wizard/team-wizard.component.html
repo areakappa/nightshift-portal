@@ -12,7 +12,7 @@
 
   <div class="loading-overlay" *ngIf="isLoading"><mat-spinner diameter="40"></mat-spinner></div>
 
-  <mat-stepper #teamStepper linear class="team-stepper" *ngIf="!isLoading">
+  <mat-stepper #teamStepper linear class="team-stepper" *ngIf="!isLoading" [selectedIndex]="selectedStepIndex">
     <mat-step>
       <ng-template matStepLabel>Ruoli</ng-template>
       <div class="step-content">
@@ -76,6 +76,13 @@
               <mat-icon>{{ isAssigned(role.id, user.id!) ? 'check_circle' : 'radio_button_unchecked' }}</mat-icon>
               {{ getUserLabel(user) }}
             </button>
+            <button type="button" class="invite-user-chip" (click)="openUserWizard(role)">
+              <mat-icon>person_add</mat-icon>
+              Aggiungi persona
+            </button>
+          </div>
+          <div class="empty-users-hint" *ngIf="users.length === 0">
+            Non ci sono ancora persone nell'organizzazione. Invita la prima persona per questo ruolo.
           </div>
         </div>
       </div>
