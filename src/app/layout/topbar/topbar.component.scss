@@ -33,20 +33,3 @@
   border-radius: 12px;
   margin-right: 8px;
 }
-
-.tier-badge {
-  margin-right: 8px;
-  padding: 4px 9px;
-  border: 1px solid rgba(251, 191, 36, 0.45);
-  border-radius: 12px;
-  color: #fbbf24;
-  background: rgba(251, 191, 36, 0.14);
-  font-size: 11px;
-  font-weight: 800;
-
-  &.pro {
-    border-color: rgba(52, 211, 153, 0.45);
-    color: #6ee7b7;
-    background: rgba(52, 211, 153, 0.14);
-  }
-}

@@ -47,7 +47,6 @@ export class LoginComponent implements OnInit {
 
     ngOnInit(): void {
         this.restorePreferences();
-        this.loadNavigationState();
     }
 
     private restorePreferences(): void {
@@ -55,13 +54,6 @@ export class LoginComponent implements OnInit {
         const keepVal = localStorage.getItem(KEEP_ACCESS_KEY);
         if (saved) this.username.setValue(saved);
         this.keepAccess = keepVal !== 'false';
-    }
-
-    private loadNavigationState(): void {
-        const state = history.state;
-        if (state?.showUpgradeDemoPopup) {
-            this.snackBar.open(state.upgradeDemoMessage ?? 'Licenza scaduta.', 'Chiudi', { duration: 8000 });
-        }
     }
 
     async login(): Promise<void> {

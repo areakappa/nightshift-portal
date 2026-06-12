@@ -1,14 +1,11 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { AuthenticationService } from './authentication.service';
-import { DemoLimitService, LicenseTier } from './demo-limit.service';
 import { OrganizationService } from './organization.service';
 
 export interface AccountContext {
     organizationRole: string;
     roleLabel: string;
-    tier: LicenseTier;
-    tierLabel: string;
     isManager: boolean;
     isOperator: boolean;
 }
@@ -16,8 +13,6 @@ export interface AccountContext {
 const EMPTY_CONTEXT: AccountContext = {
     organizationRole: '',
     roleLabel: '',
-    tier: 'other',
-    tierLabel: '',
     isManager: false,
     isOperator: false
 };
@@ -31,8 +26,7 @@ export class AccountContextService {
 
     constructor(
         private authenticationService: AuthenticationService,
-        private organizationService: OrganizationService,
-        private demoLimitService: DemoLimitService
+        private organizationService: OrganizationService
     ) { }
 
     get snapshot(): AccountContext {
@@ -55,10 +49,7 @@ export class AccountContextService {
         const user = this.authenticationService.getUser();
         if (!user) return EMPTY_CONTEXT;
 
-        const [tier, organizationRole] = await Promise.all([
-            this.demoLimitService.getCurrentLicenseTier().catch(() => 'demo' as LicenseTier),
-            this.resolveOrganizationRole(user.id)
-        ]);
+        const organizationRole = await this.resolveOrganizationRole(user.id);
         const normalizedRole = organizationRole.trim().toLowerCase();
         const isManager = user.isAdmin
             || user.isCustomerAdmin
@@ -69,8 +60,6 @@ export class AccountContextService {
         return {
             organizationRole,
             roleLabel: organizationRole || (isManager ? 'Manager' : isOperator ? 'Operatore' : ''),
-            tier,
-            tierLabel: tier === 'pro' ? 'PRO' : tier === 'demo' ? 'DEMO' : '',
             isManager,
             isOperator
         };

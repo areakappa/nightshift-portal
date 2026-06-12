@@ -13,8 +13,6 @@ import { OrganizationRoleCrud } from '../models/crud/OrganizationRoleCrud';
 import { OrganizationRuleDto } from '../models/dto/OrganizationRuleDto';
 
 const PREF_ORGANIZATION_ID = 'organizationId';
-export const DEMO_LICENSE_EXPIRED_ERROR_CODE = 'DEMO_LICENSE_EXPIRED';
-
 @Injectable({ providedIn: 'root' })
 export class OrganizationService {
     private organizationUrl = `${environment.api}/api/organization`;
@@ -35,11 +33,6 @@ export class OrganizationService {
     }
 
     constructor(private http: HttpClient) { }
-
-    public isDemoLicenseExpiredError(error: unknown): boolean {
-        if (!error || typeof error !== 'object') return false;
-        return (error as { code?: string }).code === DEMO_LICENSE_EXPIRED_ERROR_CODE;
-    }
 
     public async getOrganizations(): Promise<OrganizationDto[]> {
         return await firstValueFrom(
@@ -66,12 +59,6 @@ export class OrganizationService {
     }
 
     public async getOrganizationsTeams(userId: number): Promise<OrganizationTeamDto[]> {
-        const isDemoActive = await this.checkDemoExpirationByUser(userId);
-        if (!isDemoActive) {
-            const err = new Error('Demo license expired') as Error & { code?: string };
-            err.code = DEMO_LICENSE_EXPIRED_ERROR_CODE;
-            throw err;
-        }
         return await firstValueFrom(
             this.http.get<OrganizationTeamDto[]>(this.organizationUrl + '/GetOrganizationsTeams/' + userId, { headers: Utility.getAuthHeader() })
         );
@@ -152,12 +139,6 @@ export class OrganizationService {
     public async getOrganizationRulesByIDOrganization(idOrganization: number): Promise<OrganizationRuleDto[]> {
         return await firstValueFrom(
             this.http.get<OrganizationRuleDto[]>(this.organizationUrl + '/GetOrganizationRulesByIDOrganization/' + idOrganization, { headers: Utility.getAuthHeader() })
-        );
-    }
-
-    public async checkDemoExpirationByUser(idUser: number): Promise<boolean> {
-        return await firstValueFrom(
-            this.http.get<boolean>(this.organizationUrl + '/CheckDemoExpirationByUser/' + idUser, { headers: Utility.getAuthHeader() })
         );
     }
 }

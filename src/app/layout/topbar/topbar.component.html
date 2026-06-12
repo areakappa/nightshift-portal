@@ -12,9 +12,6 @@
 
   <ng-container *ngIf="accountContext$ | async as context">
     <span class="role-badge" *ngIf="context.roleLabel">{{ context.roleLabel }}</span>
-    <span class="tier-badge" *ngIf="context.tierLabel" [class.pro]="context.tier === 'pro'">
-      {{ context.tierLabel }}
-    </span>
   </ng-container>
 
   <a mat-icon-button routerLink="/notifications" aria-label="Notifiche">

@@ -19,8 +19,6 @@ import { AuthenticationService } from '../../services/authentication.service';
 import { OrganizationService } from '../../services/organization.service';
 import { ServicesService } from '../../services/services.service';
 import { ScheduleService } from '../../services/schedule.service';
-import { DemoLimitService } from '../../services/demo-limit.service';
-import { UpgradeService } from '../../services/upgrade.service';
 import { OrganizationPermissionsService } from '../../services/organization-permissions.service';
 
 type ServiceStatus = 'Pronto' | 'Setup';
@@ -59,9 +57,7 @@ export class HomeComponent implements OnInit {
         private servicesService: ServicesService,
         private scheduleService: ScheduleService,
         private organizationService: OrganizationService,
-        private demoLimitService: DemoLimitService,
         private router: Router,
-        private upgradeService: UpgradeService,
         private organizationPermissionsService: OrganizationPermissionsService
     ) {
         const now = new Date();
@@ -104,7 +100,6 @@ export class HomeComponent implements OnInit {
             this.organizationSelected = this.organizationsTeams.find(t => t.organization?.id === orgId)?.organization ?? null;
             this.orgName = this.organizationSelected?.name ?? 'Nessuna organizzazione';
         } catch (e) {
-            if (this.authentication.isDemoLicenseExpiredError(e)) { await this.authentication.handleDemoLicenseExpired(); return; }
             this.organizationsTeams = []; this.organizationSelected = null; this.orgName = 'Nessuna organizzazione';
         }
     }
@@ -185,13 +180,9 @@ export class HomeComponent implements OnInit {
         this.router.navigateByUrl('/service-detail', { state: { service: JSON.stringify(service) } });
     }
 
-    async addService(): Promise<void> {
+    addService(): void {
         if (!this.hasOrganization) {
             this.addOrganization();
-            return;
-        }
-        if (await this.demoLimitService.isDemoServiceLimitReached({ services: this.services })) {
-            await this.upgradeService.presentUpgradeFlow('Con il tuo piano puoi creare al massimo 1 servizio.', { contactOnly: true });
             return;
         }
         this.router.navigateByUrl('/wizard/service');

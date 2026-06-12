@@ -23,8 +23,6 @@ import { ServicesService } from '../../services/services.service';
 import { TeamsService } from '../../services/team.service';
 import { AuthenticationService } from '../../services/authentication.service';
 import { TeamContentCrud } from '../../models/crud/TeamContentCrud';
-import { DemoLimitService } from '../../services/demo-limit.service';
-import { UpgradeService } from '../../services/upgrade.service';
 
 interface TeamRoleView {
     id: number;
@@ -66,9 +64,7 @@ export class TeamComponent implements OnInit {
         private authService: AuthenticationService,
         private router: Router,
         private snackBar: MatSnackBar,
-        private cdr: ChangeDetectorRef,
-        private demoLimitService: DemoLimitService,
-        private upgradeService: UpgradeService
+        private cdr: ChangeDetectorRef
     ) {
         const state = history.state;
         if (state?.service) { try { this.service = JSON.parse(state.service); } catch { } }
@@ -147,15 +143,6 @@ export class TeamComponent implements OnInit {
 
     async openUserWizard(role: TeamRoleView): Promise<void> {
         if (!this.service) return;
-        const maxUsers = await this.demoLimitService.getMaxUsersPerService();
-        if (maxUsers !== null && this.getAssignedUserIds().size >= maxUsers) {
-            const tier = await this.demoLimitService.getCurrentLicenseTier();
-            await this.upgradeService.presentUpgradeFlow(
-                `Con il piano ${tier.toUpperCase()} puoi assegnare al massimo ${maxUsers} utenti per servizio.`,
-                { contactOnly: tier === 'pro' }
-            );
-            return;
-        }
         const roleCoverage = this.teamCoverage?.rolesCoverage.find(item => item.serviceRole?.id === role.id)
             ?? { serviceRole: { id: role.id, name: role.name } } as TeamRoleCoverage;
         this.router.navigateByUrl('/user-wizard', {
@@ -265,18 +252,5 @@ export class TeamComponent implements OnInit {
             }
         }
         this.roles = [...roles.values()];
-    }
-
-    private getAssignedUserIds(): Set<number> {
-        const ids = new Set<number>();
-        for (const coverage of this.teamCoverage?.rolesCoverage ?? []) {
-            if (coverage.user?.id) ids.add(coverage.user.id);
-        }
-        for (const role of this.roles) {
-            for (const user of role.users) {
-                if (user.id) ids.add(user.id);
-            }
-        }
-        return ids;
     }
 }

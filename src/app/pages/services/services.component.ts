@@ -13,8 +13,6 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { ServiceDTO } from '../../models/dto/serviceDTO';
 import { ServicesService } from '../../services/services.service';
 import { OrganizationService } from '../../services/organization.service';
-import { DemoLimitService } from '../../services/demo-limit.service';
-import { UpgradeService } from '../../services/upgrade.service';
 
 @Component({
     selector: 'app-services',
@@ -37,9 +35,7 @@ export class ServicesComponent implements OnInit {
     constructor(
         private servicesService: ServicesService,
         private organizationService: OrganizationService,
-        private demoLimitService: DemoLimitService,
         private router: Router,
-        private upgradeService: UpgradeService,
         private snackBar: MatSnackBar,
         private cdr: ChangeDetectorRef
     ) { }
@@ -72,11 +68,7 @@ export class ServicesComponent implements OnInit {
             : [...this.services];
     }
 
-    async addService(): Promise<void> {
-        if (await this.demoLimitService.isDemoServiceLimitReached({ services: this.services })) {
-            await this.upgradeService.presentUpgradeFlow('Con il tuo piano puoi creare al massimo 1 servizio.', { contactOnly: true });
-            return;
-        }
+    addService(): void {
         this.router.navigateByUrl('/wizard/service');
     }
 

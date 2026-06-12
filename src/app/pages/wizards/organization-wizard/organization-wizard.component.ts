@@ -20,8 +20,6 @@ import { OrganizationCrud } from '../../../models/crud/OrganizationCrud';
 import { OrganizationRuleCrud } from '../../../models/crud/OrganizationRuleCrud';
 import { ContractRulesFromGpt } from '../../../models/generic/ContractRulesFromGpt';
 import { OpenAIRequest } from '../../../models/generic/openAi/OpenAIRequest';
-import { DemoLimitService } from '../../../services/demo-limit.service';
-import { UpgradeService } from '../../../services/upgrade.service';
 
 interface RuleOption {
     vincolo: string;
@@ -68,9 +66,7 @@ export class OrganizationWizardComponent {
         private authService: AuthenticationService,
         private router: Router,
         private snackBar: MatSnackBar,
-        private cdr: ChangeDetectorRef,
-        private demoLimitService: DemoLimitService,
-        private upgradeService: UpgradeService
+        private cdr: ChangeDetectorRef
     ) {
         this.infoForm = this.fb.group({
             name: ['', [Validators.required, Validators.minLength(2)]],
@@ -166,14 +162,6 @@ export class OrganizationWizardComponent {
             this.sectorForm.markAllAsTouched();
             return;
         }
-        if (await this.demoLimitService.isOrganizationCreationLimitReached()) {
-            await this.upgradeService.presentUpgradeFlow(
-                'Con il tuo piano puoi creare al massimo 1 organizzazione.',
-                { contactOnly: true }
-            );
-            return;
-        }
-
         this.isSaving = true;
         try {
             const prompt = this.rules

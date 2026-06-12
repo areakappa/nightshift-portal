@@ -28,8 +28,6 @@ export class AuthenticationService {
     private _airTimeInterval: any;
     private checkAndLogInPromise: Promise<boolean> | null = null;
     private pendingLoginTarget: { url: string; state?: any } | null = null;
-    private demoExpirationAlertOpen = false;
-
     private _mainPage = 'home';
     public get mainPage() { return this._mainPage; }
 
@@ -133,28 +131,6 @@ export class AuthenticationService {
 
     public getUser(): AuthenticateUser | undefined {
         return this._user;
-    }
-
-    public isDemoLicenseExpiredError(error: unknown): boolean {
-        return this.organizationService.isDemoLicenseExpiredError(error);
-    }
-
-    public async handleDemoLicenseExpired(): Promise<void> {
-        if (this.demoExpirationAlertOpen) return;
-        this.demoExpirationAlertOpen = true;
-        try {
-            const loginState = {
-                showUpgradeDemoPopup: true,
-                upgradeDemoMessage: 'La licenza demo è scaduta. Per continuare devi passare alla versione PRO.',
-            };
-            if (this.isAuthenticated()) {
-                await this.logoutWithState(loginState);
-            } else {
-                await this.router.navigate(['/login'], { state: loginState });
-            }
-        } finally {
-            this.demoExpirationAlertOpen = false;
-        }
     }
 
     private async init(user: AuthenticateUser, navigate = true): Promise<void> {
@@ -284,10 +260,6 @@ export class AuthenticationService {
             this.organizationService.setOrganizationSelectedId(firstOrganizationId);
             return true;
         } catch (error) {
-            if (this.isDemoLicenseExpiredError(error)) {
-                await this.handleDemoLicenseExpired();
-                return false;
-            }
             console.error('Errore inizializzazione organizzazione selezionata:', error);
             return true;
         }
