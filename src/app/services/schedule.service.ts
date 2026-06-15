@@ -106,6 +106,15 @@ export class ScheduleService {
         return await firstValueFrom(this.http.post<any>(clientsUrl + '/PostShift', mShifts, { headers: Utility.getAuthHeader() }));
     }
 
+    public async generatePrompt(request: GenerateShiftsRequest): Promise<any> {
+        return await firstValueFrom(
+            this.http.post<any>(
+                `${environment.api}/api/Shifts/GetGenerationPrompt`,
+                request,
+                { headers: Utility.getAuthHeader() }
+            )
+        );
+    }
     // Genera i turni per un servizio
     public async generateShifts(request: GenerateShiftsRequest): Promise<any> {
         return await firstValueFrom(

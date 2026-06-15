@@ -193,6 +193,7 @@ export class ServiceScheduleComponent implements OnInit {
                 }
             }
 
+            const prompt = await this.scheduleService.generatePrompt(request);;
             const response = await this.scheduleService.generateShifts(request);
             this.generationReport = this.buildGenerationReport(response);
             this.showMessage(this.generationReport.globalMessage);
