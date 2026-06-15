@@ -115,11 +115,15 @@ export class OrganizationWizardComponent {
         this.contracts = [];
         this.selectedContract = null;
         try {
-            const prompt = "Per un'azienda che opera nel settore '" +
+            let prompt = "Per un'azienda che opera nel settore '" +
                 this.sectorForm.value.workSector +
                 "' quali sono i contratti CCNL, e solo quelli, che devono essere applicati ai propri dipendenti ?\r\n- Rispondi **solo** in formato JSON valido.\r\n- L'output deve essere un **array di oggetti**, ognuno rappresentante un contratto con la corretta dicitura '\r\n Evita la scritta 'json' e gli apici pre e post oggetto grazie.";
+
+            prompt = "Sei un assistente che risponde esclusivamente in JSON valido.Non aggiungere markdown.";
+            let userInput = "Per un'azienda che opera nel settore " + this.sectorForm.value.workSector  + "estrai tutti i contratti CCNL applicabili. Rispondi solo in JSON valido. L'output deve essere un array di oggetti fatti in questo modo: { contratto: string; descrizione: string;}.";
+
             const obj = await this.openAiService.getOpenAIResponse(
-                new OpenAIRequest(this.sectorForm.value.workSector, prompt)
+                new OpenAIRequest(userInput, prompt)
             );
             this.contracts = this.parseJsonArray<CCNLContract>(obj.response)
                 .filter(contract => contract.contratto);
@@ -141,9 +145,9 @@ export class OrganizationWizardComponent {
                 this.sectorForm.value.region +
                 '  riferendoci al contratto ' +
                 this.selectedContract?.contratto +
-                ', estrai tutti i vincoli che devono essere rispettati. - Rispondi **solo** in formato JSON valido.- L\'output deve essere un **array di oggetti**, ognuno rappresentante un vincolo \r\n Evita la scritta \'json\' e gli apici pre e post oggetto grazie.';
+                ', estrai dal contratto tutti i vincoli che devono essere rispettati. - Rispondi solo in formato JSON valido.- L output deve essere un array di oggetti, ognuno rappresentante un vincolo \r\n Evita la scritta json e gli apici pre e post oggetto grazie.';
             const obj = await this.openAiService.getOpenAIResponse(
-                new OpenAIRequest(this.sectorForm.value.workSector, prompt)
+                new OpenAIRequest( prompt, "")
             );
             this.rules = this.parseJsonArray<ContractRulesFromGpt>(obj.response)
                 .filter(rule => rule.vincolo)
