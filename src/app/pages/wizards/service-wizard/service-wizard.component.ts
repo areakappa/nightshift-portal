@@ -61,10 +61,14 @@ interface WorkDay {
 export class ServiceWizardComponent implements OnInit {
     isSaving = false;
     isLoadingAI = false;
+    isLoadingSuggestions = false;
     serviceTypeSelected: ServiceFor | '' = '';
     createdService: ServiceDTO | null = null;
     organizationSelected: OrganizationDto | null = null;
     serviceContextAIResponse: ServiceContextAIResponse | null = null;
+    nameSuggestions: string[] = [];
+    descriptionSuggestions: string[] = [];
+    private lastSuggestionsContext = '';
     apiLoaded = false;
     isGeocoding = false;
     mapCenter: google.maps.LatLngLiteral = { lat: 41.9028, lng: 12.4964 };
@@ -157,6 +161,7 @@ export class ServiceWizardComponent implements OnInit {
             return;
         }
         stepper.next();
+        void this.loadAiSuggestions();
     }
 
     async analyzeDescription(stepper: MatStepper): Promise<void> {
@@ -253,7 +258,7 @@ export class ServiceWizardComponent implements OnInit {
                     role.mansione ?? '',
                     0,
                     1,
-                    this.normalizeEmployeeNumber(role.employeeNumber)
+                    1
                 ));
             demoInformations.ServiceShifts = this.buildServiceShifts(orgId, serviceCrud);
 
@@ -283,7 +288,7 @@ export class ServiceWizardComponent implements OnInit {
                 role.mansione ?? '',
                 0,
                 1,
-                this.normalizeEmployeeNumber(role.employeeNumber)
+                1
             );
             roleCrud.Idservice = this.createdService.id;
             await this.servicesService.postServiceRole(roleCrud);
@@ -393,11 +398,54 @@ export class ServiceWizardComponent implements OnInit {
         return this.descriptionForm.value.serviceType?.length ?? 0;
     }
 
+    applySuggestion(control: 'name' | 'serviceType', value: string): void {
+        const form = control === 'name' ? this.anagraphicForm : this.descriptionForm;
+        form.get(control)?.setValue(value);
+        form.get(control)?.markAsDirty();
+        form.get(control)?.markAsTouched();
+    }
+
+    refreshSuggestionsForName(): void {
+        void this.loadAiSuggestions();
+    }
+
+    private async loadAiSuggestions(): Promise<void> {
+        if (!this.serviceTypeSelected) return;
+        const serviceName = String(this.anagraphicForm.get('name')?.value ?? '').trim();
+        const ccnl = this.organizationSelected?.ccnlcontract || 'Commercio';
+        const context = `${this.serviceTypeSelected}|${ccnl}|${serviceName}`;
+        if (context === this.lastSuggestionsContext) return;
+        this.lastSuggestionsContext = context;
+        this.isLoadingSuggestions = true;
+        try {
+            const response = await this.openAiService.getOpenAIResponse(new OpenAIRequest(
+                '', OpenAiPromptService.getServiceExamplesPrompt(
+                    this.serviceTypeSelected, ccnl, serviceName, this.organizationSelected
+                )
+            ));
+            const data = this.parseJsonObject<{ name_examples?: unknown; description_examples?: unknown }>(response.response);
+            const names = this.normalizeSuggestions(data?.name_examples);
+            const descriptions = this.normalizeSuggestions(data?.description_examples);
+            if (names.length) this.nameSuggestions = names;
+            if (descriptions.length) this.descriptionSuggestions = descriptions;
+        } catch {
+            this.snackBar.open('Suggerimenti AI momentaneamente non disponibili.', 'Chiudi', { duration: 2500 });
+        } finally {
+            this.isLoadingSuggestions = false;
+            this.cdr.detectChanges();
+        }
+    }
+
+    private normalizeSuggestions(value: unknown): string[] {
+        if (!Array.isArray(value)) return [];
+        return [...new Set(value.map(item => typeof item === 'string' ? item.trim() : '').filter(Boolean))].slice(0, 3);
+    }
+
     createTeamYes(): void {
         if (!this.createdService) return;
         const initialRoleRequirements = this.getSelectedRoles().map(role => ({
             name: role.ruolo,
-            required: this.normalizeEmployeeNumber(role.employeeNumber)
+            required: 1
         }));
         this.router.navigateByUrl('/wizard/team', {
             state: {

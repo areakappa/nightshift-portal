@@ -72,3 +72,30 @@
   .primary-action { width: 100%; }
   .step-actions { flex-direction: column-reverse; }
 }
+
+.ai-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: -8px 0 4px;
+
+  button {
+    height: auto;
+    min-height: 36px;
+    white-space: normal;
+    text-align: left;
+  }
+}
+
+.ai-suggestions-title {
+  display: flex;
+  flex-basis: 100%;
+  align-items: center;
+  gap: 6px;
+  color: var(--ns-primary-light);
+  font-size: .82rem;
+  font-weight: 800;
+
+  mat-icon { width: 18px; height: 18px; font-size: 18px; }
+}
