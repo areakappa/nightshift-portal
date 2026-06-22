@@ -84,7 +84,9 @@ export class ServiceScheduleComponent implements OnInit {
     isLoadingAutomation = false;
     isSaving = false;
     isGenerating = false;
+    isSavingPreview = false;
     generationReport: ShiftGenerationReport | null = null;
+    generatedShiftsPreview: any[] = [];
 
     autoWeekly = { runAtWeekday: 5, runAtTime: '18:00' };
     autoMonthly = { runAtTime: '18:00' };
@@ -175,6 +177,7 @@ export class ServiceScheduleComponent implements OnInit {
 
         this.isGenerating = true;
         this.generationReport = null;
+        this.generatedShiftsPreview = [];
         try {
             const weeklyRange = this.resolveWeeklyRangeToProcess();
             let request = this.buildGenerateShiftsRequest();
@@ -195,8 +198,11 @@ export class ServiceScheduleComponent implements OnInit {
 
             const prompt = await this.scheduleService.generatePrompt(request);;
             const response = await this.scheduleService.generateShifts(request);
+            this.generatedShiftsPreview = this.extractShiftItems(response);
             this.generationReport = this.buildGenerationReport(response);
-            this.showMessage(this.generationReport.globalMessage);
+            this.showMessage(this.generatedShiftsPreview.length
+                ? 'Bozza generata: controlla i turni e conferma il salvataggio.'
+                : this.generationReport.globalMessage);
         } catch (error) {
             const backendMessage = this.extractGenerationErrorMessage(error);
             this.showMessage(
@@ -214,6 +220,40 @@ export class ServiceScheduleComponent implements OnInit {
         if (status === 'success') return 'Completato';
         if (status === 'warning') return 'Attenzione';
         return 'Errore';
+    }
+
+    async confirmGeneratedPreview(): Promise<void> {
+        if (!this.generatedShiftsPreview.length || this.isSavingPreview) return;
+        this.isSavingPreview = true;
+        try {
+            const confirmed = await this.scheduleService.confirmGeneratedShifts(this.generatedShiftsPreview);
+            if (!confirmed) throw new Error('Conferma non completata');
+            this.generatedShiftsPreview = [];
+            this.showMessage('Turni confermati e notifiche inviate.');
+        } catch {
+            this.showMessage('Non sono riuscito a confermare i turni generati.');
+        } finally {
+            this.isSavingPreview = false;
+            this.cdr.detectChanges();
+        }
+    }
+
+    async cancelGeneratedPreview(): Promise<void> {
+        if (this.isSavingPreview) return;
+        const ids = this.generatedShiftsPreview
+            .map(item => Number(item?.idShift ?? item?.id))
+            .filter((id): id is number => Number.isFinite(id) && id > 0);
+        this.isSavingPreview = true;
+        try {
+            if (ids.length) await this.scheduleService.cancelTemporaryShifts(ids);
+            this.generatedShiftsPreview = [];
+            this.showMessage('Bozza annullata.');
+        } catch {
+            this.showMessage('Non sono riuscito ad annullare la bozza.');
+        } finally {
+            this.isSavingPreview = false;
+            this.cdr.detectChanges();
+        }
     }
 
     getGenerationFinalStatusTone(report: ShiftGenerationReport): ShiftGenerationStatus {

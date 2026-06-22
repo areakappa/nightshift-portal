@@ -10,6 +10,7 @@ import { ReportOperatorUnavailabilityPayload, ScheduleService } from './schedule
 interface CreateOperatorRequestInput {
     userId: number;
     userName: string;
+    organizationId?: number | null;
     startDateIso: string;
     endDateIso: string;
     type: UnavailabilityType;
@@ -23,6 +24,7 @@ interface CreateOperatorRequestInput {
 interface CreateManagerAssignmentInput {
     managerUserId: number;
     managerName: string;
+    organizationId?: number | null;
     userId: number;
     userName: string;
     startDateIso: string;
@@ -55,9 +57,14 @@ export class UnavailabilityService {
         return this.getEntries().filter((entry) => entry.userId === userId);
     }
 
-    getManagerInbox(): UnavailabilityEntry[] {
+    getEntriesForOrganization(organizationId: number): UnavailabilityEntry[] {
+        return this.getEntries().filter((entry) => entry.organizationId === organizationId);
+    }
+
+    getManagerInbox(organizationId?: number | null): UnavailabilityEntry[] {
         return this.getEntries().filter(
-            (entry) => entry.flow === 'operator_to_manager' && entry.status === 'pending'
+            (entry) => entry.flow === 'operator_to_manager' && entry.status === 'pending' &&
+                (!organizationId || entry.organizationId === organizationId)
         );
     }
 
@@ -76,6 +83,7 @@ export class UnavailabilityService {
             ),
             userId: input.userId,
             userName: input.userName,
+            organizationId: input.organizationId ?? null,
             createdByUserId: input.userId,
             createdByName: input.userName,
             createdByRole: 'operator',
@@ -131,6 +139,7 @@ export class UnavailabilityService {
             ),
             userId: input.userId,
             userName: input.userName,
+            organizationId: input.organizationId ?? null,
             createdByUserId: input.managerUserId,
             createdByName: input.managerName,
             createdByRole: 'manager',
@@ -191,7 +200,7 @@ export class UnavailabilityService {
         return this.decideEntry(entry.id, status, note);
     }
 
-    importManagerNotifications(notifications: ScheduledNotificationDTO[]): void {
+    importManagerNotifications(notifications: ScheduledNotificationDTO[], organizationId?: number | null): void {
         const entries = this.readEntries();
         let changed = false;
 
@@ -199,6 +208,7 @@ export class UnavailabilityService {
             .filter((notification) => notification.idmediaType === this.webMediaTypeId)
             .filter((notification) => notification.state === 1)
             .filter((notification) => this.managedNotificationMarkers.has((notification.field4 ?? '').trim()))
+            .filter((notification) => !organizationId || !notification.idcompany || notification.idcompany === organizationId)
             .forEach((notification) => {
                 const id = `notification-${notification.id ?? 'na'}`;
                 const existingIndex = entries.findIndex((entry) => entry.id === id);
@@ -216,6 +226,7 @@ export class UnavailabilityService {
                         notification.nameUserSender?.trim() ||
                         notification.nameUser?.trim() ||
                         'Operatore',
+                    organizationId: notification.idcompany ?? organizationId ?? null,
                     createdByUserId: notification.idUserSender ?? notification.iduser ?? 0,
                     createdByName:
                         notification.nameUserSender?.trim() ||
@@ -265,6 +276,7 @@ export class UnavailabilityService {
                             notification.nameClient?.trim() ||
                             entries[matchingLocalIndex].serviceName,
                         roleName: notification.nameServiceType?.trim() || entries[matchingLocalIndex].roleName,
+                        organizationId: notification.idcompany ?? organizationId ?? entries[matchingLocalIndex].organizationId,
                         source: 'notification',
                         syncStatus: 'synced',
                         updatedAtIso: new Date().toISOString()

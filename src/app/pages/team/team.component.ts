@@ -23,11 +23,17 @@ import { ServicesService } from '../../services/services.service';
 import { TeamsService } from '../../services/team.service';
 import { AuthenticationService } from '../../services/authentication.service';
 import { TeamContentCrud } from '../../models/crud/TeamContentCrud';
+import { ServiceAvailabilityRequestedCrud } from '../../models/crud/ServiceAvailabilityRequestedCrud';
+import { TeamSizeEstimateResponse } from '../../models/generic/team/TeamSizeEstimate';
 
 interface TeamRoleView {
     id: number;
     name: string;
     required: number;
+    concurrentRequired: number;
+    suggestedTeamMembers?: number;
+    weeklyRequiredHours?: number;
+    aiReason?: string;
     users: UserDto[];
 }
 
@@ -54,6 +60,8 @@ export class TeamComponent implements OnInit {
     selectedServiceId: number | null = null;
     isLoading = false;
     isSaving = false;
+    isEstimatingTeamSize = false;
+    teamSizeEstimate: TeamSizeEstimateResponse | null = null;
     searchText = '';
     returnToServiceDetail = false;
 
@@ -94,6 +102,7 @@ export class TeamComponent implements OnInit {
             }
             if (this.selectedServiceId) {
                 await this.loadServiceTeam(this.roles.length > 0);
+                await this.refreshTeamSizeEstimate();
             }
         } catch {
             this.snackBar.open('Errore nel caricamento team', 'Chiudi', { duration: 3000 });
@@ -111,6 +120,7 @@ export class TeamComponent implements OnInit {
         this.isLoading = true;
         try {
             await this.loadServiceTeam(false);
+            await this.refreshTeamSizeEstimate();
         } catch {
             this.snackBar.open('Errore nel caricamento del team del servizio', 'Chiudi', { duration: 3000 });
         } finally {
@@ -190,13 +200,14 @@ export class TeamComponent implements OnInit {
             .filter(user => user.id && !existing.has(`${role.id}_${user.id}`))
             .map(user => new TeamContentCrud(this.service!.idteam, user.id, null, role.id, 1)));
 
-        if (!payload.length) {
-            this.snackBar.open('Nessuna nuova assegnazione da salvare', 'Ok', { duration: 2500 });
-            return;
-        }
+        const availability = this.roles.map(role => new ServiceAvailabilityRequestedCrud(
+            this.service!.id!, null, role.id, Math.max(0, role.concurrentRequired),
+            Math.max(0, role.suggestedTeamMembers ?? role.required), 1
+        ));
         this.isSaving = true;
         try {
-            await this.teamsService.postTeamContents(payload);
+            if (availability.length) await this.servicesService.addServicesAvailabilityRequested(availability);
+            if (payload.length) await this.teamsService.postTeamContents(payload);
             this.snackBar.open('Team salvato con successo', 'Ok', { duration: 2500 });
             await this.loadServiceTeam(false);
         } catch {
@@ -233,9 +244,13 @@ export class TeamComponent implements OnInit {
                 id: serviceRole.id,
                 name: serviceRole.name ?? 'Ruolo',
                 required: 0,
+                concurrentRequired: 0,
                 users: []
             };
-            if (!coverage.isExtra) role.required++;
+            if (!coverage.isExtra) {
+                role.concurrentRequired++;
+                role.required = Math.max(role.required, role.concurrentRequired);
+            }
             if (coverage.user?.id && !role.users.some(user => user.id === coverage.user!.id)) {
                 role.users.push(coverage.user);
             }
@@ -247,10 +262,40 @@ export class TeamComponent implements OnInit {
                     id: serviceRole.id,
                     name: serviceRole.name ?? 'Ruolo',
                     required: serviceRole.employeeNumber ?? 0,
+                    concurrentRequired: serviceRole.employeeNumber ?? 0,
                     users: []
                 });
             }
         }
         this.roles = [...roles.values()];
+    }
+
+    async refreshTeamSizeEstimate(): Promise<void> {
+        if (!this.service?.id || !this.roles.length || this.isEstimatingTeamSize) return;
+        this.isEstimatingTeamSize = true;
+        try {
+            const estimate = await this.servicesService.estimateTeamSize({
+                idservice: this.service.id,
+                roles: this.roles.map(role => ({ idserviceRole: role.id, concurrentRequired: Math.max(0, role.concurrentRequired) }))
+            });
+            this.teamSizeEstimate = estimate;
+            const estimates = new Map((estimate?.roles ?? []).map(role => [role.idserviceRole, role]));
+            this.roles = this.roles.map(role => {
+                const suggestion = estimates.get(role.id);
+                return suggestion ? {
+                    ...role,
+                    concurrentRequired: suggestion.concurrentRequired,
+                    required: suggestion.suggestedTeamMembers,
+                    suggestedTeamMembers: suggestion.suggestedTeamMembers,
+                    weeklyRequiredHours: suggestion.weeklyRequiredHours,
+                    aiReason: suggestion.reason
+                } : role;
+            });
+        } catch {
+            this.snackBar.open('Stima AI della dimensione team non disponibile.', 'Chiudi', { duration: 3000 });
+        } finally {
+            this.isEstimatingTeamSize = false;
+            this.cdr.detectChanges();
+        }
     }
 }

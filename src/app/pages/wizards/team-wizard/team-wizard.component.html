@@ -17,13 +17,13 @@
       <ng-template matStepLabel>Ruoli</ng-template>
       <div class="step-content">
         <div class="section-title">Step 1 · Ruoli del servizio</div>
-        <div class="resource-count">Risorse richieste: <b>{{ totalRequired }}</b></div>
+        <div class="resource-count">Presenze contemporanee: <b>{{ totalConcurrentRequired }}</b></div>
 
         <div class="step-intro">
           <mat-icon>auto_awesome</mat-icon>
           <div>
-            <h2>Suggeriti automaticamente</h2>
-            <p>Modifica il numero minimo di persone richieste per ciascun ruolo.</p>
+            <h2>Quanti per ruolo devono essere presenti insieme?</h2>
+            <p>Inserisci il numero minimo di persone contemporaneamente presenti per ogni ruolo.</p>
           </div>
         </div>
 
@@ -31,19 +31,32 @@
           <span class="role-icon"><mat-icon>business_center</mat-icon></span>
           <div class="role-copy">
             <h3>{{ role.name }}</h3>
-            <small>Minimo richiesto: {{ role.required }}</small>
+            <small>Minimo contemporaneo: {{ role.concurrentRequired }}</small>
           </div>
           <div class="quantity-actions">
             <button mat-icon-button (click)="decrementRequired(role)" aria-label="Riduci quantità"><mat-icon>remove_circle_outline</mat-icon></button>
-            <strong>{{ role.required }}</strong>
+            <strong>{{ role.concurrentRequired }}</strong>
             <button mat-icon-button (click)="incrementRequired(role)" aria-label="Aumenta quantità"><mat-icon>add_circle_outline</mat-icon></button>
             <button mat-icon-button color="warn" (click)="removeRole(role)" aria-label="Rimuovi ruolo"><mat-icon>delete_outline</mat-icon></button>
           </div>
         </div>
       </div>
       <div class="step-actions">
-        <button mat-raised-button color="primary" class="primary-action" matStepperNext [disabled]="roles.length === 0">Assegna persone</button>
+        <button mat-stroked-button color="primary" class="primary-action" matStepperNext [disabled]="roles.length === 0">Calcola team con AI</button>
       </div>
+    </mat-step>
+
+    <mat-step>
+      <ng-template matStepLabel>AI</ng-template>
+      <div class="step-content">
+        <div class="section-title">Step 2 · Team consigliato dall'AI</div>
+        <div class="step-intro"><mat-icon>auto_awesome</mat-icon><div><h2>Calcola la dimensione del team</h2><p>Considera coperture, orari del servizio e contratto applicato.</p></div></div>
+        <button mat-raised-button color="primary" class="primary-action full-width" (click)="calculateTeamWithAi()" [disabled]="isEstimatingTeamSize">
+          <mat-spinner *ngIf="isEstimatingTeamSize" diameter="18"></mat-spinner><span *ngIf="!isEstimatingTeamSize">Calcola team con AI</span>
+        </button>
+        <div class="role-definition" *ngFor="let role of roles"><span class="role-icon"><mat-icon>business_center</mat-icon></span><div class="role-copy"><h3>{{ role.name }}</h3><small>Consigliati: {{ role.required }} · {{ role.weeklyRequiredHours || 0 }} ore/settimana</small><small *ngIf="role.aiReason">{{ role.aiReason }}</small></div></div>
+      </div>
+      <div class="step-actions split-actions"><button mat-button matStepperPrevious>Indietro</button><button mat-raised-button color="primary" class="primary-action" matStepperNext>Vai ad assegnazione persone</button></div>
     </mat-step>
 
     <mat-step>

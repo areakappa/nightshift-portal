@@ -8,6 +8,10 @@
         <div><h1>Team</h1><p>Configura le persone assegnate ai ruoli di ogni servizio</p></div>
       </div>
       <div class="header-actions">
+        <button mat-stroked-button color="primary" (click)="refreshTeamSizeEstimate()" [disabled]="!selectedServiceId || isEstimatingTeamSize">
+          <mat-spinner *ngIf="isEstimatingTeamSize" diameter="18"></mat-spinner>
+          <mat-icon *ngIf="!isEstimatingTeamSize">auto_awesome</mat-icon> Stima team AI
+        </button>
         <button mat-stroked-button color="primary" (click)="goToTeamWizard()" [disabled]="!selectedServiceId">
           <mat-icon>group_add</mat-icon> Configura team servizi
         </button>
@@ -58,7 +62,8 @@
         <div class="role-header">
           <div>
             <h3>{{ role.name }}</h3>
-            <p>Richiesti: <b>{{ role.required }}</b> · Assegnati: <b>{{ role.users.length }}</b></p>
+            <p>Contemporanei: <b>{{ role.concurrentRequired }}</b> · Team consigliato: <b>{{ role.required }}</b> · Assegnati: <b>{{ role.users.length }}</b></p>
+            <small *ngIf="role.weeklyRequiredHours">{{ role.weeklyRequiredHours }} ore/settimana · {{ role.aiReason }}</small>
           </div>
           <span class="role-status" [class.complete]="role.users.length >= role.required">
             {{ role.users.length >= role.required ? 'OK' : 'Da completare' }}

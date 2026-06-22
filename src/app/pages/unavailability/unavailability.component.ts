@@ -110,6 +110,7 @@ export class UnavailabilityComponent implements OnInit {
                 if (!targetUser) { this.snackBar.open('Seleziona un collaboratore.', 'Chiudi', { duration: 2000 }); return; }
                 this.unavailabilityService.createManagerAssignment({
                     managerUserId: user.id, managerName: this.buildCurrentUserName(),
+                    organizationId: this.organizationService.getOrganizationSelectedId() || null,
                     userId: targetUser.id!, userName: this.getUserLabel(targetUser),
                     startDateIso, endDateIso, type: this.draft.type, reason: this.draft.reason
                 });
@@ -117,6 +118,7 @@ export class UnavailabilityComponent implements OnInit {
             } else {
                 const entry = await this.unavailabilityService.createOperatorRequest({
                     userId: user.id, userName: this.buildCurrentUserName(),
+                    organizationId: this.organizationService.getOrganizationSelectedId() || null,
                     startDateIso, endDateIso, type: this.draft.type, reason: this.draft.reason, source: 'manual'
                 });
                 const msg = entry.syncStatus === 'synced' ? 'Richiesta inviata al manager.' : 'Richiesta salvata localmente.';
@@ -183,6 +185,7 @@ export class UnavailabilityComponent implements OnInit {
             if (!user?.id) return;
             this.mode = this.resolvePageMode(user);
             const orgId = this.organizationService.getOrganizationSelectedId();
+            this.users = [];
             if (this.mode === 'manager' && orgId) {
                 this.services = await this.servicesService.getServicesbyIDOrganization(orgId);
                 const preferredServiceId = this.authentication.getSelectedServiceId();
@@ -191,8 +194,6 @@ export class UnavailabilityComponent implements OnInit {
                     : this.services[0]?.id ?? null;
                 if (this.selectedServiceId) {
                     await this.loadTeamUsers(this.selectedServiceId);
-                } else {
-                    this.users = [];
                 }
             } else {
                 this.services = [];
@@ -201,10 +202,12 @@ export class UnavailabilityComponent implements OnInit {
             }
 
             if (this.mode === 'manager') {
-                const notifications = await this.scheduleService.getScheduledNotificationsByIDUser(user.id).catch(() => []);
-                this.unavailabilityService.importManagerNotifications(notifications);
+                const notifications = await this.scheduleService.getScheduledNotificationsByIDCustomer().catch(() => []);
+                this.unavailabilityService.importManagerNotifications(notifications, orgId || null);
             }
-            this.entries = this.unavailabilityService.getEntries();
+            this.entries = this.mode === 'manager' && orgId
+                ? this.unavailabilityService.getEntriesForOrganization(orgId)
+                : this.unavailabilityService.getEntriesForUser(user.id);
             if (this.mode === 'manager' && this.users.length > 0 && !this.draft.targetUserId) {
                 this.draft.targetUserId = this.users[0].id;
             }
@@ -231,9 +234,14 @@ export class UnavailabilityComponent implements OnInit {
                 const user = this.authentication.getUser();
                 if (!user?.id) throw new Error('Utente non autenticato');
 
-                const notifications = await this.scheduleService.getScheduledNotificationsByIDUser(user.id).catch(() => []);
-                this.unavailabilityService.importManagerNotifications(notifications);
-                this.entries = this.unavailabilityService.getEntries();
+                const orgId = this.organizationService.getOrganizationSelectedId();
+                const notifications = this.mode === 'manager'
+                    ? await this.scheduleService.getScheduledNotificationsByIDCustomer().catch(() => [])
+                    : await this.scheduleService.getScheduledNotificationsByIDUser(user.id).catch(() => []);
+                this.unavailabilityService.importManagerNotifications(notifications, orgId || null);
+                this.entries = this.mode === 'manager' && orgId
+                    ? this.unavailabilityService.getEntriesForOrganization(orgId)
+                    : this.unavailabilityService.getEntriesForUser(user.id);
 
                 effectiveEntry =
                     this.entries.find(item => item.id === entry.id) ??

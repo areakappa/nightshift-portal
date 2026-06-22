@@ -125,6 +125,24 @@ export class ScheduleService {
             )
         );
     }
+
+    public async confirmTemporaryShifts(idsShift: number[]): Promise<boolean> {
+        return await firstValueFrom(this.http.post<boolean>(
+            `${environment.api}/api/Shifts/ConfirmTemporaryShifts`, idsShift, { headers: Utility.getAuthHeader() }
+        ));
+    }
+
+    public async confirmGeneratedShifts(shifts: any[]): Promise<boolean> {
+        return await firstValueFrom(this.http.post<boolean>(
+            `${environment.api}/api/Shifts/ConfirmGeneratedShifts`, shifts, { headers: Utility.getAuthHeader() }
+        ));
+    }
+
+    public async cancelTemporaryShifts(idsShift: number[]): Promise<boolean> {
+        return await firstValueFrom(this.http.post<boolean>(
+            `${environment.api}/api/Shifts/CancelTemporaryShifts`, idsShift, { headers: Utility.getAuthHeader() }
+        ));
+    }
     public async getScheduledNotificationsByIDUser(idUser: number): Promise<ScheduledNotificationDTO[]> {
         return await firstValueFrom(
             this.http.get<ScheduledNotificationDTO[]>(
@@ -132,6 +150,12 @@ export class ScheduleService {
                 { headers: Utility.getAuthHeader() }
             )
         );
+    }
+
+    public async getScheduledNotificationsByIDCustomer(): Promise<ScheduledNotificationDTO[]> {
+        return await firstValueFrom(this.http.get<ScheduledNotificationDTO[]>(
+            `${this.scheduleUrl}/GetScheduledNotificationsByIDCustomer`, { headers: Utility.getAuthHeader() }
+        ));
     }
 
     // Segnalazione assenza/indisponibilita operatore dal dashboard mobile.
@@ -162,6 +186,15 @@ export class ScheduleService {
                 `${environment.api}/api/shifts/PutShiftAndNotify/${payload.idShift}`,
                 payload
             );
+            return true;
+        } catch {
+            return false;
+        }
+    }
+
+    public async putTemporaryShift(payload: ShiftUpdatePayload): Promise<boolean> {
+        try {
+            await this.executeShiftMutation('put', `${environment.api}/api/shifts/PutShift/${payload.idShift}`, payload);
             return true;
         } catch {
             return false;

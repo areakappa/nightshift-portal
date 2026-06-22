@@ -15,6 +15,7 @@ export interface UnavailabilityEntry {
     id: string;
     userId: number;
     userName: string;
+    organizationId: number | null;
     createdByUserId: number;
     createdByName: string;
     createdByRole: 'operator' | 'manager';

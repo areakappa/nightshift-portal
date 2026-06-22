@@ -151,6 +151,25 @@
       </mat-card-content>
     </mat-card>
 
+    <mat-card class="ns-card report-card" *ngIf="generatedShiftsPreview.length">
+      <mat-card-header>
+        <mat-card-title>Anteprima turni</mat-card-title>
+        <mat-card-subtitle>Controlla la bozza prima di confermare salvataggio e notifiche.</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="report-items">
+          <div class="report-item" *ngFor="let shift of generatedShiftsPreview; let i = index">
+            <strong>#{{ i + 1 }}</strong>
+            <span>{{ shift.startDateTime || shift.date || '-' }} {{ shift.nameEmployee || shift.employeeName || shift.assigneeName || 'Non assegnato' }}</span>
+          </div>
+        </div>
+        <div class="actions-row">
+          <button mat-raised-button color="primary" (click)="confirmGeneratedPreview()" [disabled]="isSavingPreview">Conferma turni</button>
+          <button mat-stroked-button (click)="cancelGeneratedPreview()" [disabled]="isSavingPreview">Annulla bozza</button>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
     <mat-card class="ns-card report-card" *ngIf="generationReport">
       <mat-card-header>
         <mat-card-title>Report generazione</mat-card-title>

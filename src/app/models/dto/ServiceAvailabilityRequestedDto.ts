@@ -1,9 +1,10 @@
 export interface ServiceAvailabilityRequestedDto {
     id: number;
     idservice: number;
-    weekday: number;
-    startTimeOffsetMinutes: number;
-    endTimeOffsetMinutes: number;
+    idserviceRole?: number | null;
+    idorganizationRole?: number | null;
+    concurrentRequiredQuantity: number;
+    suggestedTeamQuantity?: number | null;
     state: number;
     created: string;
 }

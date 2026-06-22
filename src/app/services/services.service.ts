@@ -11,6 +11,7 @@ import { TeamCoverage } from '../models/generic/team/TeamCoverage';
 import { mShiftType } from '../models/dto/mShiftType';
 import { ServiceShiftCrud } from '../models/crud/ServiceShiftCrud';
 import { mStation } from '../models/dto/mStation';
+import { TeamSizeEstimateRequest, TeamSizeEstimateResponse } from '../models/generic/team/TeamSizeEstimate';
 
 @Injectable({
     providedIn: 'root'
@@ -70,6 +71,16 @@ export class ServicesService {
         return await firstValueFrom(
             this.http.get<TeamCoverage>(
                 this.serviceUrl + '/GetTeamServiceRoles/' + idService,
+                { headers: Utility.getAuthHeader() }
+            )
+        );
+    }
+
+    public async estimateTeamSize(request: TeamSizeEstimateRequest): Promise<TeamSizeEstimateResponse | null> {
+        return await firstValueFrom(
+            this.http.post<TeamSizeEstimateResponse | null>(
+                this.serviceUrl + '/EstimateTeamSize',
+                request,
                 { headers: Utility.getAuthHeader() }
             )
         );

@@ -16,11 +16,15 @@ import { TeamsService } from '../../../services/team.service';
 import { TeamContentCrud } from '../../../models/crud/TeamContentCrud';
 import { ServiceAvailabilityRequestedCrud } from '../../../models/crud/ServiceAvailabilityRequestedCrud';
 import { TeamRoleCoverage } from '../../../models/generic/team/TeamRoleCoverage';
+import { TeamSizeEstimateResponse } from '../../../models/generic/team/TeamSizeEstimate';
 
 interface TeamRoleSetup {
     id: number;
     name: string;
     required: number;
+    concurrentRequired: number;
+    weeklyRequiredHours?: number;
+    aiReason?: string;
 }
 
 interface InitialRoleRequirement {
@@ -51,6 +55,8 @@ export class TeamWizardComponent implements OnInit {
     returnedRoles: Array<TeamRoleSetup & { users?: UserDto[] }> = [];
     returnedUsers: UserDto[] = [];
     selectedStepIndex = 0;
+    isEstimatingTeamSize = false;
+    teamSizeEstimate: TeamSizeEstimateResponse | null = null;
 
     constructor(
         private orgService: OrganizationService,
@@ -100,6 +106,10 @@ export class TeamWizardComponent implements OnInit {
         return this.roles.reduce((total, role) => total + role.required, 0);
     }
 
+    get totalConcurrentRequired(): number {
+        return this.roles.reduce((total, role) => total + role.concurrentRequired, 0);
+    }
+
     get totalAssigned(): number {
         return new Set([...this.assignments.values()].flat()).size;
     }
@@ -109,11 +119,11 @@ export class TeamWizardComponent implements OnInit {
     }
 
     incrementRequired(role: TeamRoleSetup): void {
-        role.required++;
+        role.concurrentRequired++;
     }
 
     decrementRequired(role: TeamRoleSetup): void {
-        role.required = Math.max(0, role.required - 1);
+        role.concurrentRequired = Math.max(0, role.concurrentRequired - 1);
     }
 
     removeRole(role: TeamRoleSetup): void {
@@ -180,6 +190,34 @@ export class TeamWizardComponent implements OnInit {
         return this.getAssignedUsers(role.id).length >= role.required;
     }
 
+    async calculateTeamWithAi(): Promise<void> {
+        if (!this.service?.id || !this.roles.length || this.isEstimatingTeamSize) return;
+        this.isEstimatingTeamSize = true;
+        try {
+            const estimate = await this.servicesService.estimateTeamSize({
+                idservice: this.service.id,
+                roles: this.roles.map(role => ({ idserviceRole: role.id, concurrentRequired: role.concurrentRequired }))
+            });
+            this.teamSizeEstimate = estimate;
+            const byRole = new Map((estimate?.roles ?? []).map(role => [role.idserviceRole, role]));
+            this.roles = this.roles.map(role => {
+                const value = byRole.get(role.id);
+                return value ? {
+                    ...role,
+                    concurrentRequired: value.concurrentRequired,
+                    required: value.suggestedTeamMembers,
+                    weeklyRequiredHours: value.weeklyRequiredHours,
+                    aiReason: value.reason
+                } : role;
+            });
+        } catch {
+            this.snackBar.open('Non riesco a calcolare il team consigliato ora.', 'Chiudi', { duration: 3000 });
+        } finally {
+            this.isEstimatingTeamSize = false;
+            this.cdr.detectChanges();
+        }
+    }
+
     async save(): Promise<void> {
         if (!this.service?.id || !this.service.idteam) {
             this.snackBar.open('Il servizio non ha un team associato', 'Chiudi', { duration: 3000 });
@@ -189,7 +227,7 @@ export class TeamWizardComponent implements OnInit {
         this.isSaving = true;
         try {
             const availability = this.roles.map(role => new ServiceAvailabilityRequestedCrud(
-                this.service!.id, null, role.id, role.required, 1
+                this.service!.id, null, role.id, role.concurrentRequired, role.required, 1
             ));
             const existing = new Set((this.teamCoverage?.rolesCoverage ?? [])
                 .filter(item => item.serviceRole?.id && item.user?.id)
@@ -239,6 +277,7 @@ export class TeamWizardComponent implements OnInit {
         this.roles = (this.service?.serviceRoles ?? []).map(role => ({
             id: role.id,
             name: role.name ?? 'Ruolo',
+            concurrentRequired: this.getInitialRequired(role.name, requiredByRole.get(role.id), role.employeeNumber),
             required: this.getInitialRequired(role.name, requiredByRole.get(role.id), role.employeeNumber)
         }));
         for (const role of this.roles) {
@@ -263,6 +302,7 @@ export class TeamWizardComponent implements OnInit {
             const role = this.roles.find(item => item.id === returnedRole.id);
             if (!role) continue;
             role.required = returnedRole.required;
+            role.concurrentRequired = returnedRole.concurrentRequired ?? returnedRole.required;
             const current = this.assignments.get(role.id) ?? [];
             const returnedIds = (returnedRole.users ?? [])
                 .map(user => user.id)
