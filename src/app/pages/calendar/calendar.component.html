@@ -38,7 +38,21 @@
 
   <div class="loading-overlay" *ngIf="isLoading"><mat-spinner diameter="40"></mat-spinner></div>
 
-  <div class="week-grid" *ngIf="!isLoading && viewMode === 'week'">
+  <div class="timeline-scroll" *ngIf="!isLoading && viewMode !== 'month'">
+    <div class="timeline-grid" [style.--day-count]="timelineDays.length">
+      <div class="timeline-corner"></div>
+      <div class="timeline-day-header" *ngFor="let day of timelineDays" [class.today]="isToday(day)">{{ formatDay(day) }}</div>
+      <div class="timeline-hours"><span *ngFor="let hour of timelineHours">{{ hour | number:'2.0-0' }}:00</span></div>
+      <div class="timeline-day" *ngFor="let day of timelineDays" [class.today]="isToday(day)">
+        <div class="timeline-hour" *ngFor="let hour of timelineHours"></div>
+        <button type="button" class="timeline-shift" *ngFor="let shift of getShiftsForDate(day)" [class.selected]="selectedShift?.idShift === shift.idShift" (click)="selectShift(shift)" [style.top.px]="getShiftTop(shift)" [style.height.px]="getShiftHeight(shift)">
+          <strong>{{ shift.startDateTime | date:'HH:mm' }} – {{ shift.endDateTime | date:'HH:mm' }}</strong><span>{{ shift.serviceName }}</span><span>{{ shift.nameEmployee ?? 'Non assegnato' }}</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="week-grid legacy-week-grid" *ngIf="false">
     <div class="day-col" *ngFor="let day of getWeekDays()" [class.today]="isToday(day)">
       <div class="day-header">{{ formatDay(day) }}</div>
       <button type="button" class="shift-item" *ngFor="let shift of getShiftsForDate(day)"
@@ -52,7 +66,7 @@
     </div>
   </div>
 
-  <div class="list-view" *ngIf="!isLoading && viewMode !== 'week'">
+  <div class="list-view" *ngIf="!isLoading && viewMode === 'month'">
     <mat-card class="ns-card" *ngIf="filteredShifts.length > 0">
       <mat-card-content>
         <button type="button" class="shift-row-item" *ngFor="let shift of filteredShifts"

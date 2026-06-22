@@ -102,7 +102,6 @@ export class TeamComponent implements OnInit {
             }
             if (this.selectedServiceId) {
                 await this.loadServiceTeam(this.roles.length > 0);
-                await this.refreshTeamSizeEstimate();
             }
         } catch {
             this.snackBar.open('Errore nel caricamento team', 'Chiudi', { duration: 3000 });
@@ -120,7 +119,6 @@ export class TeamComponent implements OnInit {
         this.isLoading = true;
         try {
             await this.loadServiceTeam(false);
-            await this.refreshTeamSizeEstimate();
         } catch {
             this.snackBar.open('Errore nel caricamento del team del servizio', 'Chiudi', { duration: 3000 });
         } finally {

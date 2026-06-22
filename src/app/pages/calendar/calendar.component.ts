@@ -147,6 +147,22 @@ export class CalendarComponent implements OnInit {
         return Array.from({ length: 7 }, (_, i) => { const d = new Date(start); d.setDate(start.getDate() + i); return d; });
     }
 
+    get timelineDays(): Date[] {
+        return this.viewMode === 'day' ? [new Date(this.selectedDate)] : this.getWeekDays();
+    }
+
+    readonly timelineHours = Array.from({ length: 24 }, (_, hour) => hour);
+
+    getShiftTop(shift: CalendarShift): number {
+        const date = new Date(shift.startDateTime);
+        return date.getHours() * 60 + date.getMinutes();
+    }
+
+    getShiftHeight(shift: CalendarShift): number {
+        const minutes = Math.max(30, Math.round((new Date(shift.endDateTime).getTime() - new Date(shift.startDateTime).getTime()) / 60000));
+        return Math.min(minutes, 1440 - this.getShiftTop(shift));
+    }
+
     getShiftsForDate(date: Date): CalendarShift[] {
         const dateStr = date.toISOString().split('T')[0];
         return this.filteredShifts.filter(s => s.startDateTime?.startsWith(dateStr));

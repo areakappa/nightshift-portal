@@ -151,17 +151,40 @@
       </mat-card-content>
     </mat-card>
 
-    <mat-card class="ns-card report-card" *ngIf="generatedShiftsPreview.length">
+    <mat-card class="ns-card report-card preview-card" *ngIf="generatedShiftsPreview.length || generationCoverageGaps.length || generationOvercoverages.length">
       <mat-card-header>
         <mat-card-title>Anteprima turni</mat-card-title>
         <mat-card-subtitle>Controlla la bozza prima di confermare salvataggio e notifiche.</mat-card-subtitle>
       </mat-card-header>
       <mat-card-content>
-        <div class="report-items">
-          <div class="report-item" *ngFor="let shift of generatedShiftsPreview; let i = index">
-            <strong>#{{ i + 1 }}</strong>
-            <span>{{ shift.startDateTime || shift.date || '-' }} {{ shift.nameEmployee || shift.employeeName || shift.assigneeName || 'Non assegnato' }}</span>
+        <div class="preview-summary"><strong>{{ generatedShiftsPreview.length }} turni in bozza</strong><span>{{ generationCoverageGaps.length }} scoperture · {{ generationOvercoverages.length }} sovracoperture</span></div>
+        <div class="preview-scroll">
+          <div class="preview-grid" [style.--preview-days]="previewDays.length">
+            <div class="preview-corner"></div>
+            <div class="preview-day-head" *ngFor="let day of previewDays">{{ day.label }}</div>
+            <div class="preview-times"><span *ngFor="let hour of previewHours">{{ hour | number:'2.0-0' }}:00</span></div>
+            <div class="preview-day" *ngFor="let day of previewDays">
+              <div class="preview-hour" *ngFor="let hour of previewHours"></div>
+              <button type="button" class="preview-event shift" *ngFor="let shift of day.shifts" [class.selected]="previewEditingShift?.idShift === shift.idShift" (click)="editPreviewShift(shift)" [style.top.px]="previewTop(shift)" [style.height.px]="previewHeight(shift)">
+                <strong>{{ shift.startDateTime | date:'HH:mm' }} – {{ shift.endDateTime | date:'HH:mm' }}</strong><span>{{ shift.nameEmployee || shift.employeeName || 'Non assegnato' }}</span><span>{{ shift.serviceRole || shift.roleName || shift.role }}</span>
+              </button>
+              <button type="button" class="preview-event gap" *ngFor="let gap of day.gaps" (click)="openCoverageGap(gap)" [style.top.px]="previewTop(gap)" [style.height.px]="previewHeight(gap)">
+                <strong>{{ gap.startTime }} – {{ gap.endTime }}</strong><span>Scopertura · {{ gap.role }}</span><span>{{ gap.reason }}</span>
+              </button>
+              <div class="preview-event overcoverage" *ngFor="let item of day.overcoverages" [style.top.px]="previewTop(item)" [style.height.px]="previewHeight(item)">
+                <strong>{{ item.startTime }} – {{ item.endTime }}</strong><span>Sovracopertura · {{ item.role }}</span><span>{{ item.extraEmployees }} persone extra</span>
+              </div>
+            </div>
           </div>
+        </div>
+        <div class="preview-editor" *ngIf="previewEditingShift">
+          <h3>Modifica turno nella bozza</h3><label>Inizio <input type="datetime-local" [(ngModel)]="previewEditStart"></label><label>Fine <input type="datetime-local" [(ngModel)]="previewEditEnd"></label>
+          <button mat-raised-button color="primary" (click)="savePreviewShiftEdit()">Salva modifica</button><button mat-stroked-button color="warn" (click)="removePreviewShift(previewEditingShift)">Rimuovi</button><button mat-button (click)="closePreviewEditor()">Chiudi</button>
+        </div>
+        <div class="preview-editor" *ngIf="previewGap as gap">
+          <h3>Copri scopertura: {{ gap.role }}</h3><p>{{ gap.startTime }} – {{ gap.endTime }} · {{ gap.reason }}</p>
+          <mat-form-field appearance="outline"><mat-label>Membro del team</mat-label><mat-select [(ngModel)]="selectedPreviewGapUserId" [disabled]="isLoadingPreviewGapUsers"><mat-option *ngFor="let user of previewGapUsers" [value]="user.id" [disabled]="user.busy">{{ user.name }}{{ user.busy ? ' · turno sovrapposto' : '' }}</mat-option></mat-select></mat-form-field>
+          <button mat-raised-button color="primary" (click)="assignCoverageGap()" [disabled]="!selectedPreviewGapUserId || isLoadingPreviewGapUsers">Assegna turno</button><button mat-button (click)="closePreviewEditor()">Annulla</button>
         </div>
         <div class="actions-row">
           <button mat-raised-button color="primary" (click)="confirmGeneratedPreview()" [disabled]="isSavingPreview">Conferma turni</button>

@@ -17,6 +17,8 @@ import { ShiftAutomationCrud } from '../../models/dto/ShiftAutomationCrud';
 import { ShiftItemDTO } from '../../models/dto/ShiftItemDTO';
 import { ServiceDTO } from '../../models/dto/serviceDTO';
 import { ScheduleService } from '../../services/schedule.service';
+import { OrganizationService } from '../../services/organization.service';
+import { UserDto } from '../../models/dto/userDto';
 
 type GenerationMode = 'manual' | 'auto';
 type Period = 'weekly' | 'monthly';
@@ -54,6 +56,10 @@ interface ShiftGenerationReport {
     periodLabel?: string;
 }
 
+interface CoverageGap { date: string; role: string; startTime: string; endTime: string; reason: string; }
+interface Overcoverage { date: string; role: string; startTime: string; endTime: string; extraEmployees: number; reason: string; }
+interface PreviewDay { date: Date; label: string; shifts: any[]; gaps: CoverageGap[]; overcoverages: Overcoverage[]; }
+
 @Component({
     selector: 'app-service-schedule',
     standalone: true,
@@ -87,6 +93,15 @@ export class ServiceScheduleComponent implements OnInit {
     isSavingPreview = false;
     generationReport: ShiftGenerationReport | null = null;
     generatedShiftsPreview: any[] = [];
+    generationCoverageGaps: CoverageGap[] = [];
+    generationOvercoverages: Overcoverage[] = [];
+    previewEditingShift: any | null = null;
+    previewEditStart = '';
+    previewEditEnd = '';
+    previewGap: CoverageGap | null = null;
+    previewGapUsers: Array<{ id: number; name: string; busy: boolean }> = [];
+    selectedPreviewGapUserId: number | null = null;
+    isLoadingPreviewGapUsers = false;
 
     autoWeekly = { runAtWeekday: 5, runAtTime: '18:00' };
     autoMonthly = { runAtTime: '18:00' };
@@ -108,6 +123,7 @@ export class ServiceScheduleComponent implements OnInit {
 
     constructor(
         private scheduleService: ScheduleService,
+        private organizationService: OrganizationService,
         private router: Router,
         private snackBar: MatSnackBar,
         private cdr: ChangeDetectorRef
@@ -199,8 +215,10 @@ export class ServiceScheduleComponent implements OnInit {
             const prompt = await this.scheduleService.generatePrompt(request);;
             const response = await this.scheduleService.generateShifts(request);
             this.generatedShiftsPreview = this.extractShiftItems(response);
+            this.generationCoverageGaps = this.extractCoverageGaps(response);
+            this.generationOvercoverages = this.extractOvercoverages(response);
             this.generationReport = this.buildGenerationReport(response);
-            this.showMessage(this.generatedShiftsPreview.length
+            this.showMessage(this.generatedShiftsPreview.length || this.generationCoverageGaps.length
                 ? 'Bozza generata: controlla i turni e conferma il salvataggio.'
                 : this.generationReport.globalMessage);
         } catch (error) {
@@ -229,6 +247,9 @@ export class ServiceScheduleComponent implements OnInit {
             const confirmed = await this.scheduleService.confirmGeneratedShifts(this.generatedShiftsPreview);
             if (!confirmed) throw new Error('Conferma non completata');
             this.generatedShiftsPreview = [];
+            this.generationCoverageGaps = [];
+            this.generationOvercoverages = [];
+            this.closePreviewEditor();
             this.showMessage('Turni confermati e notifiche inviate.');
         } catch {
             this.showMessage('Non sono riuscito a confermare i turni generati.');
@@ -247,6 +268,9 @@ export class ServiceScheduleComponent implements OnInit {
         try {
             if (ids.length) await this.scheduleService.cancelTemporaryShifts(ids);
             this.generatedShiftsPreview = [];
+            this.generationCoverageGaps = [];
+            this.generationOvercoverages = [];
+            this.closePreviewEditor();
             this.showMessage('Bozza annullata.');
         } catch {
             this.showMessage('Non sono riuscito ad annullare la bozza.');
@@ -254,6 +278,107 @@ export class ServiceScheduleComponent implements OnInit {
             this.isSavingPreview = false;
             this.cdr.detectChanges();
         }
+    }
+
+    get previewDays(): PreviewDay[] {
+        const dates = new Map<string, Date>();
+        for (const shift of this.generatedShiftsPreview) this.addPreviewDate(dates, new Date(shift.startDateTime));
+        for (const gap of this.generationCoverageGaps) this.addPreviewDate(dates, this.gapStart(gap));
+        for (const item of this.generationOvercoverages) this.addPreviewDate(dates, this.gapStart(item));
+        return [...dates.values()].sort((a, b) => a.getTime() - b.getTime()).map(date => ({
+            date,
+            label: date.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' }),
+            shifts: this.generatedShiftsPreview.filter(shift => this.sameDay(new Date(shift.startDateTime), date)),
+            gaps: this.generationCoverageGaps.filter(gap => this.sameDay(this.gapStart(gap), date)),
+            overcoverages: this.generationOvercoverages.filter(item => this.sameDay(this.gapStart(item), date))
+        }));
+    }
+
+    readonly previewHours = Array.from({ length: 24 }, (_, value) => value);
+
+    previewTop(value: { startDateTime?: string } | CoverageGap | Overcoverage): number {
+        const date = 'startDateTime' in value ? new Date(value.startDateTime ?? '') : this.gapStart(value as CoverageGap | Overcoverage);
+        return date.getHours() * 60 + date.getMinutes();
+    }
+
+    previewHeight(value: { startDateTime?: string; endDateTime?: string } | CoverageGap | Overcoverage): number {
+        const start = 'startDateTime' in value ? new Date(value.startDateTime ?? '') : this.gapStart(value as CoverageGap | Overcoverage);
+        const end = 'endDateTime' in value ? new Date(value.endDateTime ?? '') : this.gapEnd(value as CoverageGap | Overcoverage);
+        return Math.max(30, Math.min(1440 - this.previewTop(value), Math.round((end.getTime() - start.getTime()) / 60000)));
+    }
+
+    editPreviewShift(shift: any): void {
+        this.previewGap = null;
+        this.previewEditingShift = shift;
+        this.previewEditStart = this.toDateTimeLocal(shift.startDateTime);
+        this.previewEditEnd = this.toDateTimeLocal(shift.endDateTime);
+    }
+
+    savePreviewShiftEdit(): void {
+        if (!this.previewEditingShift) return;
+        const start = new Date(this.previewEditStart);
+        const end = new Date(this.previewEditEnd);
+        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start >= end) {
+            this.showMessage('L’orario di inizio deve precedere quello di fine.'); return;
+        }
+        const id = this.previewEditingShift.idShift ?? this.previewEditingShift.id;
+        this.generatedShiftsPreview = this.generatedShiftsPreview.map(item =>
+            (item.idShift ?? item.id) === id ? { ...item, startDateTime: start.toISOString(), endDateTime: end.toISOString() } : item);
+        this.closePreviewEditor();
+    }
+
+    removePreviewShift(shift: any): void {
+        const id = shift.idShift ?? shift.id;
+        this.generatedShiftsPreview = this.generatedShiftsPreview.filter(item => (item.idShift ?? item.id) !== id);
+        if ((this.previewEditingShift?.idShift ?? this.previewEditingShift?.id) === id) this.closePreviewEditor();
+    }
+
+    closePreviewEditor(): void { this.previewEditingShift = null; this.previewGap = null; this.previewGapUsers = []; this.selectedPreviewGapUserId = null; }
+
+    async openCoverageGap(gap: CoverageGap): Promise<void> {
+        if (!this.service?.id) return;
+        this.previewEditingShift = null; this.previewGap = gap; this.previewGapUsers = []; this.selectedPreviewGapUserId = null; this.isLoadingPreviewGapUsers = true;
+        try {
+            const users = await this.organizationService.getUsersbyService(this.service.id);
+            const start = this.gapStart(gap), end = this.gapEnd(gap);
+            this.previewGapUsers = users.filter(user => user.id != null && user.state !== 0).map(user => ({
+                id: user.id!, name: `${user.name ?? ''} ${user.surname ?? ''}`.trim() || `Utente ${user.id}`,
+                busy: this.generatedShiftsPreview.some(shift => shift.idUser === user.id && start < new Date(shift.endDateTime) && new Date(shift.startDateTime) < end)
+            }));
+        } catch { this.showMessage('Impossibile caricare i membri del team.'); }
+        finally { this.isLoadingPreviewGapUsers = false; this.cdr.detectChanges(); }
+    }
+
+    assignCoverageGap(): void {
+        const gap = this.previewGap; const user = this.previewGapUsers.find(item => item.id === this.selectedPreviewGapUserId);
+        if (!gap || !user || user.busy || !this.service?.id) return;
+        const idShift = -Date.now();
+        this.generatedShiftsPreview = [...this.generatedShiftsPreview, { idShift, idService: this.service.id, idUser: user.id, idEmployee: null, nameEmployee: user.name, serviceRole: gap.role, startDateTime: this.gapStart(gap).toISOString(), endDateTime: this.gapEnd(gap).toISOString(), isTemporary: 1 }];
+        this.generationCoverageGaps = this.generationCoverageGaps.filter(item => item !== gap);
+        this.closePreviewEditor();
+    }
+
+    private extractCoverageGaps(response: any): CoverageGap[] { return this.normalizeIssues(response?.coverageGaps ?? response?.CoverageGaps ?? response?.data?.coverageGaps); }
+    private extractOvercoverages(response: any): Overcoverage[] { return this.normalizeIssues(response?.overcoverages ?? response?.Overcoverages ?? response?.data?.overcoverages) as Overcoverage[]; }
+    private normalizeIssues(value: any): any[] { return Array.isArray(value) ? value.map(item => ({ date: item.date ?? item.Date ?? '', role: item.role ?? item.roleName ?? '', startTime: item.startTime ?? item.StartTime ?? '', endTime: item.endTime ?? item.EndTime ?? '', reason: item.reason ?? item.message ?? '', extraEmployees: Number(item.extraEmployees ?? item.ExtraEmployees ?? 1) })) : []; }
+    private gapStart(item: CoverageGap | Overcoverage): Date { return this.combineGapDateAndTime(item.date, item.startTime || '00:00'); }
+    private gapEnd(item: CoverageGap | Overcoverage): Date { return this.combineGapDateAndTime(item.date, item.endTime || '00:30'); }
+    private combineGapDateAndTime(rawDate: string, rawTime: string): Date {
+        // The API may return either YYYY-MM-DD or a full ISO date at midnight.
+        // Keep only the calendar part before applying the gap's time of day.
+        const datePart = (rawDate || '').slice(0, 10);
+        const [hour, minute] = (rawTime || '00:00').split(':').map(Number);
+        const date = new Date(`${datePart}T00:00:00`);
+        if (Number.isNaN(date.getTime())) return date;
+        date.setHours(Number.isFinite(hour) ? hour : 0, Number.isFinite(minute) ? minute : 0, 0, 0);
+        return date;
+    }
+    private addPreviewDate(target: Map<string, Date>, date: Date): void { if (!Number.isNaN(date.getTime())) target.set(date.toDateString(), date); }
+    private sameDay(left: Date, right: Date): boolean { return left.toDateString() === right.toDateString(); }
+    private toDateTimeLocal(value: string): string {
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return '';
+        return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
     }
 
     getGenerationFinalStatusTone(report: ShiftGenerationReport): ShiftGenerationStatus {

@@ -149,9 +149,10 @@ export class OrganizationWizardComponent {
             const obj = await this.openAiService.getOpenAIResponse(
                 new OpenAIRequest( prompt, "")
             );
-            this.rules = this.parseJsonArray<ContractRulesFromGpt>(obj.response)
-                .filter(rule => rule.vincolo)
-                .map(rule => ({ ...rule, selected: rule.selected !== false }));
+            this.rules = this.parseJsonArray<Record<string, unknown>>(obj.response)
+                .map(rule => this.normalizeRule(rule))
+                .filter((rule): rule is Omit<RuleOption, 'selected'> => !!rule)
+                .map(rule => ({ ...rule, selected: true }));
         } catch {
             this.snackBar.open('Errore nel caricamento delle regole contrattuali. Riprova.', 'Chiudi', { duration: 3500 });
         } finally {
@@ -208,16 +209,42 @@ export class OrganizationWizardComponent {
     }
 
     private parseJsonArray<T>(response: string): T[] {
-        const cleanedResponse = response
+        let cleanedResponse = response
             .replace(/```json/gi, '')
             .replace(/```/g, '')
             .trim();
+        // Some backend versions serialize the AI JSON once more, returning a
+        // quoted string such as "[\n {...} ]". Decode that wrapper first.
+        try {
+            const decoded = JSON.parse(cleanedResponse);
+            if (typeof decoded === 'string') cleanedResponse = decoded.trim();
+        } catch {
+            // It is already raw JSON (the normal case).
+        }
         const arrayStart = cleanedResponse.indexOf('[');
         const arrayEnd = cleanedResponse.lastIndexOf(']');
         const json = arrayStart >= 0 && arrayEnd >= arrayStart
             ? cleanedResponse.slice(arrayStart, arrayEnd + 1)
             : cleanedResponse;
         return JSON.parse(json) as T[];
+    }
+
+    private normalizeRule(rule: Record<string, unknown>): Omit<RuleOption, 'selected'> | null {
+        // The mobile prompt historically used `vincolo`; the current AI response
+        // uses the richer `nomeVincolo` schema. Accept both without losing details.
+        const vincolo = this.readString(rule['vincolo']) || this.readString(rule['nomeVincolo']);
+        if (!vincolo) return null;
+
+        const descrizione = [
+            this.readString(rule['descrizione']),
+            this.readString(rule['riferimentoNormativo']) ? `Riferimento: ${this.readString(rule['riferimentoNormativo'])}` : '',
+            rule['parametri'] ? `Parametri: ${JSON.stringify(rule['parametri'])}` : ''
+        ].filter(Boolean).join('\n');
+        return { vincolo, descrizione };
+    }
+
+    private readString(value: unknown): string {
+        return typeof value === 'string' ? value.trim() : '';
     }
 
     finish(): void { this.router.navigate(['/home']); }
