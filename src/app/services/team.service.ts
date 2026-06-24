@@ -19,4 +19,11 @@ export class TeamsService {
     public async postTeamContents(teamContentsCrud: TeamContentCrud[]): Promise<boolean> {
         return await firstValueFrom(this.http.post<boolean>(this.teamsUrl + '/PostTeamContents', teamContentsCrud, { headers: Utility.getAuthHeader() }));
     }
+
+    public async deleteTeamContent(idTeamContent: number): Promise<boolean> {
+        return await firstValueFrom(this.http.delete<boolean>(
+            `${this.teamsUrl}/DeleteTeamContent/${idTeamContent}`,
+            { headers: Utility.getAuthHeader() }
+        ));
+    }
 }

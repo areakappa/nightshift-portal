@@ -175,15 +175,28 @@ export class TeamComponent implements OnInit {
         this.router.navigate(['/services']);
     }
 
-    removeLocalAssignee(role: TeamRoleView, user: UserDto): void {
-        const persisted = this.teamCoverage?.rolesCoverage.some(item =>
-            item.serviceRole?.id === role.id && item.user?.id === user.id
+    async removeLocalAssignee(role: TeamRoleView, user: UserDto): Promise<void> {
+        const coverage = this.teamCoverage?.rolesCoverage.find(item =>
+            item.serviceRole?.id === role.id && item.user?.id === user.id && !!item.idTeamContent
         );
-        if (persisted) {
-            this.snackBar.open('La rimozione di assegnazioni già salvate non è disponibile', 'Chiudi', { duration: 3000 });
+        if (!coverage?.idTeamContent) {
+            role.users = role.users.filter(item => item.id !== user.id);
             return;
         }
-        role.users = role.users.filter(item => item.id !== user.id);
+        if (!window.confirm(`Rimuovere ${this.getInitials(user) || 'questa persona'} dal ruolo ${role.name}?`)) return;
+
+        this.isSaving = true;
+        try {
+            const removed = await this.teamsService.deleteTeamContent(coverage.idTeamContent);
+            if (!removed) throw new Error('Rimozione non completata');
+            this.snackBar.open('Persona rimossa dal ruolo.', 'Ok', { duration: 2500 });
+            await this.loadServiceTeam(false);
+        } catch {
+            this.snackBar.open('Non è stato possibile rimuovere la persona dal ruolo.', 'Chiudi', { duration: 3000 });
+        } finally {
+            this.isSaving = false;
+            this.cdr.detectChanges();
+        }
     }
 
     async saveAssignments(): Promise<void> {
