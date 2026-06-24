@@ -165,9 +165,17 @@
             <div class="preview-times"><span *ngFor="let hour of previewHours">{{ hour | number:'2.0-0' }}:00</span></div>
             <div class="preview-day" *ngFor="let day of previewDays">
               <div class="preview-hour" *ngFor="let hour of previewHours"></div>
-              <button type="button" class="preview-event shift" *ngFor="let shift of day.shifts" [class.selected]="previewEditingShift?.idShift === shift.idShift" (click)="editPreviewShift(shift)" [style.top.px]="previewTop(shift)" [style.height.px]="previewHeight(shift)">
+              <section class="preview-shift-group" *ngFor="let group of day.shiftGroups" [style.top.px]="previewTop(group.shifts[0])" [style.height.px]="previewHeight(group.shifts[0])">
+                <div class="preview-group-header"><strong>{{ group.startDateTime | date:'HH:mm' }} – {{ group.endDateTime | date:'HH:mm' }}</strong><span>{{ group.shifts.length }} {{ group.shifts.length === 1 ? 'persona' : 'persone' }}</span></div>
+                <div class="preview-group-people">
+                  <button type="button" class="preview-person" *ngFor="let shift of group.shifts" [class.selected]="previewEditingShift === shift" (click)="editPreviewShift(shift)">
+                    <span>{{ previewPersonName(shift) }}</span><small>{{ shift.serviceRole || shift.roleName || shift.role || 'Operatore' }}</small>
+                  </button>
+                </div>
+                <!--
                 <strong>{{ shift.startDateTime | date:'HH:mm' }} – {{ shift.endDateTime | date:'HH:mm' }}</strong><span>{{ shift.nameEmployee || shift.employeeName || 'Non assegnato' }}</span><span>{{ shift.serviceRole || shift.roleName || shift.role }}</span>
-              </button>
+                -->
+              </section>
               <button type="button" class="preview-event gap" *ngFor="let gap of day.gaps" (click)="openCoverageGap(gap)" [style.top.px]="previewTop(gap)" [style.height.px]="previewHeight(gap)">
                 <strong>{{ gap.startTime }} – {{ gap.endTime }}</strong><span>Scopertura · {{ gap.role }}</span><span>{{ gap.reason }}</span>
               </button>

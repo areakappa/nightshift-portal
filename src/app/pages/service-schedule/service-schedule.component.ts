@@ -58,7 +58,8 @@ interface ShiftGenerationReport {
 
 interface CoverageGap { date: string; role: string; startTime: string; endTime: string; reason: string; }
 interface Overcoverage { date: string; role: string; startTime: string; endTime: string; extraEmployees: number; reason: string; }
-interface PreviewDay { date: Date; label: string; shifts: any[]; gaps: CoverageGap[]; overcoverages: Overcoverage[]; }
+interface PreviewShiftGroup { startDateTime: string; endDateTime: string; shifts: any[]; }
+interface PreviewDay { date: Date; label: string; shiftGroups: PreviewShiftGroup[]; gaps: CoverageGap[]; overcoverages: Overcoverage[]; }
 
 @Component({
     selector: 'app-service-schedule',
@@ -288,13 +289,32 @@ export class ServiceScheduleComponent implements OnInit {
         return [...dates.values()].sort((a, b) => a.getTime() - b.getTime()).map(date => ({
             date,
             label: date.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' }),
-            shifts: this.generatedShiftsPreview.filter(shift => this.sameDay(new Date(shift.startDateTime), date)),
+            shiftGroups: this.groupPreviewShifts(this.generatedShiftsPreview.filter(shift => this.sameDay(new Date(shift.startDateTime), date))),
             gaps: this.generationCoverageGaps.filter(gap => this.sameDay(this.gapStart(gap), date)),
             overcoverages: this.generationOvercoverages.filter(item => this.sameDay(this.gapStart(item), date))
         }));
     }
 
     readonly previewHours = Array.from({ length: 24 }, (_, value) => value);
+
+    private groupPreviewShifts(shifts: any[]): PreviewShiftGroup[] {
+        const groups = new Map<string, PreviewShiftGroup>();
+        shifts.forEach(shift => {
+            const key = `${shift.startDateTime}|${shift.endDateTime}`;
+            const group: PreviewShiftGroup = groups.get(key) ?? {
+                startDateTime: shift.startDateTime,
+                endDateTime: shift.endDateTime,
+                shifts: []
+            };
+            group.shifts.push(shift);
+            groups.set(key, group);
+        });
+        return Array.from(groups.values())
+            .map(group => ({ ...group, shifts: [...group.shifts].sort((a, b) => this.previewPersonName(a).localeCompare(this.previewPersonName(b))) }))
+            .sort((a, b) => a.startDateTime.localeCompare(b.startDateTime));
+    }
+
+    previewPersonName(shift: any): string { return shift.nameEmployee || shift.employeeName || 'Non assegnato'; }
 
     previewTop(value: { startDateTime?: string } | CoverageGap | Overcoverage): number {
         const date = 'startDateTime' in value ? new Date(value.startDateTime ?? '') : this.gapStart(value as CoverageGap | Overcoverage);
@@ -321,16 +341,14 @@ export class ServiceScheduleComponent implements OnInit {
         if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start >= end) {
             this.showMessage('L’orario di inizio deve precedere quello di fine.'); return;
         }
-        const id = this.previewEditingShift.idShift ?? this.previewEditingShift.id;
         this.generatedShiftsPreview = this.generatedShiftsPreview.map(item =>
-            (item.idShift ?? item.id) === id ? { ...item, startDateTime: start.toISOString(), endDateTime: end.toISOString() } : item);
+            item === this.previewEditingShift ? { ...item, startDateTime: start.toISOString(), endDateTime: end.toISOString() } : item);
         this.closePreviewEditor();
     }
 
     removePreviewShift(shift: any): void {
-        const id = shift.idShift ?? shift.id;
-        this.generatedShiftsPreview = this.generatedShiftsPreview.filter(item => (item.idShift ?? item.id) !== id);
-        if ((this.previewEditingShift?.idShift ?? this.previewEditingShift?.id) === id) this.closePreviewEditor();
+        this.generatedShiftsPreview = this.generatedShiftsPreview.filter(item => item !== shift);
+        if (this.previewEditingShift === shift) this.closePreviewEditor();
     }
 
     closePreviewEditor(): void { this.previewEditingShift = null; this.previewGap = null; this.previewGapUsers = []; this.selectedPreviewGapUserId = null; }
