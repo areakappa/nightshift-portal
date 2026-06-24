@@ -58,7 +58,7 @@ interface ShiftGenerationReport {
 
 interface CoverageGap { date: string; role: string; startTime: string; endTime: string; reason: string; }
 interface Overcoverage { date: string; role: string; startTime: string; endTime: string; extraEmployees: number; reason: string; }
-interface PreviewShiftGroup { startDateTime: string; endDateTime: string; shifts: any[]; }
+interface PreviewShiftGroup { startDateTime: string; endDateTime: string; shifts: any[]; column: number; columns: number; }
 interface PreviewDay { date: Date; label: string; shiftGroups: PreviewShiftGroup[]; gaps: CoverageGap[]; overcoverages: Overcoverage[]; }
 
 @Component({
@@ -305,14 +305,50 @@ export class ServiceScheduleComponent implements OnInit {
             const group: PreviewShiftGroup = groups.get(key) ?? {
                 startDateTime: shift.startDateTime,
                 endDateTime: shift.endDateTime,
-                shifts: []
+                shifts: [],
+                column: 0,
+                columns: 1
             };
             group.shifts.push(shift);
             groups.set(key, group);
         });
-        return Array.from(groups.values())
+        const groupedShifts = Array.from(groups.values())
             .map(group => ({ ...group, shifts: [...group.shifts].sort((a, b) => this.previewPersonName(a).localeCompare(this.previewPersonName(b))) }))
             .sort((a, b) => a.startDateTime.localeCompare(b.startDateTime));
+        return this.layoutPreviewGroups(groupedShifts);
+    }
+
+    private layoutPreviewGroups(groups: PreviewShiftGroup[]): PreviewShiftGroup[] {
+        let overlappingGroups: PreviewShiftGroup[] = [];
+        let overlapEnd = -Infinity;
+
+        const assignColumns = () => {
+            if (!overlappingGroups.length) return;
+            const columnEnds: number[] = [];
+            overlappingGroups.forEach(group => {
+                const start = new Date(group.startDateTime).getTime();
+                const end = new Date(group.endDateTime).getTime();
+                let column = columnEnds.findIndex(columnEnd => columnEnd <= start);
+                if (column === -1) column = columnEnds.length;
+                columnEnds[column] = end;
+                group.column = column;
+            });
+            overlappingGroups.forEach(group => group.columns = columnEnds.length);
+        };
+
+        groups.forEach(group => {
+            const start = new Date(group.startDateTime).getTime();
+            const end = new Date(group.endDateTime).getTime();
+            if (overlappingGroups.length && start >= overlapEnd) {
+                assignColumns();
+                overlappingGroups = [];
+                overlapEnd = -Infinity;
+            }
+            overlappingGroups.push(group);
+            overlapEnd = Math.max(overlapEnd, end);
+        });
+        assignColumns();
+        return groups;
     }
 
     previewPersonName(shift: any): string { return shift.nameEmployee || shift.employeeName || 'Non assegnato'; }

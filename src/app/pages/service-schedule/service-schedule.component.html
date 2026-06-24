@@ -165,7 +165,7 @@
             <div class="preview-times"><span *ngFor="let hour of previewHours">{{ hour | number:'2.0-0' }}:00</span></div>
             <div class="preview-day" *ngFor="let day of previewDays">
               <div class="preview-hour" *ngFor="let hour of previewHours"></div>
-              <section class="preview-shift-group" *ngFor="let group of day.shiftGroups" [style.top.px]="previewTop(group.shifts[0])" [style.height.px]="previewHeight(group.shifts[0])">
+              <section class="preview-shift-group" *ngFor="let group of day.shiftGroups" [style.top.px]="previewTop(group.shifts[0])" [style.height.px]="previewHeight(group.shifts[0])" [style.--preview-column]="group.column" [style.--preview-columns]="group.columns">
                 <div class="preview-group-header"><strong>{{ group.startDateTime | date:'HH:mm' }} – {{ group.endDateTime | date:'HH:mm' }}</strong><span>{{ group.shifts.length }} {{ group.shifts.length === 1 ? 'persona' : 'persone' }}</span></div>
                 <div class="preview-group-people">
                   <button type="button" class="preview-person" *ngFor="let shift of group.shifts" [class.selected]="previewEditingShift === shift" (click)="editPreviewShift(shift)">
