@@ -271,6 +271,7 @@ export class ServiceScheduleComponent implements OnInit {
             this.generatedShiftsPreview = [];
             this.generationCoverageGaps = [];
             this.generationOvercoverages = [];
+            this.generationReport = null;
             this.closePreviewEditor();
             this.showMessage('Bozza annullata.');
         } catch {
