@@ -20,47 +20,117 @@
   </div>
 
   <div class="notifications-list" *ngIf="!isLoading && notifications.length > 0">
-    <article class="notification-card" *ngFor="let notif of notifications">
+    <article
+      class="notification-card"
+      *ngFor="let notif of notifications"
+      [class.selected]="selectedNotification?.id === notif.id"
+    >
       <div class="notification-top">
-        <div class="sender-avatar">{{ getSenderInitials(notif) }}</div>
+        <button
+          class="notification-open"
+          type="button"
+          (click)="openNotification(notif)"
+          [attr.aria-label]="'Apri notifica ' + (notif.title ?? notif.nameScheduleTask ?? '')"
+        >
+          <span class="sender-avatar">{{ getSenderInitials(notif) }}</span>
 
-        <div class="notification-heading">
-          <div class="notification-title">
-            <mat-icon>{{ getNotificationIcon(notif) }}</mat-icon>
-            <strong>{{ notif.title ?? notif.nameScheduleTask ?? 'Notifica' }}</strong>
+          <span class="notification-heading">
+            <span class="notification-title">
+              <mat-icon>{{ getNotificationIcon(notif) }}</mat-icon>
+              <strong>{{ notif.title ?? notif.nameScheduleTask ?? 'Notifica' }}</strong>
+            </span>
+            <span class="notification-author">
+              {{ getSenderName(notif) }}
+              <ng-container *ngIf="notif.created"> &middot; {{ notif.created | date:'dd/MM/yyyy, HH:mm' }}</ng-container>
+            </span>
+          </span>
+        </button>
+
+        <div class="notification-meta">
+          <span class="status-badge" [class.pending]="notif.state === 0" [class.archived]="notif.state !== 0 && notif.state !== 1">
+            {{ getStatusLabel(notif) }}
+          </span>
+          <button mat-icon-button type="button" (click)="openNotification(notif)" aria-label="Dettaglio notifica">
+            <mat-icon>chevron_right</mat-icon>
+          </button>
+        </div>
+      </div>
+
+      <button class="notification-summary" type="button" (click)="openNotification(notif)">
+        <span class="shift-range" *ngIf="hasShiftRange(notif)">
+          {{ notif.startDate | date:'d MMMM':'':'it' }} &middot;
+          {{ notif.startDate | date:'HH:mm' }}<ng-container *ngIf="notif.stopDate">-{{ notif.stopDate | date:'HH:mm' }}</ng-container>
+        </span>
+
+        <span class="notification-context">
+          {{ getServiceLabel(notif) }}
+          <ng-container *ngIf="getOrganizationLabel(notif) as organization"> &middot; {{ organization }}</ng-container>
+        </span>
+      </button>
+
+      <div class="notif-actions" *ngIf="canDecide(notif)">
+        <button mat-stroked-button color="primary" (click)="openNotification(notif)">
+          <mat-icon>open_in_new</mat-icon>
+          Gestisci
+        </button>
+      </div>
+
+      <section class="notification-detail" *ngIf="selectedNotification?.id === notif.id">
+        <div class="detail-header">
+          <div>
+            <h2>{{ notif.title ?? notif.nameScheduleTask ?? 'Dettaglio notifica' }}</h2>
+            <p>{{ isUnavailabilityNotification(notif) ? 'Richiesta di indisponibilita' : 'Aggiornamento operativo' }}</p>
           </div>
-          <div class="notification-author">
-            {{ getSenderName(notif) }}
-            <ng-container *ngIf="notif.created"> · {{ notif.created | date:'dd/MM/yyyy, HH:mm' }}</ng-container>
-          </div>
+          <button mat-icon-button type="button" (click)="closeNotification()" aria-label="Chiudi dettaglio">
+            <mat-icon>close</mat-icon>
+          </button>
         </div>
 
-        <span class="status-badge" [class.pending]="notif.state === 0" [class.archived]="notif.state !== 0 && notif.state !== 1">
-          {{ getStatusLabel(notif) }}
-        </span>
-        <mat-icon class="notification-chevron" aria-hidden="true">chevron_right</mat-icon>
-      </div>
+        <dl class="detail-grid">
+          <div>
+            <dt>Inviata da</dt>
+            <dd>{{ getSenderName(notif) }}</dd>
+          </div>
+          <div>
+            <dt>Stato</dt>
+            <dd>{{ getStatusLabel(notif) }}</dd>
+          </div>
+          <div>
+            <dt>Servizio</dt>
+            <dd>{{ getServiceLabel(notif) }}</dd>
+          </div>
+          <div *ngIf="notif.created">
+            <dt>Ricevuta</dt>
+            <dd>{{ notif.created | date:'dd/MM/yyyy, HH:mm' }}</dd>
+          </div>
+          <div *ngIf="hasShiftRange(notif)">
+            <dt>Turno</dt>
+            <dd>
+              {{ notif.startDate | date:'dd/MM/yyyy, HH:mm' }}
+              <ng-container *ngIf="notif.stopDate"> - {{ notif.stopDate | date:'HH:mm' }}</ng-container>
+            </dd>
+          </div>
+          <div *ngIf="notif.nameServiceType">
+            <dt>Ruolo</dt>
+            <dd>{{ notif.nameServiceType }}</dd>
+          </div>
+        </dl>
 
-      <div class="shift-range" *ngIf="hasShiftRange(notif)">
-        {{ notif.startDate | date:'d MMMM':'':'it' }} ·
-        {{ notif.startDate | date:'HH:mm' }}<ng-container *ngIf="notif.stopDate">-{{ notif.stopDate | date:'HH:mm' }}</ng-container>
-      </div>
+        <div class="detail-notes" *ngIf="getNotificationDetails(notif).length > 0">
+          <p *ngFor="let detail of getNotificationDetails(notif)">{{ detail }}</p>
+        </div>
 
-      <div class="notification-context">
-        {{ getServiceLabel(notif) }}
-        <ng-container *ngIf="getOrganizationLabel(notif) as organization"> · {{ organization }}</ng-container>
-      </div>
-
-      <div class="notif-actions" *ngIf="notif.state === 0">
-        <button mat-stroked-button color="warn" (click)="rejectNotification(notif)">
-          <mat-icon>close</mat-icon>
-          Rifiuta
-        </button>
-        <button mat-flat-button color="primary" (click)="approveNotification(notif)">
-          <mat-icon>check</mat-icon>
-          Approva
-        </button>
-      </div>
+        <div class="detail-actions" *ngIf="canDecide(notif)">
+          <button mat-stroked-button color="warn" (click)="rejectNotification(notif)" [disabled]="isDeciding(notif)">
+            <mat-icon>close</mat-icon>
+            Rifiuta
+          </button>
+          <button mat-flat-button color="primary" (click)="approveNotification(notif)" [disabled]="isDeciding(notif)">
+            <mat-icon>check</mat-icon>
+            Conferma
+          </button>
+        </div>
+      </section>
     </article>
   </div>
 </div>

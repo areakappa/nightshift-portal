@@ -10,6 +10,7 @@ import { MatBadgeModule } from '@angular/material/badge';
 import { ScheduledNotificationDTO } from '../../models/dto/ScheduledNotificationDTO';
 import { ScheduleService } from '../../services/schedule.service';
 import { AuthenticationService } from '../../services/authentication.service';
+import { RoleService } from '../../services/role.service';
 
 @Component({
     selector: 'app-notifications',
@@ -22,12 +23,19 @@ import { AuthenticationService } from '../../services/authentication.service';
     styleUrls: ['./notifications.component.scss']
 })
 export class NotificationsComponent implements OnInit {
+    private readonly manageableUnavailabilityMarkers = new Set([
+        'OPERATOR_UNAVAILABILITY_REQUEST'
+    ]);
+
     notifications: ScheduledNotificationDTO[] = [];
+    selectedNotification: ScheduledNotificationDTO | null = null;
     isLoading = false;
+    decisionNotificationId: number | null = null;
 
     constructor(
         private scheduleService: ScheduleService,
         private authService: AuthenticationService,
+        private roleService: RoleService,
         private snackBar: MatSnackBar,
         private cdr: ChangeDetectorRef
     ) { }
@@ -41,9 +49,17 @@ export class NotificationsComponent implements OnInit {
         if (!user) return;
         this.isLoading = true;
         try {
-            this.notifications = (await this.scheduleService.getScheduledNotificationsByIDUser(user.id))
+            const userNotifications = await this.scheduleService.getScheduledNotificationsByIDUser(user.id);
+            const customerNotifications = this.isManager()
+                ? await this.scheduleService.getScheduledNotificationsByIDCustomer().catch(() => [])
+                : [];
+
+            this.notifications = this.mergeNotifications(userNotifications, customerNotifications)
+                .filter(notification => notification.idmediaType == 3)
                 .sort((left, right) => this.getNotificationTimestamp(right) - this.getNotificationTimestamp(left));
-                this.notifications  = this.notifications.filter(notification => notification.idmediaType == 3); // Mostra solo notifiche attive o da gestire
+            this.selectedNotification = this.selectedNotification
+                ? this.notifications.find(notification => notification.id === this.selectedNotification?.id) ?? null
+                : null;
         } catch {
             this.snackBar.open('Errore nel caricamento notifiche', 'Chiudi', { duration: 3000 });
         } finally {
@@ -53,23 +69,65 @@ export class NotificationsComponent implements OnInit {
     }
 
     async approveNotification(notification: ScheduledNotificationDTO): Promise<void> {
+        if (!this.canDecide(notification)) return;
+        this.decisionNotificationId = notification.id ?? null;
         try {
-            await this.scheduleService.handleOperatorUnavailabilityDecision({ idNotification: notification.id ?? 0, approved: true });
-            this.snackBar.open('Approvato', 'Ok', { duration: 2000 });
+            const applied = await this.scheduleService.handleOperatorUnavailabilityDecision({ idNotification: notification.id ?? 0, approved: true });
+            if (!applied) throw new Error('Decisione non applicata');
+            this.snackBar.open('Indisponibilita confermata', 'Ok', { duration: 2000 });
             await this.loadNotifications();
         } catch {
-            this.snackBar.open('Errore', 'Chiudi', { duration: 3000 });
+            this.snackBar.open('Non sono riuscito a confermare la richiesta', 'Chiudi', { duration: 3000 });
+        } finally {
+            this.decisionNotificationId = null;
         }
     }
 
     async rejectNotification(notification: ScheduledNotificationDTO): Promise<void> {
+        if (!this.canDecide(notification)) return;
+        this.decisionNotificationId = notification.id ?? null;
         try {
-            await this.scheduleService.handleOperatorUnavailabilityDecision({ idNotification: notification.id ?? 0, approved: false });
-            this.snackBar.open('Rifiutato', 'Ok', { duration: 2000 });
+            const applied = await this.scheduleService.handleOperatorUnavailabilityDecision({ idNotification: notification.id ?? 0, approved: false });
+            if (!applied) throw new Error('Decisione non applicata');
+            this.snackBar.open('Indisponibilita rifiutata', 'Ok', { duration: 2000 });
             await this.loadNotifications();
         } catch {
-            this.snackBar.open('Errore', 'Chiudi', { duration: 3000 });
+            this.snackBar.open('Non sono riuscito a rifiutare la richiesta', 'Chiudi', { duration: 3000 });
+        } finally {
+            this.decisionNotificationId = null;
         }
+    }
+
+    openNotification(notification: ScheduledNotificationDTO): void {
+        this.selectedNotification = notification;
+    }
+
+    closeNotification(): void {
+        this.selectedNotification = null;
+    }
+
+    isUnavailabilityNotification(notification: ScheduledNotificationDTO): boolean {
+        const marker = (notification.field4 ?? '').trim();
+        if (this.manageableUnavailabilityMarkers.has(marker)) return true;
+
+        const type = [
+            notification.title,
+            notification.nameScheduleTask,
+            notification.field4
+        ].join(' ').toLowerCase();
+
+        return type.includes('richiesta indispon') || type.includes('unavailability request');
+    }
+
+    canDecide(notification: ScheduledNotificationDTO): boolean {
+        return this.isManager()
+            && this.isUnavailabilityNotification(notification)
+            && (notification.state === 0 || notification.state === 1)
+            && !!notification.id;
+    }
+
+    isDeciding(notification: ScheduledNotificationDTO): boolean {
+        return !!notification.id && this.decisionNotificationId === notification.id;
     }
 
     getNotificationIcon(notification: ScheduledNotificationDTO): string {
@@ -92,7 +150,9 @@ export class NotificationsComponent implements OnInit {
     }
 
     getStatusLabel(notification: ScheduledNotificationDTO): string {
-        if (notification.state === 0) return 'Da gestire';
+        if (notification.state === 0 && this.isUnavailabilityNotification(notification)) return 'Da gestire';
+        if (notification.state === 0) return 'Notifica';
+        if (notification.state === 1 && this.isUnavailabilityNotification(notification)) return 'Da gestire';
         if (notification.state === 1) return 'Attiva';
         return 'Archiviata';
     }
@@ -114,9 +174,31 @@ export class NotificationsComponent implements OnInit {
         return !!notification.startDate;
     }
 
+    getNotificationDetails(notification: ScheduledNotificationDTO): string[] {
+        return [notification.field1, notification.field2, notification.field3]
+            .map(value => value?.trim())
+            .filter((value): value is string => !!value);
+    }
+
     private getNotificationTimestamp(notification: ScheduledNotificationDTO): number {
         const value = notification.created ?? notification.startDate;
         const timestamp = value ? new Date(value).getTime() : 0;
         return Number.isNaN(timestamp) ? 0 : timestamp;
+    }
+
+    private mergeNotifications(...groups: ScheduledNotificationDTO[][]): ScheduledNotificationDTO[] {
+        const merged = new Map<string, ScheduledNotificationDTO>();
+
+        groups.flat().forEach((notification, index) => {
+            const key = notification.id ? `id-${notification.id}` : `local-${index}`;
+            merged.set(key, notification);
+        });
+
+        return Array.from(merged.values());
+    }
+
+    private isManager(): boolean {
+        const user = this.authService.getUser();
+        return !!user?.isAdmin || !!user?.isCustomerAdmin || this.roleService.getRoleSnapshot() === 'organizer';
     }
 }
