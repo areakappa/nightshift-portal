@@ -72,7 +72,7 @@ export class TeamWizardComponent implements OnInit {
         ) ?? [];
         this.returnedRoles = this.parseState<Array<TeamRoleSetup & { users?: UserDto[] }>>(history.state?.roles) ?? [];
         this.returnedUsers = this.parseState<UserDto[]>(history.state?.organizationUsers) ?? [];
-        this.selectedStepIndex = history.state?.returnToAssignmentStep === true ? 1 : 0;
+        this.selectedStepIndex = history.state?.returnToAssignmentStep === true ? 2 : 0;
         this.returnToServiceDetail = history.state?.returnToServiceDetail === true;
     }
 
