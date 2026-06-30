@@ -5,6 +5,7 @@ export interface ScheduledNotificationDTO {
     idmediaType: number | null;
     nameMediaType: string | null;
     idscheduleTask: number | null;
+    idService: number | null;
     nameScheduleTask: string | null;
     idscheduleTaskType: number | null;
     iduser: number | null;

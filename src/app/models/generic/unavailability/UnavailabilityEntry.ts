@@ -27,6 +27,7 @@ export interface UnavailabilityEntry {
     reason: string;
     managerNote: string | null;
     shiftId: number | null;
+    serviceId: number | null;
     serviceName: string | null;
     roleName: string | null;
     source: 'manual' | 'shift' | 'notification';

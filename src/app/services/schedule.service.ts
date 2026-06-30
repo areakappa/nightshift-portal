@@ -24,6 +24,7 @@ export interface OperatorUnavailabilityDecisionPayload {
     idNotification: number;
     approved: boolean;
     note?: string | null;
+    regenerateShifts?: boolean;
 }
 
 export interface ShiftUpdatePayload {
@@ -156,6 +157,15 @@ export class ScheduleService {
         return await firstValueFrom(this.http.get<ScheduledNotificationDTO[]>(
             `${this.scheduleUrl}/GetScheduledNotificationsByIDCustomer`, { headers: Utility.getAuthHeader() }
         ));
+    }
+
+    public async getScheduledNotificationsByIDSender(idSender: number): Promise<ScheduledNotificationDTO[]> {
+        return await firstValueFrom(
+            this.http.get<ScheduledNotificationDTO[]>(
+                `${this.scheduleUrl}/GetScheduledNotificationsByIDSender/${idSender}`,
+                { headers: Utility.getAuthHeader() }
+            )
+        );
     }
 
     // Segnalazione assenza/indisponibilita operatore dal dashboard mobile.

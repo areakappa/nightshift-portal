@@ -77,7 +77,7 @@
         <a class="status-tile unavailability-tile" routerLink="/unavailability">
           <span class="tile-label"><mat-icon>schedule</mat-icon> Indisponibilità</span>
           <strong>{{ activeUnavailabilityCount === 0 ? 'OK' : activeUnavailabilityCount }}</strong>
-          <span>{{ activeUnavailabilityCount === 0 ? 'Nessuna in corso' : 'Richieste in corso' }}</span>
+          <span>{{ activeUnavailabilityCount === 0 ? 'Nessuna in attesa' : 'In attesa' }}</span>
         </a>
         <div class="status-tile conflict-tile">
           <span class="tile-label"><mat-icon>alt_route</mat-icon> Conflitti</span>

@@ -1,6 +1,7 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -70,6 +71,7 @@ export class UnavailabilityComponent implements OnInit {
         private scheduleService: ScheduleService,
         private servicesService: ServicesService,
         private unavailabilityService: UnavailabilityService,
+        private router: Router,
         private snackBar: MatSnackBar,
         private cdr: ChangeDetectorRef
     ) { }
@@ -201,13 +203,36 @@ export class UnavailabilityComponent implements OnInit {
                 this.users = [];
             }
 
+            let operatorNotificationEntries: UnavailabilityEntry[] = [];
+
             if (this.mode === 'manager') {
                 const notifications = await this.scheduleService.getScheduledNotificationsByIDCustomer().catch(() => []);
                 this.unavailabilityService.importManagerNotifications(notifications, orgId || null);
+            } else {
+                const operatorNotifications = await this.scheduleService
+                    .getScheduledNotificationsByIDSender(user.id)
+                    .catch(() => []);
+                const rejectedNotifications = await this.scheduleService
+                    .getScheduledNotificationsByIDUser(user.id)
+                    .catch(() => []);
+                operatorNotificationEntries = this.unavailabilityService.importOperatorNotifications(
+                    operatorNotifications,
+                    user.id,
+                    orgId || null,
+                    this.buildCurrentUserName(),
+                    user.email ?? null
+                ).concat(
+                    this.unavailabilityService.importRejectedOperatorNotifications(
+                        rejectedNotifications,
+                        user.id,
+                        orgId || null
+                    )
+                );
             }
-            this.entries = this.mode === 'manager' && orgId
+            const storedEntries = this.mode === 'manager' && orgId
                 ? this.unavailabilityService.getEntriesForOrganization(orgId)
                 : this.unavailabilityService.getEntriesForUser(user.id);
+            this.entries = this.mode === 'manager' ? storedEntries : operatorNotificationEntries;
             if (this.mode === 'manager' && this.users.length > 0 && !this.draft.targetUserId) {
                 this.draft.targetUserId = this.users[0].id;
             }
@@ -268,21 +293,54 @@ export class UnavailabilityComponent implements OnInit {
                 throw new Error('La richiesta non appartiene al team selezionato');
             }
 
+            const openGenerationPreview = approved
+                ? window.confirm("Richiesta approvata. Vuoi aprire subito l'anteprima di rigenerazione turni?")
+                : false;
+
             if (effectiveEntry.notificationId) {
                 const decisionApplied = await this.scheduleService.handleOperatorUnavailabilityDecision({
                     idNotification: effectiveEntry.notificationId,
-                    approved
+                    approved,
+                    regenerateShifts: false
                 });
                 if (!decisionApplied) throw new Error('Decisione non applicata dal backend');
             }
 
             this.unavailabilityService.decideEntry(effectiveEntry.id, approved ? 'approved' : 'rejected', '');
             this.snackBar.open(approved ? 'Approvata.' : 'Rifiutata.', 'Ok', { duration: 2000 });
+            if (approved && openGenerationPreview) {
+                await this.openRegenerationPreview(effectiveEntry);
+                return;
+            }
             await this.loadPage();
         } catch (error) {
             console.error('handleDecision() ERROR:: ', error);
             this.snackBar.open('Non sono riuscito a salvare la decisione.', 'Chiudi', { duration: 3000 });
         }
+    }
+
+    private async openRegenerationPreview(entry: UnavailabilityEntry): Promise<void> {
+        if (!entry.serviceId) {
+            this.snackBar.open('Richiesta approvata. Servizio non disponibile per generare la preview.', 'Chiudi', { duration: 3500 });
+            await this.loadPage();
+            return;
+        }
+
+        const service = this.services.find(item => item.id === entry.serviceId) ?? null;
+        this.authentication.saveSelectedServiceId(entry.serviceId);
+        await this.router.navigate(['/service-schedule'], {
+            state: {
+                service,
+                unavailabilityRegenerationPreview: {
+                    autoGeneratePreview: true,
+                    serviceId: entry.serviceId,
+                    startDateIso: entry.startDateIso,
+                    endDateIso: entry.endDateIso,
+                    excludedUserIds: [entry.userId],
+                    backHref: '/unavailability'
+                }
+            }
+        });
     }
 
     private resolvePageMode(user: AuthenticateUser): PageMode {

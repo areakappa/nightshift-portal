@@ -60,6 +60,14 @@ interface CoverageGap { date: string; role: string; startTime: string; endTime: 
 interface Overcoverage { date: string; role: string; startTime: string; endTime: string; extraEmployees: number; reason: string; }
 interface PreviewShiftGroup { startDateTime: string; endDateTime: string; shifts: any[]; column: number; columns: number; }
 interface PreviewDay { date: Date; label: string; shiftGroups: PreviewShiftGroup[]; gaps: CoverageGap[]; overcoverages: Overcoverage[]; }
+interface UnavailabilityRegenerationPreviewState {
+    autoGeneratePreview?: boolean;
+    serviceId?: number;
+    startDateIso?: string;
+    endDateIso?: string;
+    excludedUserIds?: number[];
+    backHref?: string;
+}
 
 @Component({
     selector: 'app-service-schedule',
@@ -121,6 +129,7 @@ export class ServiceScheduleComponent implements OnInit {
     ];
 
     private automationId?: number;
+    private unavailabilityPreviewState: UnavailabilityRegenerationPreviewState | null = null;
 
     constructor(
         private scheduleService: ScheduleService,
@@ -129,6 +138,7 @@ export class ServiceScheduleComponent implements OnInit {
         private snackBar: MatSnackBar,
         private cdr: ChangeDetectorRef
     ) {
+        this.unavailabilityPreviewState = history.state?.unavailabilityRegenerationPreview ?? null;
         const rawService = history.state?.service;
         if (rawService) {
             try {
@@ -140,7 +150,9 @@ export class ServiceScheduleComponent implements OnInit {
     }
 
     async ngOnInit(): Promise<void> {
+        this.applyUnavailabilityPreviewContext();
         await this.loadShiftAutomation();
+        await this.startUnavailabilityRegenerationPreviewIfNeeded();
     }
 
     get summaryText(): string {
@@ -443,7 +455,37 @@ export class ServiceScheduleComponent implements OnInit {
     }
 
     goBack(): void {
+        if (this.unavailabilityPreviewState?.backHref) {
+            this.router.navigateByUrl(this.unavailabilityPreviewState.backHref);
+            return;
+        }
+
         this.router.navigateByUrl('/service-detail', { state: { service: JSON.stringify(this.service) } });
+    }
+
+    private applyUnavailabilityPreviewContext(): void {
+        const state = this.unavailabilityPreviewState;
+        if (!state?.serviceId) return;
+
+        if (!this.service || this.service.id !== state.serviceId) {
+            this.service = {
+                id: state.serviceId,
+                name: this.service?.name ?? 'Servizio',
+            } as ServiceDTO;
+        }
+    }
+
+    private async startUnavailabilityRegenerationPreviewIfNeeded(): Promise<void> {
+        const state = this.unavailabilityPreviewState;
+        if (!state?.autoGeneratePreview || !state.serviceId) return;
+
+        this.mode = 'manual';
+        this.generationPeriodSelection = 'custom';
+        this.customStartDate = this.toIsoDateOnly(state.startDateIso ?? new Date().toISOString());
+        this.customEndDate = this.toIsoDateOnly(state.endDateIso ?? state.startDateIso ?? new Date().toISOString());
+        this.cdr.detectChanges();
+
+        await this.generateNow();
     }
 
     private async loadShiftAutomation(): Promise<void> {
@@ -530,7 +572,11 @@ export class ServiceScheduleComponent implements OnInit {
             serviceId: this.service!.id,
             periodType: this.getSelectedPeriodType(),
             customStartDate: custom ? this.toIsoDateOnly(this.customStartDate) : undefined,
-            customEndDate: custom ? this.toIsoDateOnly(this.customEndDate) : undefined
+            customEndDate: custom ? this.toIsoDateOnly(this.customEndDate) : undefined,
+            targetStartDateTimeUtc: this.unavailabilityPreviewState?.startDateIso ?? undefined,
+            targetEndDateTimeUtc: this.unavailabilityPreviewState?.endDateIso ?? undefined,
+            excludedUserIds: this.unavailabilityPreviewState?.excludedUserIds,
+            forcePreviewGeneration: !!this.unavailabilityPreviewState
         };
     }
 

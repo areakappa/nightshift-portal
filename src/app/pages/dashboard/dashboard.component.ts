@@ -114,7 +114,26 @@ export class DashboardComponent implements OnInit {
         this.myShifts = allShifts
             .filter(s => s.idUser === user.id || s.idEmployee === user.id)
             .sort((a, b) => new Date(a.startDateTime).getTime() - new Date(b.startDateTime).getTime());
-        this.myUnavailability = this.unavailabilityService.getEntriesForUser(user.id);
+        const orgId = this.orgService.getOrganizationSelectedId();
+        const operatorNotifications = await this.scheduleService
+            .getScheduledNotificationsByIDSender(user.id)
+            .catch(() => []);
+        const rejectedNotifications = await this.scheduleService
+            .getScheduledNotificationsByIDUser(user.id)
+            .catch(() => []);
+        this.myUnavailability = this.unavailabilityService.importOperatorNotifications(
+            operatorNotifications,
+            user.id,
+            orgId || null,
+            `${user.name ?? ''} ${user.surname ?? ''}`.trim() || user.username,
+            user.email ?? null
+        ).concat(
+            this.unavailabilityService.importRejectedOperatorNotifications(
+                rejectedNotifications,
+                user.id,
+                orgId || null
+            )
+        );
     }
 
     switchRole(): void {
@@ -157,12 +176,7 @@ export class DashboardComponent implements OnInit {
     }
 
     get activeUnavailabilityCount(): number {
-        const now = Date.now();
-        return this.myUnavailability.filter(entry =>
-            entry.status !== 'rejected' &&
-            new Date(entry.startDateIso).getTime() <= now &&
-            new Date(entry.endDateIso).getTime() >= now
-        ).length;
+        return this.myUnavailability.filter(entry => entry.status === 'pending').length;
     }
 
     get conflictCount(): number {

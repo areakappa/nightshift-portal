@@ -1,5 +1,6 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -36,6 +37,7 @@ export class NotificationsComponent implements OnInit {
         private scheduleService: ScheduleService,
         private authService: AuthenticationService,
         private roleService: RoleService,
+        private router: Router,
         private snackBar: MatSnackBar,
         private cdr: ChangeDetectorRef
     ) { }
@@ -72,9 +74,20 @@ export class NotificationsComponent implements OnInit {
         if (!this.canDecide(notification)) return;
         this.decisionNotificationId = notification.id ?? null;
         try {
-            const applied = await this.scheduleService.handleOperatorUnavailabilityDecision({ idNotification: notification.id ?? 0, approved: true });
+            const openGenerationPreview = window.confirm(
+                "Richiesta approvata. Vuoi aprire subito l'anteprima di rigenerazione turni?"
+            );
+            const applied = await this.scheduleService.handleOperatorUnavailabilityDecision({
+                idNotification: notification.id ?? 0,
+                approved: true,
+                regenerateShifts: false
+            });
             if (!applied) throw new Error('Decisione non applicata');
             this.snackBar.open('Indisponibilita confermata', 'Ok', { duration: 2000 });
+            if (openGenerationPreview) {
+                await this.openRegenerationPreview(notification);
+                return;
+            }
             await this.loadNotifications();
         } catch {
             this.snackBar.open('Non sono riuscito a confermare la richiesta', 'Chiudi', { duration: 3000 });
@@ -87,7 +100,11 @@ export class NotificationsComponent implements OnInit {
         if (!this.canDecide(notification)) return;
         this.decisionNotificationId = notification.id ?? null;
         try {
-            const applied = await this.scheduleService.handleOperatorUnavailabilityDecision({ idNotification: notification.id ?? 0, approved: false });
+            const applied = await this.scheduleService.handleOperatorUnavailabilityDecision({
+                idNotification: notification.id ?? 0,
+                approved: false,
+                regenerateShifts: false
+            });
             if (!applied) throw new Error('Decisione non applicata');
             this.snackBar.open('Indisponibilita rifiutata', 'Ok', { duration: 2000 });
             await this.loadNotifications();
@@ -200,5 +217,99 @@ export class NotificationsComponent implements OnInit {
     private isManager(): boolean {
         const user = this.authService.getUser();
         return !!user?.isAdmin || !!user?.isCustomerAdmin || this.roleService.getRoleSnapshot() === 'organizer';
+    }
+
+    private async openRegenerationPreview(notification: ScheduledNotificationDTO): Promise<void> {
+        if (!notification.idService) {
+            this.snackBar.open('Richiesta approvata. Servizio non disponibile per generare la preview.', 'Chiudi', { duration: 3500 });
+            await this.loadNotifications();
+            return;
+        }
+
+        const range = this.deriveNotificationRange(notification);
+        await this.router.navigate(['/service-schedule'], {
+            state: {
+                service: {
+                    id: notification.idService,
+                    name: notification.nameService ?? notification.nameClient ?? 'Servizio'
+                },
+                unavailabilityRegenerationPreview: {
+                    autoGeneratePreview: true,
+                    serviceId: notification.idService,
+                    startDateIso: range.startDateIso,
+                    endDateIso: range.endDateIso,
+                    excludedUserIds: [notification.idUserSender ?? notification.iduser].filter((id): id is number => !!id),
+                    backHref: '/notifications'
+                }
+            }
+        });
+    }
+
+    private deriveNotificationRange(notification: ScheduledNotificationDTO): { startDateIso: string; endDateIso: string } {
+        const textRange = this.extractDateRangeFromNotificationText(notification);
+        if (textRange) return textRange;
+
+        const explicitStart = notification.startDate ? new Date(notification.startDate) : null;
+        const explicitEnd = notification.stopDate ? new Date(notification.stopDate) : null;
+        if (explicitStart && explicitEnd && !isNaN(explicitStart.getTime()) && !isNaN(explicitEnd.getTime())) {
+            return {
+                startDateIso: explicitStart.toISOString(),
+                endDateIso: explicitEnd.toISOString()
+            };
+        }
+
+        const fallback = notification.created ? new Date(notification.created) : new Date();
+        fallback.setHours(0, 0, 0, 0);
+        const end = new Date(fallback);
+        end.setHours(23, 59, 59, 999);
+        return {
+            startDateIso: fallback.toISOString(),
+            endDateIso: end.toISOString()
+        };
+    }
+
+    private extractDateRangeFromNotificationText(notification: ScheduledNotificationDTO): { startDateIso: string; endDateIso: string } | null {
+        const text = [notification.title, notification.field1, notification.field2, notification.field3]
+            .filter((value): value is string => !!value)
+            .join(' ');
+
+        const rangeMatch = text.match(/\bdal\s+(\d{1,2}\/\d{1,2}\/\d{4})\s+(?:al|a)\s+(\d{1,2}\/\d{1,2}\/\d{4})/i);
+        if (rangeMatch) return this.buildLocalDayRange(rangeMatch[1], rangeMatch[2]);
+
+        const singleDayMatch = text.match(/\b(?:giorno|del)\s+(\d{1,2}\/\d{1,2}\/\d{4})/i);
+        if (singleDayMatch) return this.buildLocalDayRange(singleDayMatch[1], singleDayMatch[1]);
+
+        return null;
+    }
+
+    private buildLocalDayRange(startValue: string, endValue: string): { startDateIso: string; endDateIso: string } | null {
+        const start = this.parseItalianDate(startValue);
+        const end = this.parseItalianDate(endValue);
+        if (!start || !end) return null;
+
+        start.setHours(0, 0, 0, 0);
+        end.setHours(23, 59, 59, 999);
+        if (start > end) {
+            end.setTime(start.getTime());
+            end.setHours(23, 59, 59, 999);
+        }
+
+        return {
+            startDateIso: start.toISOString(),
+            endDateIso: end.toISOString()
+        };
+    }
+
+    private parseItalianDate(value: string): Date | null {
+        const match = value.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (!match) return null;
+
+        const day = Number(match[1]);
+        const month = Number(match[2]);
+        const year = Number(match[3]);
+        const date = new Date(year, month - 1, day);
+        return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
+            ? date
+            : null;
     }
 }

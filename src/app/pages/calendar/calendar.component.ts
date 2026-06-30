@@ -8,6 +8,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatChipsModule } from '@angular/material/chips';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
+import { MatTooltipModule } from '@angular/material/tooltip';
 import { ShiftItemDTO } from '../../models/dto/ShiftItemDTO';
 import { ShiftsSearch } from '../../models/generic/Shift/ShiftsSearch';
 import { ScheduleService } from '../../services/schedule.service';
@@ -19,6 +20,11 @@ import { OrganizationPermissionsService } from '../../services/organization-perm
 type CalendarShift = ShiftItemDTO & {
     serviceId: number;
     serviceName: string;
+};
+
+type PositionedCalendarShift = CalendarShift & {
+    overlapColumn: number;
+    overlapColumns: number;
 };
 
 type CalendarServiceFilter = {
@@ -33,7 +39,7 @@ type CalendarServiceFilter = {
     imports: [
         CommonModule, FormsModule,
         MatCardModule, MatButtonModule, MatIconModule,
-        MatProgressSpinnerModule, MatChipsModule, MatSnackBarModule
+        MatProgressSpinnerModule, MatChipsModule, MatSnackBarModule, MatTooltipModule
     ],
     templateUrl: './calendar.component.html',
     styleUrls: ['./calendar.component.scss']
@@ -163,9 +169,87 @@ export class CalendarComponent implements OnInit {
         return Math.min(minutes, 1440 - this.getShiftTop(shift));
     }
 
+    getShiftTooltip(shift: CalendarShift): string {
+        const start = this.formatTime(shift.startDateTime);
+        const end = this.formatTime(shift.endDateTime);
+        const person = shift.nameEmployee ?? 'Non assegnato';
+        const role = shift.role ?? shift.roleName ?? shift.serviceRole;
+
+        return [
+            `${start} - ${end}`,
+            shift.serviceName,
+            person,
+            role
+        ].filter(Boolean).join('\n');
+    }
+
     getShiftsForDate(date: Date): CalendarShift[] {
         const dateStr = date.toISOString().split('T')[0];
         return this.filteredShifts.filter(s => s.startDateTime?.startsWith(dateStr));
+    }
+
+    getPositionedShiftsForDate(date: Date): PositionedCalendarShift[] {
+        const shifts = this.getShiftsForDate(date)
+            .slice()
+            .sort((left, right) =>
+                new Date(left.startDateTime).getTime() - new Date(right.startDateTime).getTime() ||
+                new Date(left.endDateTime).getTime() - new Date(right.endDateTime).getTime()
+            );
+
+        const positioned: PositionedCalendarShift[] = [];
+        let index = 0;
+
+        while (index < shifts.length) {
+            const cluster: CalendarShift[] = [];
+            let clusterEnd = this.shiftEndMs(shifts[index]);
+
+            while (index < shifts.length && this.shiftStartMs(shifts[index]) < clusterEnd) {
+                const shift = shifts[index];
+                cluster.push(shift);
+                clusterEnd = Math.max(clusterEnd, this.shiftEndMs(shift));
+                index++;
+            }
+
+            const columnEnds: number[] = [];
+            const clusterPositioned: PositionedCalendarShift[] = cluster.map((shift) => {
+                const start = this.shiftStartMs(shift);
+                let column = columnEnds.findIndex((end) => end <= start);
+                if (column < 0) {
+                    column = columnEnds.length;
+                    columnEnds.push(0);
+                }
+
+                columnEnds[column] = this.shiftEndMs(shift);
+                return {
+                    ...shift,
+                    overlapColumn: column,
+                    overlapColumns: 1
+                };
+            });
+
+            const columns = Math.max(1, columnEnds.length);
+            clusterPositioned.forEach((shift) => {
+                shift.overlapColumns = columns;
+                positioned.push(shift);
+            });
+        }
+
+        return positioned;
+    }
+
+    private shiftStartMs(shift: CalendarShift): number {
+        return new Date(shift.startDateTime).getTime();
+    }
+
+    private shiftEndMs(shift: CalendarShift): number {
+        return new Date(shift.endDateTime).getTime();
+    }
+
+    private formatTime(value: string | Date): string {
+        return new Date(value).toLocaleTimeString('it-IT', {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
     }
 
     get filteredShifts(): CalendarShift[] {
