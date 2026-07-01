@@ -52,6 +52,7 @@ export class CalendarComponent implements OnInit {
     selectedDate = new Date();
     viewMode: 'day' | 'week' | 'month' = 'week';
     selectedShift: CalendarShift | null = null;
+    editingShift: CalendarShift | null = null;
     editStart = '';
     editEnd = '';
     canManageShiftActions = false;
@@ -283,7 +284,13 @@ export class CalendarComponent implements OnInit {
     }
 
     selectShift(shift: CalendarShift): void {
+        if (this.canManageShiftActions) {
+            this.openEditorForShift(shift);
+            return;
+        }
+
         this.selectedShift = shift;
+        this.editingShift = null;
         this.editStart = this.toDateTimeLocal(shift.startDateTime);
         this.editEnd = this.toDateTimeLocal(shift.endDateTime);
     }
@@ -292,8 +299,27 @@ export class CalendarComponent implements OnInit {
         this.selectedShift = null;
     }
 
+    openShiftEditor(event: Event, shift: CalendarShift): void {
+        event.preventDefault();
+        event.stopPropagation();
+        if (!this.canManageShiftActions) return;
+        this.openEditorForShift(shift);
+    }
+
+    private openEditorForShift(shift: CalendarShift): void {
+        this.editingShift = shift;
+        this.selectedShift = null;
+        this.editStart = this.toDateTimeLocal(shift.startDateTime);
+        this.editEnd = this.toDateTimeLocal(shift.endDateTime);
+        this.cdr.detectChanges();
+    }
+
+    closeShiftEditor(): void {
+        this.editingShift = null;
+    }
+
     async saveShiftChanges(): Promise<void> {
-        const shift = this.selectedShift;
+        const shift = this.editingShift ?? this.selectedShift;
         if (!this.canManageShiftActions || !shift?.idShift) return;
         const start = new Date(this.editStart);
         const end = new Date(this.editEnd);
@@ -316,6 +342,7 @@ export class CalendarComponent implements OnInit {
                 return;
             }
             this.snackBar.open('Turno aggiornato correttamente', 'Ok', { duration: 2500 });
+            this.editingShift = null;
             await this.loadShifts();
         } catch {
             this.snackBar.open('Impossibile modificare il turno', 'Chiudi', { duration: 3000 });
@@ -326,7 +353,7 @@ export class CalendarComponent implements OnInit {
     }
 
     async deleteSelectedShift(): Promise<void> {
-        const shift = this.selectedShift;
+        const shift = this.editingShift ?? this.selectedShift;
         if (!this.canManageShiftActions || !shift?.idShift) return;
         if (!window.confirm('Confermi l\'eliminazione del turno selezionato?')) return;
 
@@ -336,6 +363,7 @@ export class CalendarComponent implements OnInit {
             const message = Array.isArray(response) && response.length ? response[0] : 'Turno eliminato';
             this.snackBar.open(message, 'Ok', { duration: 2500 });
             this.selectedShift = null;
+            this.editingShift = null;
             await this.loadShifts();
         } catch {
             this.snackBar.open('Impossibile eliminare il turno', 'Chiudi', { duration: 3000 });

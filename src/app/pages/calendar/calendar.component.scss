@@ -70,8 +70,34 @@
   .shift-date { font-weight: 600; color: var(--ns-primary); }
 }
 .shift-details { margin-top: 20px; }
+.shift-details-backdrop, .shift-edit-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(2,6,23,.68);
+}
+.shift-details-backdrop .shift-details, .shift-edit-dialog {
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  margin: 0;
+  overflow: auto;
+}
+.shift-edit-dialog {
+  border: 1px solid rgba(129,140,248,.42);
+  box-shadow: 0 24px 80px rgba(0,0,0,.42);
+}
+.edit-summary {
+  padding: 12px;
+  border: 1px solid rgba(129,140,248,.24);
+  border-radius: 8px;
+  background: rgba(99,102,241,.12);
+}
 .details-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
   h2 { margin: 0 0 4px; } p { margin: 0; color: var(--ns-text-secondary); } }
+.details-service { display: block; color: var(--ns-primary-light); font-size: 13px; font-weight: 800; }
 .time-summary { display: flex; align-items: center; gap: 8px; margin: 18px 0; color: var(--ns-primary-light); }
 .edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
   label { display: grid; gap: 6px; color: var(--ns-text-secondary); font-size: 12px; font-weight: 700; }
@@ -146,6 +172,31 @@
   font-weight: 800;
 }
 .timeline-shift:hover, .timeline-shift.selected { box-shadow: 0 0 0 2px var(--ns-primary); background: rgba(99,102,241,.3); }
+.shift-edit-cue {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  color: var(--ns-text);
+  background: rgba(15,23,42,.42);
+  opacity: .85;
+  cursor: pointer;
+  pointer-events: auto;
+  z-index: 10;
+}
+.shift-edit-cue * { pointer-events: none; }
+.shift-edit-cue mat-icon {
+  width: 16px;
+  height: 16px;
+  font-size: 16px;
+}
+.shift-edit-cue:hover { opacity: 1; background: rgba(99,102,241,.55); }
 
 ::ng-deep .calendar-shift-tooltip {
   max-width: 320px;
