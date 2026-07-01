@@ -50,7 +50,7 @@
                   [class.low]="getCoveragePct(service) < 70"
                   [class.full]="getCoveragePct(service) === 100"></div>
               </div>
-              <span class="cov-label">{{ getCoverage(service)?.totalRolesCoverage ?? 0 }}/{{ getCoverage(service)?.totalRolesToCoverage ?? 0 }}</span>
+              <span class="cov-label">{{ getCoverage(service)?.totalRolesCoverage ?? 0 }}/{{ getCoverage(service)?.totalRoles ?? 0 }}</span>
             </div>
             <span class="pct-label">{{ getCoveragePct(service) }}%</span>
           </div>

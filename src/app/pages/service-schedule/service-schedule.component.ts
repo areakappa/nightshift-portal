@@ -59,7 +59,9 @@ interface ShiftGenerationReport {
 interface CoverageGap { date: string; role: string; startTime: string; endTime: string; reason: string; }
 interface Overcoverage { date: string; role: string; startTime: string; endTime: string; extraEmployees: number; reason: string; }
 interface PreviewShiftGroup { startDateTime: string; endDateTime: string; shifts: any[]; column: number; columns: number; }
-interface PreviewDay { date: Date; label: string; shiftGroups: PreviewShiftGroup[]; gaps: CoverageGap[]; overcoverages: Overcoverage[]; }
+interface PositionedCoverageGap extends CoverageGap { column: number; columns: number; }
+interface PositionedOvercoverage extends Overcoverage { column: number; columns: number; }
+interface PreviewDay { date: Date; label: string; shiftGroups: PreviewShiftGroup[]; gaps: PositionedCoverageGap[]; overcoverages: PositionedOvercoverage[]; }
 interface UnavailabilityRegenerationPreviewState {
     autoGeneratePreview?: boolean;
     serviceId?: number;
@@ -299,13 +301,25 @@ export class ServiceScheduleComponent implements OnInit {
         for (const shift of this.generatedShiftsPreview) this.addPreviewDate(dates, new Date(shift.startDateTime));
         for (const gap of this.generationCoverageGaps) this.addPreviewDate(dates, this.gapStart(gap));
         for (const item of this.generationOvercoverages) this.addPreviewDate(dates, this.gapStart(item));
-        return [...dates.values()].sort((a, b) => a.getTime() - b.getTime()).map(date => ({
-            date,
-            label: date.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' }),
-            shiftGroups: this.groupPreviewShifts(this.generatedShiftsPreview.filter(shift => this.sameDay(new Date(shift.startDateTime), date))),
-            gaps: this.generationCoverageGaps.filter(gap => this.sameDay(this.gapStart(gap), date)),
-            overcoverages: this.generationOvercoverages.filter(item => this.sameDay(this.gapStart(item), date))
-        }));
+        return [...dates.values()].sort((a, b) => a.getTime() - b.getTime()).map(date => {
+            const shiftGroups = this.groupPreviewShifts(this.generatedShiftsPreview.filter(shift => this.sameDay(new Date(shift.startDateTime), date)));
+            const gaps = this.generationCoverageGaps
+                .filter(gap => this.sameDay(this.gapStart(gap), date))
+                .map(gap => ({ ...gap, column: 0, columns: 1 }));
+            const overcoverages = this.generationOvercoverages
+                .filter(item => this.sameDay(this.gapStart(item), date))
+                .map(item => ({ ...item, column: 0, columns: 1 }));
+
+            this.layoutPreviewDayItems(shiftGroups, gaps, overcoverages);
+
+            return {
+                date,
+                label: date.toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' }),
+                shiftGroups,
+                gaps,
+                overcoverages
+            };
+        });
     }
 
     readonly previewHours = Array.from({ length: 24 }, (_, value) => value);
@@ -361,6 +375,59 @@ export class ServiceScheduleComponent implements OnInit {
         });
         assignColumns();
         return groups;
+    }
+
+    private layoutPreviewDayItems(
+        groups: PreviewShiftGroup[],
+        gaps: PositionedCoverageGap[],
+        overcoverages: PositionedOvercoverage[]
+    ): void {
+        const items = [
+            ...groups.map(item => ({
+                start: new Date(item.startDateTime).getTime(),
+                end: new Date(item.endDateTime).getTime(),
+                setColumn: (column: number) => item.column = column,
+                setColumns: (columns: number) => item.columns = columns
+            })),
+            ...gaps.map(item => ({
+                start: this.gapStart(item).getTime(),
+                end: this.gapEnd(item).getTime(),
+                setColumn: (column: number) => item.column = column,
+                setColumns: (columns: number) => item.columns = columns
+            })),
+            ...overcoverages.map(item => ({
+                start: this.gapStart(item).getTime(),
+                end: this.gapEnd(item).getTime(),
+                setColumn: (column: number) => item.column = column,
+                setColumns: (columns: number) => item.columns = columns
+            }))
+        ].sort((a, b) => a.start - b.start || a.end - b.end);
+
+        let cluster: typeof items = [];
+        let clusterEnd = -Infinity;
+
+        const assignCluster = () => {
+            if (!cluster.length) return;
+            const columnEnds: number[] = [];
+            for (const item of cluster) {
+                let column = columnEnds.findIndex(end => end <= item.start);
+                if (column === -1) column = columnEnds.length;
+                columnEnds[column] = item.end;
+                item.setColumn(column);
+            }
+            cluster.forEach(item => item.setColumns(columnEnds.length));
+        };
+
+        for (const item of items) {
+            if (cluster.length && item.start >= clusterEnd) {
+                assignCluster();
+                cluster = [];
+                clusterEnd = -Infinity;
+            }
+            cluster.push(item);
+            clusterEnd = Math.max(clusterEnd, item.end);
+        }
+        assignCluster();
     }
 
     previewPersonName(shift: any): string { return shift.nameEmployee || shift.employeeName || 'Non assegnato'; }

@@ -31,7 +31,7 @@
               <div class="cov-label">Ruoli coperti</div>
             </div>
             <div class="cov-item">
-              <div class="cov-val">{{ teamCoverage?.totalRolesToCoverage ?? 0 }}</div>
+              <div class="cov-val">{{ teamCoverage?.totalRoles ?? 0 }}</div>
               <div class="cov-label">Totale ruoli</div>
             </div>
             <div class="cov-item">
@@ -80,7 +80,7 @@
           <mat-icon class="action-icon">group</mat-icon>
           <div class="action-title">Team</div>
           <div class="action-desc">Configura o modifica le assegnazioni</div>
-          <div class="action-count">{{ teamCoverage?.totalRolesCoverage ?? 0 }}/{{ teamCoverage?.totalRolesToCoverage ?? 0 }} ruoli coperti</div>
+          <div class="action-count">{{ teamCoverage?.totalRolesCoverage ?? 0 }}/{{ teamCoverage?.totalRoles ?? 0 }} ruoli coperti</div>
         </mat-card-content>
       </mat-card>
 

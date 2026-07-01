@@ -118,7 +118,7 @@ export class HomeComponent implements OnInit {
                     const cov = await this.servicesService.getTeamServiceRoles(service.id);
                     this.serviceCoverage.set(service.id, cov);
                     totalAssigned += cov?.totalRolesCoverage ?? 0;
-                    totalNeeded += cov?.totalRolesToCoverage ?? 0;
+                    totalNeeded += cov?.totalRoles ?? 0;
                 } catch { this.serviceCoverage.set(service.id, null); }
             }
             this.teamAssigned = totalAssigned; this.teamNeeded = totalNeeded;

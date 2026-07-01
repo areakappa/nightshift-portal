@@ -176,10 +176,10 @@
                 <strong>{{ shift.startDateTime | date:'HH:mm' }} – {{ shift.endDateTime | date:'HH:mm' }}</strong><span>{{ shift.nameEmployee || shift.employeeName || 'Non assegnato' }}</span><span>{{ shift.serviceRole || shift.roleName || shift.role }}</span>
                 -->
               </section>
-              <button type="button" class="preview-event gap" *ngFor="let gap of day.gaps" (click)="openCoverageGap(gap)" [style.top.px]="previewTop(gap)" [style.height.px]="previewHeight(gap)">
+              <button type="button" class="preview-event gap" *ngFor="let gap of day.gaps" (click)="openCoverageGap(gap)" [style.top.px]="previewTop(gap)" [style.height.px]="previewHeight(gap)" [style.--preview-column]="gap.column" [style.--preview-columns]="gap.columns">
                 <strong>{{ gap.startTime }} – {{ gap.endTime }}</strong><span>Scopertura · {{ gap.role }}</span><span>{{ gap.reason }}</span>
               </button>
-              <div class="preview-event overcoverage" *ngFor="let item of day.overcoverages" [style.top.px]="previewTop(item)" [style.height.px]="previewHeight(item)">
+              <div class="preview-event overcoverage" *ngFor="let item of day.overcoverages" [style.top.px]="previewTop(item)" [style.height.px]="previewHeight(item)" [style.--preview-column]="item.column" [style.--preview-columns]="item.columns">
                 <strong>{{ item.startTime }} – {{ item.endTime }}</strong><span>Sovracopertura · {{ item.role }}</span><span>{{ item.extraEmployees }} persone extra</span>
               </div>
             </div>

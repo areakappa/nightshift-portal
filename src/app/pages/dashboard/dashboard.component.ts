@@ -94,7 +94,7 @@ export class DashboardComponent implements OnInit {
                 const cov = await this.servicesService.getTeamServiceRoles(svc.id);
                 this.coverageMap.set(svc.id, cov);
                 covered += cov?.totalRolesCoverage ?? 0;
-                total += cov?.totalRolesToCoverage ?? 0;
+                total += cov?.totalRoles ?? 0;
             } catch { }
         }
         this.totalCoveragePct = total > 0 ? Math.round((covered / total) * 100) : 100;
@@ -152,7 +152,7 @@ export class DashboardComponent implements OnInit {
     getCoverage(service: ServiceDTO): TeamCoverage | null { return this.coverageMap.get(service.id) ?? null; }
     getCoveragePct(service: ServiceDTO): number {
         const c = this.getCoverage(service);
-        const t = c?.totalRolesToCoverage ?? 0;
+        const t = c?.totalRoles ?? 0;
         return t > 0 ? Math.round(((c?.totalRolesCoverage ?? 0) / t) * 100) : 100;
     }
 

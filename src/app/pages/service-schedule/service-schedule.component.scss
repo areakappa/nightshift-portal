@@ -125,11 +125,84 @@ button mat-spinner { display: inline-block; margin-right: 8px; }
 .preview-person span { font-weight: 800; }
 .preview-person small { color: var(--ns-text-secondary); font-size: 11px; }
 .preview-person:hover, .preview-person.selected { border-color: var(--ns-primary); background: rgba(99,102,241,.3); }
-.preview-event { position: absolute; left: 5px; right: 5px; z-index: 1; overflow: hidden; padding: 5px 7px; border: 1px solid rgba(129,140,248,.55); border-left: 4px solid var(--ns-primary); border-radius: 6px; color: var(--ns-text); background: rgba(99,102,241,.18); font: inherit; font-size: 11px; text-align: left; }
+.preview-event {
+  position: absolute;
+  left: calc(6px + var(--preview-column, 0) * (100% - 12px) / var(--preview-columns, 1));
+  right: auto;
+  width: calc((100% - 12px) / var(--preview-columns, 1) - 6px);
+  z-index: 1;
+  overflow: hidden;
+  box-sizing: border-box;
+  padding: 5px 7px;
+  border: 1px solid rgba(129,140,248,.55);
+  border-left: 4px solid var(--ns-primary);
+  border-radius: 6px;
+  color: var(--ns-text);
+  background: rgba(99,102,241,.18);
+  font: inherit;
+  font-size: 11px;
+  text-align: left;
+}
 button.preview-event { cursor: pointer; }
 .preview-event strong, .preview-event span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .preview-event span { color: var(--ns-text-secondary); }
-.preview-event.gap { border-color: #d49a1f; border-left-color: #e39b16; background: rgba(225,158,24,.18); }
+.preview-event.gap {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 10px;
+  border-color: rgba(245,158,11,.85);
+  border-left-color: #f59e0b;
+  border-left-width: 5px;
+  background: linear-gradient(135deg, rgba(245,158,11,.20), rgba(15,23,42,.72));
+  box-shadow: inset 0 0 0 1px rgba(251,191,36,.12);
+}
+.preview-event.gap strong {
+  flex: 0 0 auto;
+  color: #fde68a;
+  font-size: 12px;
+  line-height: 1.1;
+}
+.preview-event.gap span {
+  flex: 0 0 auto;
+  color: #f8d58a;
+  white-space: normal;
+  line-height: 1.25;
+}
+.preview-event.gap span:first-of-type {
+  display: inline-flex;
+  align-self: flex-start;
+  width: auto;
+  max-width: 100%;
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: #111827;
+  background: #fbbf24;
+  font-size: 11px;
+  font-weight: 900;
+}
+.preview-event.gap span:last-of-type {
+  display: -webkit-box;
+  color: #fef3c7;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  white-space: normal;
+}
+.preview-event.gap::after {
+  content: "Assegna membro";
+  margin-top: auto;
+  align-self: flex-start;
+  padding: 4px 8px;
+  border: 1px solid rgba(253,230,138,.7);
+  border-radius: 6px;
+  color: #fde68a;
+  font-size: 11px;
+  font-weight: 800;
+}
+.preview-event.gap:hover {
+  background: linear-gradient(135deg, rgba(245,158,11,.30), rgba(15,23,42,.78));
+  box-shadow: 0 0 0 2px rgba(245,158,11,.35), inset 0 0 0 1px rgba(251,191,36,.18);
+}
 .preview-event.overcoverage { border-color: #2dd4bf; border-left-color: #2dd4bf; background: rgba(20,184,166,.17); }
 .preview-event.selected { box-shadow: 0 0 0 2px var(--ns-primary); }
 .preview-editor { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin-top: 14px; padding: 14px; border: 1px solid var(--ns-border); border-radius: 10px; background: var(--ns-inset-bg); }

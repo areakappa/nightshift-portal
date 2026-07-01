@@ -97,7 +97,7 @@ export class ServiceDetailComponent implements OnInit {
 
     getDate(d: string): string { return d ? new Date(d).toLocaleDateString('it-IT') : '—'; }
     getCoveragePct(): number {
-        const t = this.teamCoverage?.totalRolesToCoverage ?? 0;
+        const t = this.teamCoverage?.totalRoles ?? 0;
         return t > 0 ? Math.round(((this.teamCoverage?.totalRolesCoverage ?? 0) / t) * 100) : 100;
     }
 }
