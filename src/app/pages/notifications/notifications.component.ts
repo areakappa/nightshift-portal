@@ -205,10 +205,35 @@ export class NotificationsComponent implements OnInit {
             .filter((value): value is string => !!value);
     }
 
+    formatNotificationCreated(notification: ScheduledNotificationDTO): string {
+        const date = this.parseUtcDate(notification.created);
+        if (!date) return '';
+
+        return new Intl.DateTimeFormat('it-IT', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        }).format(date);
+    }
+
     private getNotificationTimestamp(notification: ScheduledNotificationDTO): number {
-        const value = notification.created ?? notification.startDate;
-        const timestamp = value ? new Date(value).getTime() : 0;
+        const created = this.parseUtcDate(notification.created);
+        if (created) return created.getTime();
+
+        const timestamp = notification.startDate ? new Date(notification.startDate).getTime() : 0;
         return Number.isNaN(timestamp) ? 0 : timestamp;
+    }
+
+    private parseUtcDate(value: string | null | undefined): Date | null {
+        if (!value) return null;
+
+        const hasTimezone = /(?:Z|[+-]\d{2}:?\d{2})$/i.test(value);
+        const normalizedValue = hasTimezone ? value : `${value}Z`;
+        const date = new Date(normalizedValue);
+
+        return Number.isNaN(date.getTime()) ? null : date;
     }
 
     private mergeNotifications(...groups: ScheduledNotificationDTO[][]): ScheduledNotificationDTO[] {

@@ -41,7 +41,7 @@
             </span>
             <span class="notification-author">
               {{ getSenderName(notif) }}
-              <ng-container *ngIf="notif.created"> &middot; {{ notif.created | date:'dd/MM/yyyy, HH:mm' }}</ng-container>
+              <ng-container *ngIf="notif.created"> &middot; {{ formatNotificationCreated(notif) }}</ng-container>
             </span>
           </span>
         </button>
@@ -101,7 +101,7 @@
           </div>
           <div *ngIf="notif.created">
             <dt>Ricevuta</dt>
-            <dd>{{ notif.created | date:'dd/MM/yyyy, HH:mm' }}</dd>
+            <dd>{{ formatNotificationCreated(notif) }}</dd>
           </div>
           <div *ngIf="hasShiftRange(notif)">
             <dt>Turno</dt>
