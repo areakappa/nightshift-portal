@@ -13,16 +13,37 @@
 
   <div class="loading-overlay" *ngIf="isLoading"><mat-spinner diameter="40"></mat-spinner></div>
 
-  <div class="no-data" *ngIf="!isLoading && notifications.length === 0">
-    <mat-icon>notifications_none</mat-icon>
-    <strong>Nessuna notifica</strong>
-    <p>Gli aggiornamenti sui tuoi turni compariranno qui.</p>
+  <div class="notification-tabs" *ngIf="!isLoading && isManagerView && notifications.length > 0">
+    <button
+      type="button"
+      [class.active]="notificationView === 'received'"
+      (click)="setNotificationView('received')"
+    >
+      <mat-icon>move_to_inbox</mat-icon>
+      Ricevute
+      <span>{{ receivedNotifications.length }}</span>
+    </button>
+    <button
+      type="button"
+      [class.active]="notificationView === 'sent'"
+      (click)="setNotificationView('sent')"
+    >
+      <mat-icon>outbox</mat-icon>
+      Inviate
+      <span>{{ sentNotifications.length }}</span>
+    </button>
   </div>
 
-  <div class="notifications-list" *ngIf="!isLoading && notifications.length > 0">
+  <div class="no-data" *ngIf="!isLoading && visibleNotifications.length === 0">
+    <mat-icon>notifications_none</mat-icon>
+    <strong>{{ notificationView === 'sent' && isManagerView ? 'Nessuna notifica inviata' : 'Nessuna notifica ricevuta' }}</strong>
+    <p>{{ notificationView === 'sent' && isManagerView ? 'Le notifiche inviate o gestite compariranno qui.' : 'Gli aggiornamenti sui tuoi turni compariranno qui.' }}</p>
+  </div>
+
+  <div class="notifications-list" *ngIf="!isLoading && visibleNotifications.length > 0">
     <article
       class="notification-card"
-      *ngFor="let notif of notifications"
+      *ngFor="let notif of visibleNotifications"
       [class.selected]="selectedNotification?.id === notif.id"
     >
       <div class="notification-top">

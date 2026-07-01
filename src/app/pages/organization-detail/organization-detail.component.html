@@ -22,35 +22,90 @@
 
   <ng-container *ngIf="!isLoading && organization">
     <!-- View mode -->
-    <mat-card class="ns-card info-card" *ngIf="!editMode">
-      <mat-card-content>
-        <div class="org-header">
-          <div class="org-avatar">{{ organization.name?.charAt(0) ?? 'O' }}</div>
-          <div class="org-title">
-            <h2>{{ organization.name }}</h2>
-            <p>{{ organization.description }}</p>
+    <div class="organization-overview" *ngIf="!editMode">
+      <section class="org-hero">
+        <div class="org-avatar">{{ organization.name?.charAt(0) ?? 'O' }}</div>
+        <div class="org-hero-copy">
+          <span>Organizzazione attiva</span>
+          <h2>{{ organization.name }}</h2>
+          <p>{{ organization.description || 'Nessuna descrizione configurata' }}</p>
+        </div>
+        <div class="ccnl-pill">
+          <span>CCNL applicato</span>
+          <strong>{{ organization.ccnlcontract || 'Non specificato' }}</strong>
+        </div>
+      </section>
+
+      <section class="section-block">
+        <div class="section-heading">
+          <div>
+            <span>Profilo</span>
+            <h3>Informazioni organizzazione</h3>
           </div>
         </div>
-        <mat-divider></mat-divider>
-        <mat-list>
-          <mat-list-item>
-            <mat-icon matListItemIcon>badge</mat-icon>
-            <span matListItemTitle>ID organizzazione</span>
-            <span matListItemLine>{{ organization.id }}</span>
-          </mat-list-item>
-          <mat-list-item *ngIf="organization.ccnlcontract">
-            <mat-icon matListItemIcon>business</mat-icon>
-            <span matListItemTitle>CCNL</span>
-            <span matListItemLine>{{ organization.ccnlcontract }}</span>
-          </mat-list-item>
-          <mat-list-item *ngIf="organization.workSector">
-            <mat-icon matListItemIcon>work</mat-icon>
-            <span matListItemTitle>Settore</span>
-            <span matListItemLine>{{ organization.workSector }}</span>
-          </mat-list-item>
-        </mat-list>
-      </mat-card-content>
-    </mat-card>
+
+        <div class="details-grid">
+          <article class="detail-tile">
+            <mat-icon>badge</mat-icon>
+            <span>ID organizzazione</span>
+            <strong>{{ organization.id }}</strong>
+          </article>
+          <article class="detail-tile">
+            <mat-icon>work</mat-icon>
+            <span>Settore</span>
+            <strong>{{ organization.workSector || 'Non specificato' }}</strong>
+          </article>
+          <article class="detail-tile">
+            <mat-icon>map</mat-icon>
+            <span>Regione</span>
+            <strong>{{ organization.region || 'Non specificata' }}</strong>
+          </article>
+          <article class="detail-tile">
+            <mat-icon>toggle_on</mat-icon>
+            <span>Stato</span>
+            <strong>{{ organization.state === 1 ? 'Attiva' : 'Non attiva' }}</strong>
+          </article>
+        </div>
+
+        <article class="description-card" *ngIf="organization.ccnlcontractDescription">
+          <span>Dettaglio CCNL</span>
+          <p>{{ organization.ccnlcontractDescription }}</p>
+        </article>
+
+        <article class="description-card" *ngIf="organization.prompt">
+          <span>Contesto operativo</span>
+          <p>{{ organization.prompt }}</p>
+        </article>
+      </section>
+
+      <section class="section-block">
+        <div class="section-heading">
+          <div>
+            <span>Configurazione turni</span>
+            <h3>Vincoli organizzativi</h3>
+            <p>{{ activeRulesCount }} attivi su {{ rules.length }}</p>
+          </div>
+          <button mat-stroked-button color="primary" (click)="openRules()">
+            <mat-icon>rule</mat-icon>
+            Gestisci regole
+          </button>
+        </div>
+
+        <div class="empty-rules" *ngIf="rules.length === 0">
+          <mat-icon>rule_folder</mat-icon>
+          <strong>Nessun vincolo configurato</strong>
+          <p>Aggiungi le regole da rispettare durante la generazione dei turni.</p>
+        </div>
+
+        <div class="rules-grid" *ngIf="rules.length > 0">
+          <article class="rule-card" *ngFor="let rule of rules" [class.inactive]="rule.state !== 1">
+            <span class="rule-state">{{ rule.state === 1 ? 'Attivo' : 'Disattivato' }}</span>
+            <h4>{{ rule.ruleOrException }}</h4>
+            <p>{{ rule.ruleOrExceptionDescription || 'Nessuna descrizione' }}</p>
+          </article>
+        </div>
+      </section>
+    </div>
 
     <!-- Edit mode -->
     <mat-card class="ns-card" *ngIf="editMode">

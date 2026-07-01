@@ -44,6 +44,10 @@
   <!-- Wizards -->
   <div class="section-label" *ngIf="isManager">Configurazione</div>
   <nav class="nav-list" *ngIf="isManager">
+    <a class="nav-item" *ngIf="hasOrganization" [class.active]="isActive('/organization-detail')" (click)="navigate('/organization-detail')">
+      <mat-icon class="nav-icon">domain</mat-icon>
+      <span class="nav-label">Organizzazione</span>
+    </a>
     <a class="nav-item" [class.active]="isActive('/wizard/organization')" (click)="navigate('/wizard/organization')">
       <mat-icon class="nav-icon">add_business</mat-icon>
       <span class="nav-label">Nuova Organizzazione</span>

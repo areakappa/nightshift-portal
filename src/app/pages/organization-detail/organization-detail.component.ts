@@ -12,6 +12,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatListModule } from '@angular/material/list';
 import { MatDividerModule } from '@angular/material/divider';
 import { OrganizationDto } from '../../models/dto/OrganizationDto';
+import { OrganizationRuleDto } from '../../models/dto/OrganizationRuleDto';
 import { OrganizationCrud } from '../../models/crud/OrganizationCrud';
 import { OrganizationService } from '../../services/organization.service';
 import { AuthenticationService } from '../../services/authentication.service';
@@ -29,6 +30,7 @@ import { AuthenticationService } from '../../services/authentication.service';
 })
 export class OrganizationDetailComponent implements OnInit {
     organization: OrganizationDto | null = null;
+    rules: OrganizationRuleDto[] = [];
     isLoading = false;
     isSaving = false;
     editMode = false;
@@ -50,9 +52,16 @@ export class OrganizationDetailComponent implements OnInit {
     async loadOrganization(): Promise<void> {
         this.isLoading = true;
         try {
-            const orgs = await this.orgService.getOrganizations();
             const orgId = this.orgService.getOrganizationSelectedId();
+            const [orgs, rules] = await Promise.all([
+                this.orgService.getOrganizations(),
+                orgId ? this.orgService.getOrganizationRulesByIDOrganization(orgId).catch(() => []) : Promise.resolve([])
+            ]);
             this.organization = orgs.find(o => o.id === orgId) ?? null;
+            this.rules = rules;
+            if (this.organization) {
+                this.organization.rules = rules;
+            }
         } catch {
             this.snackBar.open('Errore nel caricamento organizzazione', 'Chiudi', { duration: 3000 });
         } finally {
@@ -100,5 +109,9 @@ export class OrganizationDetailComponent implements OnInit {
 
     openRules(): void {
         this.router.navigate(['/organization-rules']);
+    }
+
+    get activeRulesCount(): number {
+        return this.rules.filter(rule => rule.state === 1).length;
     }
 }

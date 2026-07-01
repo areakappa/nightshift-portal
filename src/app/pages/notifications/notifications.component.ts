@@ -38,6 +38,7 @@ export class NotificationsComponent implements OnInit {
 
     notifications: ScheduledNotificationDTO[] = [];
     selectedNotification: ScheduledNotificationDTO | null = null;
+    notificationView: 'received' | 'sent' = 'received';
     isLoading = false;
     decisionNotificationId: number | null = null;
 
@@ -68,7 +69,7 @@ export class NotificationsComponent implements OnInit {
                 .filter(notification => notification.idmediaType == 3)
                 .sort((left, right) => this.getNotificationTimestamp(right) - this.getNotificationTimestamp(left));
             this.selectedNotification = this.selectedNotification
-                ? this.notifications.find(notification => notification.id === this.selectedNotification?.id) ?? null
+                ? this.visibleNotifications.find(notification => notification.id === this.selectedNotification?.id) ?? null
                 : null;
         } catch {
             this.snackBar.open('Errore nel caricamento notifiche', 'Chiudi', { duration: 3000 });
@@ -129,6 +130,28 @@ export class NotificationsComponent implements OnInit {
 
     closeNotification(): void {
         this.selectedNotification = null;
+    }
+
+    setNotificationView(view: 'received' | 'sent'): void {
+        this.notificationView = view;
+        this.selectedNotification = null;
+    }
+
+    get isManagerView(): boolean {
+        return this.isManager();
+    }
+
+    get receivedNotifications(): ScheduledNotificationDTO[] {
+        return this.notifications.filter(notification => !this.isSentByCurrentUser(notification));
+    }
+
+    get sentNotifications(): ScheduledNotificationDTO[] {
+        return this.notifications.filter(notification => this.isSentByCurrentUser(notification));
+    }
+
+    get visibleNotifications(): ScheduledNotificationDTO[] {
+        if (!this.isManagerView) return this.notifications;
+        return this.notificationView === 'sent' ? this.sentNotifications : this.receivedNotifications;
     }
 
     isUnavailabilityNotification(notification: ScheduledNotificationDTO): boolean {
@@ -250,6 +273,13 @@ export class NotificationsComponent implements OnInit {
     private isManager(): boolean {
         const user = this.authService.getUser();
         return !!user?.isAdmin || !!user?.isCustomerAdmin || this.roleService.getRoleSnapshot() === 'organizer';
+    }
+
+    private isSentByCurrentUser(notification: ScheduledNotificationDTO): boolean {
+        const currentUserId = this.authService.getUser()?.id;
+        if (!currentUserId) return false;
+
+        return this.getNotificationSenderUserId(notification) === currentUserId;
     }
 
     private async openRegenerationPreview(notification: ScheduledNotificationDTO): Promise<void> {
