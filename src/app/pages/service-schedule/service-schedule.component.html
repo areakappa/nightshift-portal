@@ -189,7 +189,7 @@
           <h3>Modifica turno nella bozza</h3><label>Inizio <input type="datetime-local" [(ngModel)]="previewEditStart"></label><label>Fine <input type="datetime-local" [(ngModel)]="previewEditEnd"></label>
           <button mat-raised-button color="primary" (click)="savePreviewShiftEdit()">Salva modifica</button><button mat-stroked-button color="warn" (click)="removePreviewShift(previewEditingShift)">Rimuovi</button><button mat-button (click)="closePreviewEditor()">Chiudi</button>
         </div>
-        <div class="preview-editor" *ngIf="previewGap as gap">
+        <div class="coverage-gap-modal-backdrop" *ngIf="previewGap as gap" (click)="$event.target === $event.currentTarget && closePreviewEditor()">
           <h3>Copri scopertura: {{ gap.role }}</h3><p>{{ gap.startTime }} – {{ gap.endTime }} · {{ gap.reason }}</p>
           <mat-form-field appearance="outline"><mat-label>Membro del team</mat-label><mat-select [(ngModel)]="selectedPreviewGapUserId" [disabled]="isLoadingPreviewGapUsers"><mat-option *ngFor="let user of previewGapUsers" [value]="user.id" [disabled]="user.busy">{{ user.name }}{{ user.busy ? ' · turno sovrapposto' : '' }}</mat-option></mat-select></mat-form-field>
           <button mat-raised-button color="primary" (click)="assignCoverageGap()" [disabled]="!selectedPreviewGapUserId || isLoadingPreviewGapUsers">Assegna turno</button><button mat-button (click)="closePreviewEditor()">Annulla</button>

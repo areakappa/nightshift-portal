@@ -478,18 +478,30 @@ export class ServiceScheduleComponent implements OnInit {
             this.previewGapUsers = users.filter(user => user.id != null && user.state !== 0).map(user => ({
                 id: user.id!, name: `${user.name ?? ''} ${user.surname ?? ''}`.trim() || `Utente ${user.id}`,
                 busy: this.generatedShiftsPreview.some(shift => shift.idUser === user.id && start < new Date(shift.endDateTime) && new Date(shift.startDateTime) < end)
-            }));
+            })).sort((left, right) => Number(left.busy) - Number(right.busy) || left.name.localeCompare(right.name));
+            if (this.previewGapUsers.length === 0) {
+                this.showMessage('Non ci sono membri del team selezionabili per questo servizio.');
+                this.closePreviewEditor();
+            }
         } catch { this.showMessage('Impossibile caricare i membri del team.'); }
         finally { this.isLoadingPreviewGapUsers = false; this.cdr.detectChanges(); }
     }
 
     assignCoverageGap(): void {
         const gap = this.previewGap; const user = this.previewGapUsers.find(item => item.id === this.selectedPreviewGapUserId);
-        if (!gap || !user || user.busy || !this.service?.id) return;
+        if (!gap || !user || !this.service?.id) {
+            this.showMessage('Seleziona un membro del team per coprire il turno.');
+            return;
+        }
+        if (user.busy) {
+            this.showMessage('Il membro selezionato ha gia un turno in sovrapposizione nella bozza.');
+            return;
+        }
         const idShift = -Date.now();
         this.generatedShiftsPreview = [...this.generatedShiftsPreview, { idShift, idService: this.service.id, idUser: user.id, idEmployee: null, nameEmployee: user.name, serviceRole: gap.role, startDateTime: this.gapStart(gap).toISOString(), endDateTime: this.gapEnd(gap).toISOString(), isTemporary: 1 }];
         this.generationCoverageGaps = this.generationCoverageGaps.filter(item => item !== gap);
         this.closePreviewEditor();
+        this.showMessage('Turno aggiunto alla bozza.');
     }
 
     private extractCoverageGaps(response: any): CoverageGap[] { return this.normalizeIssues(response?.coverageGaps ?? response?.CoverageGaps ?? response?.data?.coverageGaps); }
