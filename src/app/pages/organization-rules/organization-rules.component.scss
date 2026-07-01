@@ -2,7 +2,96 @@
 .form-card { margin-bottom: 20px; }
 .form-col { display: flex; flex-direction: column; padding-top: 8px; }
 .full-width { width: 100%; }
-.table-card mat-card-content { padding: 0 !important; }
-.actions-cell { width: 96px; text-align: right; }
+.rules-list {
+  display: grid;
+  gap: 12px;
+}
+.rule-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 18px;
+  border: 1px solid var(--ns-card-border);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(99,102,241,.12), rgba(15,23,42,.08)), var(--ns-surface);
+  box-shadow: 0 12px 28px rgba(2,6,23,.12);
+
+  &.inactive {
+    opacity: .62;
+  }
+}
+.rule-main {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 14px;
+  align-items: flex-start;
+  min-width: 0;
+}
+.rule-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid rgba(129,140,248,.3);
+  border-radius: 8px;
+  color: var(--ns-primary-light);
+  background: rgba(99,102,241,.14);
+}
+.rule-copy {
+  min-width: 0;
+
+  h2 {
+    margin: 5px 0 7px;
+    font-size: 17px;
+    line-height: 1.25;
+  }
+
+  p {
+    max-width: 980px;
+    margin: 0;
+    color: var(--ns-text-secondary);
+    line-height: 1.45;
+  }
+}
+.rule-kicker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  color: var(--ns-text-secondary);
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.state-badge {
+  padding: 3px 8px;
+  border-radius: 999px;
+  color: #052e24;
+  background: #34d399;
+  font-size: 11px;
+  letter-spacing: 0;
+  text-transform: none;
+
+  &.off {
+    color: var(--ns-text-secondary);
+    background: var(--ns-inset-bg);
+  }
+}
+.rule-actions {
+  display: flex;
+  gap: 4px;
+}
 .no-data { text-align: center; padding: 48px; color: var(--ns-text-secondary);
   mat-icon { font-size: 48px; width: 48px; height: 48px; opacity: 0.3; display: block; margin: 0 auto 12px; } }
+
+@media (max-width: 700px) {
+  .rule-card {
+    grid-template-columns: 1fr;
+  }
+
+  .rule-actions {
+    justify-content: flex-end;
+  }
+}

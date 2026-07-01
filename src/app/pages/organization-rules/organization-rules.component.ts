@@ -8,7 +8,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
-import { MatTableModule } from '@angular/material/table';
 import { OrganizationRuleDto } from '../../models/dto/OrganizationRuleDto';
 import { OrganizationRuleCrud } from '../../models/crud/OrganizationRuleCrud';
 import { OrganizationService } from '../../services/organization.service';
@@ -18,7 +17,7 @@ import { OrganizationService } from '../../services/organization.service';
     standalone: true,
     imports: [
         CommonModule, FormsModule, MatCardModule, MatButtonModule, MatIconModule,
-        MatProgressSpinnerModule, MatFormFieldModule, MatInputModule, MatSnackBarModule, MatTableModule
+        MatProgressSpinnerModule, MatFormFieldModule, MatInputModule, MatSnackBarModule
     ],
     templateUrl: './organization-rules.component.html',
     styleUrls: ['./organization-rules.component.scss']
@@ -31,7 +30,6 @@ export class OrganizationRulesComponent implements OnInit {
     editingRule: OrganizationRuleDto | null = null;
     draftName = '';
     draftDescription = '';
-    displayedColumns = ['name', 'description', 'actions'];
 
     constructor(private orgService: OrganizationService, private snackBar: MatSnackBar, private cdr: ChangeDetectorRef) { }
 
