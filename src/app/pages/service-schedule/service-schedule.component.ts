@@ -499,7 +499,7 @@ export class ServiceScheduleComponent implements OnInit {
         }
         const idShift = -Date.now();
         this.generatedShiftsPreview = [...this.generatedShiftsPreview, { idShift, idService: this.service.id, idUser: user.id, idEmployee: null, nameEmployee: user.name, serviceRole: gap.role, startDateTime: this.gapStart(gap).toISOString(), endDateTime: this.gapEnd(gap).toISOString(), isTemporary: 1 }];
-        this.generationCoverageGaps = this.generationCoverageGaps.filter(item => item !== gap);
+        this.generationCoverageGaps = this.generationCoverageGaps.filter(item => !this.isSameCoverageGap(item, gap));
         this.closePreviewEditor();
         this.showMessage('Turno aggiunto alla bozza.');
     }
@@ -509,6 +509,13 @@ export class ServiceScheduleComponent implements OnInit {
     private normalizeIssues(value: any): any[] { return Array.isArray(value) ? value.map(item => ({ date: item.date ?? item.Date ?? '', role: item.role ?? item.roleName ?? '', startTime: item.startTime ?? item.StartTime ?? '', endTime: item.endTime ?? item.EndTime ?? '', reason: item.reason ?? item.message ?? '', extraEmployees: Number(item.extraEmployees ?? item.ExtraEmployees ?? 1) })) : []; }
     private gapStart(item: CoverageGap | Overcoverage): Date { return this.combineGapDateAndTime(item.date, item.startTime || '00:00'); }
     private gapEnd(item: CoverageGap | Overcoverage): Date { return this.combineGapDateAndTime(item.date, item.endTime || '00:30'); }
+    private isSameCoverageGap(left: CoverageGap, right: CoverageGap): boolean {
+        return left.date === right.date &&
+            left.startTime === right.startTime &&
+            left.endTime === right.endTime &&
+            left.role === right.role &&
+            left.reason === right.reason;
+    }
     private combineGapDateAndTime(rawDate: string, rawTime: string): Date {
         // The API may return either YYYY-MM-DD or a full ISO date at midnight.
         // Keep only the calendar part before applying the gap's time of day.
