@@ -13,6 +13,14 @@ import { ScheduleService } from '../../services/schedule.service';
 import { AuthenticationService } from '../../services/authentication.service';
 import { RoleService } from '../../services/role.service';
 
+interface ScheduledNotificationWithTask extends ScheduledNotificationDTO {
+    idscheduleTaskNavigation?: {
+        idUserSender?: number | null;
+        startDate?: string | null;
+        stopDate?: string | null;
+    } | null;
+}
+
 @Component({
     selector: 'app-notifications',
     standalone: true,
@@ -238,7 +246,7 @@ export class NotificationsComponent implements OnInit {
                     serviceId: notification.idService,
                     startDateIso: range.startDateIso,
                     endDateIso: range.endDateIso,
-                    excludedUserIds: [notification.idUserSender ?? notification.iduser].filter((id): id is number => !!id),
+                    excludedUserIds: [this.getNotificationSenderUserId(notification)].filter((id): id is number => !!id),
                     backHref: '/notifications'
                 }
             }
@@ -249,8 +257,9 @@ export class NotificationsComponent implements OnInit {
         const textRange = this.extractDateRangeFromNotificationText(notification);
         if (textRange) return textRange;
 
-        const explicitStart = notification.startDate ? new Date(notification.startDate) : null;
-        const explicitEnd = notification.stopDate ? new Date(notification.stopDate) : null;
+        const task = this.getNotificationTask(notification);
+        const explicitStart = notification.startDate ? new Date(notification.startDate) : task?.startDate ? new Date(task.startDate) : null;
+        const explicitEnd = notification.stopDate ? new Date(notification.stopDate) : task?.stopDate ? new Date(task.stopDate) : null;
         if (explicitStart && explicitEnd && !isNaN(explicitStart.getTime()) && !isNaN(explicitEnd.getTime())) {
             return {
                 startDateIso: explicitStart.toISOString(),
@@ -311,5 +320,13 @@ export class NotificationsComponent implements OnInit {
         return date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day
             ? date
             : null;
+    }
+
+    private getNotificationSenderUserId(notification: ScheduledNotificationDTO): number | null {
+        return notification.idUserSender ?? this.getNotificationTask(notification)?.idUserSender ?? notification.iduser ?? null;
+    }
+
+    private getNotificationTask(notification: ScheduledNotificationDTO): ScheduledNotificationWithTask['idscheduleTaskNavigation'] {
+        return (notification as ScheduledNotificationWithTask).idscheduleTaskNavigation ?? null;
     }
 }
