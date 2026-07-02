@@ -23,6 +23,7 @@ interface TeamRoleSetup {
     name: string;
     required: number;
     concurrentRequired: number;
+    suggestedTeamMembers?: number;
     weeklyRequiredHours?: number;
     aiReason?: string;
 }
@@ -120,10 +121,22 @@ export class TeamWizardComponent implements OnInit {
 
     incrementRequired(role: TeamRoleSetup): void {
         role.concurrentRequired++;
+        role.required = Math.max(role.required, role.concurrentRequired);
+        role.suggestedTeamMembers = Math.max(role.suggestedTeamMembers ?? role.required, role.concurrentRequired);
     }
 
     decrementRequired(role: TeamRoleSetup): void {
         role.concurrentRequired = Math.max(0, role.concurrentRequired - 1);
+    }
+
+    incrementSuggestedTeam(role: TeamRoleSetup): void {
+        role.required++;
+        role.suggestedTeamMembers = role.required;
+    }
+
+    decrementSuggestedTeam(role: TeamRoleSetup): void {
+        role.required = Math.max(role.concurrentRequired, role.required - 1);
+        role.suggestedTeamMembers = role.required;
     }
 
     removeRole(role: TeamRoleSetup): void {
@@ -186,7 +199,7 @@ export class TeamWizardComponent implements OnInit {
                 teamRole: JSON.stringify(roleCoverage),
                 organizationUsers: JSON.stringify(this.users),
                 roles: JSON.stringify(this.buildRolesSnapshot()),
-                initialRoleRequirements: JSON.stringify(this.roles.map(item => ({ name: item.name, required: item.required }))),
+                initialRoleRequirements: JSON.stringify(this.roles.map(item => ({ name: item.name, required: item.concurrentRequired }))),
                 returnToTeamWizard: true,
                 returnToAssignmentStep: true,
                 returnToServiceDetail: this.returnToServiceDetail
@@ -212,8 +225,8 @@ export class TeamWizardComponent implements OnInit {
                 const value = byRole.get(role.id);
                 return value ? {
                     ...role,
-                    concurrentRequired: value.concurrentRequired,
-                    required: value.suggestedTeamMembers,
+                    required: Math.max(role.concurrentRequired, value.suggestedTeamMembers),
+                    suggestedTeamMembers: Math.max(role.concurrentRequired, value.suggestedTeamMembers),
                     weeklyRequiredHours: value.weeklyRequiredHours,
                     aiReason: value.reason
                 } : role;
@@ -238,7 +251,8 @@ export class TeamWizardComponent implements OnInit {
         this.isSaving = true;
         try {
             const availability = this.roles.map(role => new ServiceAvailabilityRequestedCrud(
-                this.service!.id, null, role.id, role.concurrentRequired, role.required, 1
+                this.service!.id, null, role.id, Math.max(0, role.concurrentRequired),
+                Math.max(role.concurrentRequired, role.suggestedTeamMembers ?? role.required), 1
             ));
             const existing = new Set((this.teamCoverage?.rolesCoverage ?? [])
                 .filter(item => item.serviceRole?.id && item.user?.id)
@@ -289,7 +303,8 @@ export class TeamWizardComponent implements OnInit {
             id: role.id,
             name: role.name ?? 'Ruolo',
             concurrentRequired: this.getInitialRequired(role.name, requiredByRole.get(role.id), role.employeeNumber),
-            required: this.getInitialRequired(role.name, requiredByRole.get(role.id), role.employeeNumber)
+            required: this.getInitialRequired(role.name, requiredByRole.get(role.id), role.employeeNumber),
+            suggestedTeamMembers: this.getInitialRequired(role.name, requiredByRole.get(role.id), role.employeeNumber)
         }));
         for (const role of this.roles) {
             if (!assignments.has(role.id)) assignments.set(role.id, []);
@@ -312,8 +327,9 @@ export class TeamWizardComponent implements OnInit {
         for (const returnedRole of this.returnedRoles) {
             const role = this.roles.find(item => item.id === returnedRole.id);
             if (!role) continue;
-            role.required = returnedRole.required;
-            role.concurrentRequired = returnedRole.concurrentRequired ?? returnedRole.required;
+            role.concurrentRequired = returnedRole.concurrentRequired ?? role.concurrentRequired;
+            role.required = Math.max(role.concurrentRequired, returnedRole.suggestedTeamMembers ?? returnedRole.required);
+            role.suggestedTeamMembers = role.required;
             const current = this.assignments.get(role.id) ?? [];
             const returnedIds = (returnedRole.users ?? [])
                 .map(user => user.id)

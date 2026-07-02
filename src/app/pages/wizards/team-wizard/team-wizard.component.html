@@ -66,7 +66,7 @@
             <span class="role-icon"><mat-icon>badge</mat-icon></span>
             <div>
               <h3>{{ role.name }}</h3>
-              <small>Richiesti: <b>{{ role.required }}</b> · Assegnati: <b>{{ getAssignedUsers(role.id).length }}</b></small>
+              <small>Contemporanei: <b>{{ role.concurrentRequired }}</b> - Team da coprire: <b>{{ role.required }}</b> - Assegnati: <b>{{ getAssignedUsers(role.id).length }}</b></small>
             </div>
             <span class="coverage-status" [class.complete]="roleIsComplete(role)">
               {{ roleIsComplete(role) ? 'OK' : 'Da completare' }}
@@ -74,8 +74,18 @@
           </div>
           <div class="ai-role-note" *ngIf="role.weeklyRequiredHours || role.aiReason">
             <mat-icon>auto_awesome</mat-icon>
-            <span>Consigliati: {{ role.required }}<ng-container *ngIf="role.weeklyRequiredHours"> - {{ role.weeklyRequiredHours }} ore/settimana</ng-container></span>
+            <span>Team consigliato: {{ role.required }}<ng-container *ngIf="role.weeklyRequiredHours"> - {{ role.weeklyRequiredHours }} ore/settimana</ng-container></span>
             <small *ngIf="role.aiReason">{{ role.aiReason }}</small>
+          </div>
+          <div class="suggested-team-control">
+            <div>
+              <span>Risorse da selezionare</span>
+              <strong>{{ role.required }}</strong>
+            </div>
+            <div class="quantity-actions">
+              <button mat-icon-button (click)="decrementSuggestedTeam(role)" [disabled]="role.required <= role.concurrentRequired" aria-label="Riduci team consigliato"><mat-icon>remove_circle_outline</mat-icon></button>
+              <button mat-icon-button (click)="incrementSuggestedTeam(role)" aria-label="Aumenta team consigliato"><mat-icon>add_circle_outline</mat-icon></button>
+            </div>
           </div>
           <div class="users-for-role">
             <button type="button" class="user-chip" *ngFor="let user of users"

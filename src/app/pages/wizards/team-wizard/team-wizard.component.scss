@@ -367,6 +367,33 @@
   }
 }
 
+.suggested-team-control {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 14px;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.18);
+
+  > div:first-child {
+    display: grid;
+    gap: 4px;
+  }
+
+  span {
+    color: var(--ns-text-secondary);
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+
+  strong {
+    font-size: 1.3rem;
+    line-height: 1;
+  }
+}
+
 .split-actions {
   justify-content: space-between;
 }

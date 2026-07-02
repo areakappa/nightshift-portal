@@ -589,7 +589,7 @@ export class ServiceWizardComponent implements OnInit {
         if (!this.createdService) return;
         const initialRoleRequirements = this.getSelectedRoles().map(role => ({
             name: role.ruolo,
-            required: 1
+            required: this.normalizeEmployeeNumber(role.employeeNumber)
         }));
         this.router.navigateByUrl('/wizard/team', {
             state: {
