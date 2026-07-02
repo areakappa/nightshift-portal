@@ -168,8 +168,9 @@
               <section class="preview-shift-group" *ngFor="let group of day.shiftGroups" [style.top.px]="previewTop(group.shifts[0])" [style.height.px]="previewHeight(group.shifts[0])" [style.--preview-column]="group.column" [style.--preview-columns]="group.columns">
                 <div class="preview-group-header"><strong>{{ group.startDateTime | date:'HH:mm' }} – {{ group.endDateTime | date:'HH:mm' }}</strong><span>{{ group.shifts.length }} {{ group.shifts.length === 1 ? 'persona' : 'persone' }}</span></div>
                 <div class="preview-group-people">
-                  <button type="button" class="preview-person" *ngFor="let shift of group.shifts" [class.selected]="previewEditingShift === shift" (click)="editPreviewShift(shift)">
+                  <button type="button" class="preview-person" *ngFor="let shift of group.shifts" [class.selected]="previewEditingShift === shift" (click)="editPreviewShift(shift)" aria-label="Modifica turno in bozza">
                     <span>{{ previewPersonName(shift) }}</span><small>{{ shift.serviceRole || shift.roleName || shift.role || 'Operatore' }}</small>
+                    <mat-icon>edit</mat-icon>
                   </button>
                 </div>
                 <!--
@@ -185,9 +186,16 @@
             </div>
           </div>
         </div>
-        <div class="preview-editor" *ngIf="previewEditingShift">
-          <h3>Modifica turno nella bozza</h3><label>Inizio <input type="datetime-local" [(ngModel)]="previewEditStart"></label><label>Fine <input type="datetime-local" [(ngModel)]="previewEditEnd"></label>
-          <button mat-raised-button color="primary" (click)="savePreviewShiftEdit()">Salva modifica</button><button mat-stroked-button color="warn" (click)="removePreviewShift(previewEditingShift)">Rimuovi</button><button mat-button (click)="closePreviewEditor()">Chiudi</button>
+        <div class="coverage-gap-modal-backdrop preview-edit-modal" *ngIf="previewEditingShift as shift" (click)="$event.target === $event.currentTarget && closePreviewEditor()">
+          <button mat-icon-button class="modal-close" (click)="closePreviewEditor()" aria-label="Chiudi modifica"><mat-icon>close</mat-icon></button>
+          <h3>Modifica turno</h3>
+          <p>{{ service?.name }} Â· {{ previewPersonName(shift) }}<br>{{ shift.serviceRole || shift.roleName || shift.role || 'Operatore' }}</p>
+          <div class="preview-edit-grid">
+            <label>Inizio<input type="datetime-local" [(ngModel)]="previewEditStart"></label>
+            <label>Fine<input type="datetime-local" [(ngModel)]="previewEditEnd"></label>
+          </div>
+          <button mat-stroked-button color="warn" (click)="removePreviewShift(shift)"><mat-icon>delete_outline</mat-icon> Elimina turno</button>
+          <button mat-raised-button color="primary" (click)="savePreviewShiftEdit()">Salva modifica</button>
         </div>
         <div class="coverage-gap-modal-backdrop" *ngIf="previewGap as gap" (click)="$event.target === $event.currentTarget && closePreviewEditor()">
           <h3>Copri scopertura: {{ gap.role }}</h3><p>{{ gap.startTime }} – {{ gap.endTime }} · {{ gap.reason }}</p>

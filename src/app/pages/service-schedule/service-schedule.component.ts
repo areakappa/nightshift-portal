@@ -452,13 +452,15 @@ export class ServiceScheduleComponent implements OnInit {
 
     savePreviewShiftEdit(): void {
         if (!this.previewEditingShift) return;
-        const start = new Date(this.previewEditStart);
-        const end = new Date(this.previewEditEnd);
+        const start = this.parseDateTimeLocal(this.previewEditStart);
+        const end = this.parseDateTimeLocal(this.previewEditEnd);
         if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start >= end) {
             this.showMessage('L’orario di inizio deve precedere quello di fine.'); return;
         }
         this.generatedShiftsPreview = this.generatedShiftsPreview.map(item =>
-            item === this.previewEditingShift ? { ...item, startDateTime: start.toISOString(), endDateTime: end.toISOString() } : item);
+            item === this.previewEditingShift
+                ? { ...item, startDateTime: this.toLocalDateTimePayload(start), endDateTime: this.toLocalDateTimePayload(end) }
+                : item);
         this.closePreviewEditor();
     }
 
@@ -498,7 +500,7 @@ export class ServiceScheduleComponent implements OnInit {
             return;
         }
         const idShift = -Date.now();
-        this.generatedShiftsPreview = [...this.generatedShiftsPreview, { idShift, idService: this.service.id, idUser: user.id, idEmployee: null, nameEmployee: user.name, serviceRole: gap.role, startDateTime: this.gapStart(gap).toISOString(), endDateTime: this.gapEnd(gap).toISOString(), isTemporary: 1 }];
+        this.generatedShiftsPreview = [...this.generatedShiftsPreview, { idShift, idService: this.service.id, idUser: user.id, idEmployee: null, nameEmployee: user.name, serviceRole: gap.role, startDateTime: this.toLocalDateTimePayload(this.gapStart(gap)), endDateTime: this.toLocalDateTimePayload(this.gapEnd(gap)), isTemporary: 1 }];
         this.generationCoverageGaps = this.generationCoverageGaps.filter(item => !this.isSameCoverageGap(item, gap));
         this.closePreviewEditor();
         this.showMessage('Turno aggiunto alla bozza.');
@@ -532,6 +534,30 @@ export class ServiceScheduleComponent implements OnInit {
         const date = new Date(value);
         if (Number.isNaN(date.getTime())) return '';
         return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+    }
+
+    private parseDateTimeLocal(value: string): Date {
+        const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/);
+        if (!match) return new Date(value);
+        return new Date(
+            Number(match[1]),
+            Number(match[2]) - 1,
+            Number(match[3]),
+            Number(match[4]),
+            Number(match[5]),
+            0,
+            0
+        );
+    }
+
+    private toLocalDateTimePayload(date: Date): string {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
     }
 
     getGenerationFinalStatusTone(report: ShiftGenerationReport): ShiftGenerationStatus {

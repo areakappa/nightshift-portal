@@ -109,7 +109,7 @@ button mat-spinner { display: inline-block; margin-right: 8px; }
   display: grid;
   width: 100%;
   min-width: 0;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) 20px;
   gap: 2px;
   align-items: start;
   padding: 6px 7px;
@@ -124,6 +124,7 @@ button mat-spinner { display: inline-block; margin-right: 8px; }
 .preview-person span, .preview-person small { display: block; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .preview-person span { font-weight: 800; }
 .preview-person small { color: var(--ns-text-secondary); font-size: 11px; }
+.preview-person mat-icon { grid-column: 2; grid-row: 1 / span 2; font-size: 15px; }
 .preview-person:hover, .preview-person.selected { border-color: var(--ns-primary); background: rgba(99,102,241,.3); }
 .preview-event {
   position: absolute;
@@ -200,10 +201,10 @@ button.preview-event { cursor: pointer; }
 }
 .preview-event.overcoverage { border-color: #2dd4bf; border-left-color: #2dd4bf; background: rgba(20,184,166,.17); }
 .preview-event.selected { box-shadow: 0 0 0 2px var(--ns-primary); }
-.preview-editor { display: flex; flex-wrap: wrap; align-items: end; gap: 10px; margin-top: 14px; padding: 14px; border: 1px solid var(--ns-border); border-radius: 10px; background: var(--ns-inset-bg); }
-.preview-editor h3, .preview-editor p { flex-basis: 100%; margin: 0; }
-.preview-editor label { display: grid; gap: 4px; color: var(--ns-text-secondary); font-size: 12px; font-weight: 700; }
-.preview-editor input { padding: 8px; border: 1px solid var(--ns-border); border-radius: 6px; color: var(--ns-text); background: var(--ns-input-bg); }
+.preview-edit-modal .modal-close { grid-column: 2; justify-self: end; }
+.preview-edit-grid { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.preview-edit-grid label { display: grid; gap: 6px; color: var(--ns-text-secondary); font-size: 12px; font-weight: 800; }
+.preview-edit-grid input { width: 100%; padding: 10px; border: 1px solid var(--ns-border); border-radius: 8px; color: var(--ns-text); background: var(--ns-input-bg); }
 
 .coverage-gap-modal-backdrop {
   position: fixed;
@@ -235,6 +236,6 @@ button.preview-event { cursor: pointer; }
 .coverage-gap-modal-backdrop > button:last-of-type { grid-column: 1; grid-row: 4; justify-self: start; }
 
 @media (max-width: 760px) {
-  .form-grid, .report-stats { grid-template-columns: 1fr; }
+  .form-grid, .report-stats, .preview-edit-grid { grid-template-columns: 1fr; }
   .summary-card mat-card-content { align-items: stretch; flex-direction: column; }
 }
