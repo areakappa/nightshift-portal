@@ -45,6 +45,8 @@ interface WorkDay {
     selected: boolean;
     index: number;
     isRestDay: boolean;
+    morningEnabled?: boolean;
+    afternoonEnabled?: boolean;
 }
 
 @Component({
@@ -88,6 +90,11 @@ export class ServiceWizardComponent implements OnInit {
     isLoadingPlaces = false;
     selectedPlaceResult: google.maps.GeocoderResult | null = null;
     private placesSessionToken: google.maps.places.AutocompleteSessionToken | null = null;
+    weeklyHoursPreset = '5x8';
+    presetStartMorning = '08:00';
+    presetStopMorning = '12:00';
+    presetStartAfternoon = '13:00';
+    presetStopAfternoon = '17:00';
 
     anagraphicForm: FormGroup;
     descriptionForm: FormGroup;
@@ -219,6 +226,10 @@ export class ServiceWizardComponent implements OnInit {
             this.snackBar.open('Seleziona almeno un giorno lavorativo', 'Ok', { duration: 2500 });
             return;
         }
+        if (!this.hasAtLeastOneConfiguredShift()) {
+            this.snackBar.open('Configura almeno una fascia oraria lavorativa', 'Ok', { duration: 2500 });
+            return;
+        }
         void this.createService(stepper);
     }
 
@@ -337,10 +348,10 @@ export class ServiceWizardComponent implements OnInit {
         const shifts = this.getSelectedDays().map(day => new ServiceShiftCrud(
             orgId,
             this.createdService!.id,
-            day.isRestDay ? '' : day.startMorning,
-            day.isRestDay ? '' : day.stopMorning,
-            day.isRestDay ? '' : day.startAfternoon,
-            day.isRestDay ? '' : day.stopAfternoon,
+            !day.isRestDay && this.isMorningEnabled(day) ? day.startMorning : '',
+            !day.isRestDay && this.isMorningEnabled(day) ? day.stopMorning : '',
+            !day.isRestDay && this.isAfternoonEnabled(day) ? day.startAfternoon : '',
+            !day.isRestDay && this.isAfternoonEnabled(day) ? day.stopAfternoon : '',
             day.index,
             startDate,
             stopDate,
@@ -355,10 +366,10 @@ export class ServiceWizardComponent implements OnInit {
             .map(day => new ServiceShiftCrud(
                 orgId,
                 0,
-                day.startMorning || '',
-                day.stopMorning || '',
-                day.startAfternoon || '',
-                day.stopAfternoon || '',
+                this.isMorningEnabled(day) ? day.startMorning || '' : '',
+                this.isMorningEnabled(day) ? day.stopMorning || '' : '',
+                this.isAfternoonEnabled(day) ? day.startAfternoon || '' : '',
+                this.isAfternoonEnabled(day) ? day.stopAfternoon || '' : '',
                 day.index,
                 serviceCrud.StartValidityDate,
                 serviceCrud.StopValidityDate || '',
@@ -407,25 +418,124 @@ export class ServiceWizardComponent implements OnInit {
 
     toggleDay(day: WorkDay): void {
         day.selected = !day.selected;
+        if (!day.selected) {
+            day.isRestDay = true;
+            day.morningEnabled = false;
+            day.afternoonEnabled = false;
+            return;
+        }
+
+        day.isRestDay = false;
+        if (!this.isMorningEnabled(day) && !this.isAfternoonEnabled(day)) {
+            day.morningEnabled = true;
+            day.afternoonEnabled = true;
+            this.enableSlot(day, 'morning');
+            this.enableSlot(day, 'afternoon');
+        }
     }
 
     toggleRestDay(day: WorkDay): void {
         day.isRestDay = !day.isRestDay;
         if (day.isRestDay) {
+            day.morningEnabled = false;
+            day.afternoonEnabled = false;
             day.startMorning = '';
             day.stopMorning = '';
             day.startAfternoon = '';
             day.stopAfternoon = '';
             return;
         }
+        day.morningEnabled = true;
+        day.afternoonEnabled = true;
         day.startMorning = '09:00';
         day.stopMorning = '12:00';
         day.startAfternoon = '13:00';
         day.stopAfternoon = '18:00';
     }
 
+    applyWeeklyHoursPreset(): void {
+        const workdays = this.days.filter(day => day.index <= 5);
+        const weekend = this.days.filter(day => day.index > 5);
+
+        workdays.forEach(day => {
+            day.selected = true;
+            day.isRestDay = false;
+            day.morningEnabled = true;
+            day.afternoonEnabled = true;
+            day.startMorning = this.presetStartMorning;
+            day.stopMorning = this.presetStopMorning;
+            day.startAfternoon = this.presetStartAfternoon;
+            day.stopAfternoon = this.presetStopAfternoon;
+        });
+
+        weekend.forEach(day => {
+            day.selected = false;
+            day.isRestDay = true;
+            day.morningEnabled = false;
+            day.afternoonEnabled = false;
+            day.startMorning = '';
+            day.stopMorning = '';
+            day.startAfternoon = '';
+            day.stopAfternoon = '';
+        });
+    }
+
+    applyPresetToSelectedDays(): void {
+        this.getSelectedDays()
+            .filter(day => !day.isRestDay)
+            .forEach(day => {
+                if (this.isMorningEnabled(day)) {
+                    day.startMorning = this.presetStartMorning;
+                    day.stopMorning = this.presetStopMorning;
+                }
+                if (this.isAfternoonEnabled(day)) {
+                    day.startAfternoon = this.presetStartAfternoon;
+                    day.stopAfternoon = this.presetStopAfternoon;
+                }
+            });
+    }
+
+    toggleSlot(day: WorkDay, slot: 'morning' | 'afternoon'): void {
+        if (slot === 'morning') {
+            day.morningEnabled = !this.isMorningEnabled(day);
+            if (day.morningEnabled) this.enableSlot(day, 'morning');
+        } else {
+            day.afternoonEnabled = !this.isAfternoonEnabled(day);
+            if (day.afternoonEnabled) this.enableSlot(day, 'afternoon');
+        }
+
+        day.isRestDay = !this.isMorningEnabled(day) && !this.isAfternoonEnabled(day);
+    }
+
+    isMorningEnabled(day: WorkDay): boolean {
+        return day.morningEnabled ?? (!!day.startMorning || !!day.stopMorning);
+    }
+
+    isAfternoonEnabled(day: WorkDay): boolean {
+        return day.afternoonEnabled ?? (!!day.startAfternoon || !!day.stopAfternoon);
+    }
+
     getSelectedDays(): WorkDay[] {
         return this.days.filter(day => day.selected);
+    }
+
+    private enableSlot(day: WorkDay, slot: 'morning' | 'afternoon'): void {
+        if (slot === 'morning') {
+            day.startMorning = day.startMorning || this.presetStartMorning || '09:00';
+            day.stopMorning = day.stopMorning || this.presetStopMorning || '12:00';
+            return;
+        }
+
+        day.startAfternoon = day.startAfternoon || this.presetStartAfternoon || '13:00';
+        day.stopAfternoon = day.stopAfternoon || this.presetStopAfternoon || '18:00';
+    }
+
+    private hasAtLeastOneConfiguredShift(): boolean {
+        return this.getSelectedDays().some(day =>
+            !day.isRestDay &&
+            ((this.isMorningEnabled(day) && !!day.startMorning && !!day.stopMorning) ||
+                (this.isAfternoonEnabled(day) && !!day.startAfternoon && !!day.stopAfternoon))
+        );
     }
 
     getCharCount(): number {

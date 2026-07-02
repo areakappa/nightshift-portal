@@ -72,7 +72,7 @@ export class TeamWizardComponent implements OnInit {
         ) ?? [];
         this.returnedRoles = this.parseState<Array<TeamRoleSetup & { users?: UserDto[] }>>(history.state?.roles) ?? [];
         this.returnedUsers = this.parseState<UserDto[]>(history.state?.organizationUsers) ?? [];
-        this.selectedStepIndex = history.state?.returnToAssignmentStep === true ? 2 : 0;
+        this.selectedStepIndex = history.state?.returnToAssignmentStep === true ? 1 : 0;
         this.returnToServiceDetail = history.state?.returnToServiceDetail === true;
     }
 
@@ -129,6 +129,14 @@ export class TeamWizardComponent implements OnInit {
     removeRole(role: TeamRoleSetup): void {
         this.roles = this.roles.filter(item => item.id !== role.id);
         this.assignments.delete(role.id);
+    }
+
+    async continueFromRoles(): Promise<void> {
+        if (this.roles.length === 0 || this.isEstimatingTeamSize) return;
+        const calculated = await this.calculateTeamWithAi();
+        if (!calculated) return;
+        this.selectedStepIndex = 1;
+        this.cdr.detectChanges();
     }
 
     getAssignedUsers(roleId: number): UserDto[] {
@@ -190,8 +198,8 @@ export class TeamWizardComponent implements OnInit {
         return this.getAssignedUsers(role.id).length >= role.required;
     }
 
-    async calculateTeamWithAi(): Promise<void> {
-        if (!this.service?.id || !this.roles.length || this.isEstimatingTeamSize) return;
+    async calculateTeamWithAi(): Promise<boolean> {
+        if (!this.service?.id || !this.roles.length || this.isEstimatingTeamSize) return false;
         this.isEstimatingTeamSize = true;
         try {
             const estimate = await this.servicesService.estimateTeamSize({
@@ -210,8 +218,11 @@ export class TeamWizardComponent implements OnInit {
                     aiReason: value.reason
                 } : role;
             });
+            this.snackBar.open('Team consigliato calcolato', 'Ok', { duration: 1800 });
+            return true;
         } catch {
             this.snackBar.open('Non riesco a calcolare il team consigliato ora.', 'Chiudi', { duration: 3000 });
+            return false;
         } finally {
             this.isEstimatingTeamSize = false;
             this.cdr.detectChanges();

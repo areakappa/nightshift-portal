@@ -54,7 +54,71 @@
 .shift-header, .time-grid, .team-actions { display: flex; gap: 12px; }
 .shift-header { align-items: center; justify-content: space-between; }
 .time-grid { flex-direction: column; margin-top: 10px; input { color: var(--ns-text); background: var(--ns-input-bg); border: 1px solid var(--ns-border); border-radius: 8px; padding: 6px; } }
+.slot-row {
+  display: grid;
+  grid-template-columns: 150px 120px auto 120px;
+  gap: 10px;
+  align-items: center;
+}
 .rest-label { display: flex; gap: 8px; align-items: center; margin-top: 10px; color: var(--ns-warning); font-weight: 800; }
+
+.hours-preset-panel {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid rgba(129,140,248,.34);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(99,102,241,.12), rgba(15,23,42,.06)), var(--ns-inset-bg);
+}
+
+.hours-preset-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  align-items: end;
+  flex-wrap: wrap;
+
+  label {
+    display: grid;
+    gap: 6px;
+    min-width: 180px;
+    color: var(--ns-text-secondary);
+    font-size: .78rem;
+    font-weight: 800;
+  }
+
+  select {
+    color: var(--ns-text);
+    background: var(--ns-input-bg);
+    border: 1px solid var(--ns-border);
+    border-radius: 10px;
+    padding: 9px 10px;
+    font: inherit;
+  }
+}
+
+.hours-preset-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.hours-preset-ranges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  color: var(--ns-text-secondary);
+  font-weight: 800;
+
+  input {
+    color: var(--ns-text);
+    background: var(--ns-input-bg);
+    border: 1px solid var(--ns-border);
+    border-radius: 8px;
+    padding: 7px 8px;
+  }
+}
 
 .empty-roles { display: flex; gap: 10px; align-items: center; padding: 14px 16px; color: var(--ns-text-secondary); border: 1px dashed var(--ns-border); border-radius: 16px; background: var(--ns-inset-bg); }
 .done-step { align-items: center; text-align: center; padding: 34px 0 10px; h2 { margin: 16px 0 6px; font-size: 1.45rem; font-weight: 800; } p { max-width: 520px; margin: 0 auto; color: var(--ns-text-secondary); line-height: 1.5; } }
@@ -69,6 +133,7 @@
   .service-stepper { padding: 16px; border-radius: 22px; }
   .date-grid { grid-template-columns: 1fr; }
   .role-row { grid-template-columns: 1fr; }
+  .slot-row { grid-template-columns: 1fr; }
   .primary-action { width: 100%; }
   .step-actions { flex-direction: column-reverse; }
 }

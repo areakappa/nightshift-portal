@@ -1,7 +1,12 @@
 <div class="page-container">
   <div class="page-header">
     <div class="header-row">
-      <div><h1>Regole organizzazione</h1><p>Contratto e norme interne</p></div>
+      <div class="title-with-back">
+        <button mat-icon-button type="button" (click)="goBack()" aria-label="Torna all'organizzazione">
+          <mat-icon>arrow_back</mat-icon>
+        </button>
+        <div><h1>Regole organizzazione</h1><p>Contratto e norme interne</p></div>
+      </div>
       <button mat-raised-button color="primary" (click)="startAdd()">
         <mat-icon>add</mat-icon> Nuova regola
       </button>

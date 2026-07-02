@@ -1,5 +1,6 @@
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
@@ -31,10 +32,19 @@ export class OrganizationRulesComponent implements OnInit {
     draftName = '';
     draftDescription = '';
 
-    constructor(private orgService: OrganizationService, private snackBar: MatSnackBar, private cdr: ChangeDetectorRef) { }
+    constructor(
+        private orgService: OrganizationService,
+        private router: Router,
+        private snackBar: MatSnackBar,
+        private cdr: ChangeDetectorRef
+    ) { }
 
     async ngOnInit(): Promise<void> {
         await this.loadRules();
+    }
+
+    goBack(): void {
+        this.router.navigate(['/organization-detail']);
     }
 
     async loadRules(): Promise<void> {

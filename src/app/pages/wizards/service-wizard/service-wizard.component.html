@@ -203,6 +203,36 @@
             {{ day.short }}
           </button>
         </div>
+        <section class="hours-preset-panel">
+          <div class="hours-preset-top">
+            <label>
+              <span>Preset settimanale</span>
+              <select [(ngModel)]="weeklyHoursPreset">
+                <option value="5x8">5x8 (40h)</option>
+              </select>
+            </label>
+            <div class="hours-preset-actions">
+              <button mat-stroked-button color="primary" type="button" (click)="applyPresetToSelectedDays()">
+                <mat-icon>content_copy</mat-icon>
+                Applica ai selezionati
+              </button>
+              <button mat-raised-button color="primary" type="button" (click)="applyWeeklyHoursPreset()">
+                <mat-icon>done_all</mat-icon>
+                Applica settimana
+              </button>
+            </div>
+          </div>
+          <div class="hours-preset-ranges">
+            <span>Mattina</span>
+            <input type="time" [(ngModel)]="presetStartMorning" />
+            <span>-</span>
+            <input type="time" [(ngModel)]="presetStopMorning" />
+            <span>Pomeriggio</span>
+            <input type="time" [(ngModel)]="presetStartAfternoon" />
+            <span>-</span>
+            <input type="time" [(ngModel)]="presetStopAfternoon" />
+          </div>
+        </section>
         <div class="shifts-list">
           <div class="shift-item" *ngFor="let day of getSelectedDays()">
             <div class="shift-header">
@@ -210,8 +240,22 @@
               <button mat-button color="primary" (click)="toggleRestDay(day)">{{ day.isRestDay ? 'Lavorativo' : 'Riposo' }}</button>
             </div>
             <div class="time-grid" *ngIf="!day.isRestDay">
-              <label>Mattina <input type="time" [(ngModel)]="day.startMorning" /> - <input type="time" [(ngModel)]="day.stopMorning" /></label>
-              <label>Pomeriggio <input type="time" [(ngModel)]="day.startAfternoon" /> - <input type="time" [(ngModel)]="day.stopAfternoon" /></label>
+              <div class="slot-row">
+                <mat-checkbox [checked]="isMorningEnabled(day)" (change)="toggleSlot(day, 'morning')">Mattina</mat-checkbox>
+                <ng-container *ngIf="isMorningEnabled(day)">
+                  <input type="time" [(ngModel)]="day.startMorning" />
+                  <span>-</span>
+                  <input type="time" [(ngModel)]="day.stopMorning" />
+                </ng-container>
+              </div>
+              <div class="slot-row">
+                <mat-checkbox [checked]="isAfternoonEnabled(day)" (change)="toggleSlot(day, 'afternoon')">Pomeriggio</mat-checkbox>
+                <ng-container *ngIf="isAfternoonEnabled(day)">
+                  <input type="time" [(ngModel)]="day.startAfternoon" />
+                  <span>-</span>
+                  <input type="time" [(ngModel)]="day.stopAfternoon" />
+                </ng-container>
+              </div>
             </div>
             <div class="rest-label" *ngIf="day.isRestDay"><mat-icon>hotel</mat-icon> RIPOSO</div>
           </div>

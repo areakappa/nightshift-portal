@@ -1,4 +1,13 @@
 .header-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.title-with-back {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+
+  h1 {
+    margin: 0;
+  }
+}
 .form-card { margin-bottom: 20px; }
 .form-col { display: flex; flex-direction: column; padding-top: 8px; }
 .full-width { width: 100%; }
