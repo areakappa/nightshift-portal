@@ -211,10 +211,18 @@ export class TeamComponent implements OnInit {
             .filter(user => user.id && !existing.has(`${role.id}_${user.id}`))
             .map(user => new TeamContentCrud(this.service!.idteam, user.id, null, role.id, 1)));
 
-        const availability = this.roles.map(role => new ServiceAvailabilityRequestedCrud(
-            this.service!.id!, null, role.id, Math.max(0, role.concurrentRequired),
-            Math.max(0, role.suggestedTeamMembers ?? role.required), 1
-        ));
+        const availability = this.roles.map(role => {
+            const concurrentRequired = this.normalizePositiveInt(role.concurrentRequired, 1);
+            const suggestedTeamMembers = Math.max(
+                concurrentRequired,
+                this.normalizePositiveInt(role.suggestedTeamMembers ?? role.required, concurrentRequired),
+                role.users.length
+            );
+
+            return new ServiceAvailabilityRequestedCrud(
+                this.service!.id!, null, role.id, concurrentRequired, suggestedTeamMembers, 1
+            );
+        });
         this.isSaving = true;
         try {
             if (availability.length) await this.servicesService.addServicesAvailabilityRequested(availability);
@@ -244,24 +252,43 @@ export class TeamComponent implements OnInit {
 
     private async loadServiceTeam(preserveLocalRoles: boolean): Promise<void> {
         if (!this.selectedServiceId) return;
-        this.teamCoverage = await this.servicesService.getTeamServiceRoles(this.selectedServiceId);
+        const [teamCoverage, refreshedService] = await Promise.all([
+            this.servicesService.getTeamServiceRoles(this.selectedServiceId),
+            this.servicesService.getServicebyID(this.selectedServiceId)
+        ]);
+        this.teamCoverage = teamCoverage;
+        if (refreshedService) {
+            this.service = refreshedService;
+        }
         if (preserveLocalRoles) return;
 
         const roles = new Map<number, TeamRoleView>();
+        const availabilityByRole = new Map(
+            (this.service?.servicesAvailabilityRequested ?? [])
+                .filter(item => item.state > 0 && !!item.idserviceRole)
+                .map(item => [item.idserviceRole!, item])
+        );
+
         for (const coverage of this.teamCoverage?.rolesCoverage ?? []) {
             const serviceRole = coverage.serviceRole;
             if (!serviceRole?.id) continue;
+            const availability = availabilityByRole.get(serviceRole.id);
+            const concurrentRequired = this.normalizePositiveInt(
+                availability?.concurrentRequiredQuantity ?? serviceRole.employeeNumber,
+                1
+            );
+            const suggestedTeamMembers = Math.max(
+                concurrentRequired,
+                this.normalizePositiveInt(availability?.suggestedTeamQuantity, concurrentRequired)
+            );
             const role = roles.get(serviceRole.id) ?? {
                 id: serviceRole.id,
                 name: serviceRole.name ?? 'Ruolo',
-                required: 0,
-                concurrentRequired: 0,
+                required: suggestedTeamMembers,
+                concurrentRequired,
+                suggestedTeamMembers,
                 users: []
             };
-            if (!coverage.isExtra) {
-                role.concurrentRequired++;
-                role.required = Math.max(role.required, role.concurrentRequired);
-            }
             if (coverage.user?.id && !role.users.some(user => user.id === coverage.user!.id)) {
                 role.users.push(coverage.user);
             }
@@ -269,16 +296,26 @@ export class TeamComponent implements OnInit {
         }
         for (const serviceRole of this.service?.serviceRoles ?? []) {
             if (!roles.has(serviceRole.id)) {
+                const availability = availabilityByRole.get(serviceRole.id);
+                const concurrentRequired = this.normalizePositiveInt(
+                    availability?.concurrentRequiredQuantity ?? serviceRole.employeeNumber,
+                    1
+                );
+                const suggestedTeamMembers = Math.max(
+                    concurrentRequired,
+                    this.normalizePositiveInt(availability?.suggestedTeamQuantity, concurrentRequired)
+                );
                 roles.set(serviceRole.id, {
                     id: serviceRole.id,
                     name: serviceRole.name ?? 'Ruolo',
-                    required: serviceRole.employeeNumber ?? 0,
-                    concurrentRequired: serviceRole.employeeNumber ?? 0,
+                    required: suggestedTeamMembers,
+                    concurrentRequired,
+                    suggestedTeamMembers,
                     users: []
                 });
             }
         }
-        this.roles = [...roles.values()];
+        this.roles = [...roles.values()].map(role => this.normalizeRoleQuantities(role));
     }
 
     async refreshTeamSizeEstimate(): Promise<void> {
@@ -287,7 +324,10 @@ export class TeamComponent implements OnInit {
         try {
             const estimate = await this.servicesService.estimateTeamSize({
                 idservice: this.service.id,
-                roles: this.roles.map(role => ({ idserviceRole: role.id, concurrentRequired: Math.max(0, role.concurrentRequired) }))
+                roles: this.roles.map(role => ({
+                    idserviceRole: role.id,
+                    concurrentRequired: this.normalizePositiveInt(role.concurrentRequired, 1)
+                }))
             });
             this.teamSizeEstimate = estimate;
             const estimates = new Map((estimate?.roles ?? []).map(role => [role.idserviceRole, role]));
@@ -295,9 +335,17 @@ export class TeamComponent implements OnInit {
                 const suggestion = estimates.get(role.id);
                 return suggestion ? {
                     ...role,
-                    concurrentRequired: suggestion.concurrentRequired,
-                    required: suggestion.suggestedTeamMembers,
-                    suggestedTeamMembers: suggestion.suggestedTeamMembers,
+                    concurrentRequired: this.normalizePositiveInt(role.concurrentRequired, 1),
+                    required: Math.max(
+                        this.normalizePositiveInt(role.concurrentRequired, 1),
+                        this.normalizePositiveInt(suggestion.suggestedTeamMembers, role.required),
+                        role.users.length
+                    ),
+                    suggestedTeamMembers: Math.max(
+                        this.normalizePositiveInt(role.concurrentRequired, 1),
+                        this.normalizePositiveInt(suggestion.suggestedTeamMembers, role.required),
+                        role.users.length
+                    ),
                     weeklyRequiredHours: suggestion.weeklyRequiredHours,
                     aiReason: suggestion.reason
                 } : role;
@@ -308,5 +356,29 @@ export class TeamComponent implements OnInit {
             this.isEstimatingTeamSize = false;
             this.cdr.detectChanges();
         }
+    }
+
+    private normalizeRoleQuantities(role: TeamRoleView): TeamRoleView {
+        const concurrentRequired = this.normalizePositiveInt(role.concurrentRequired, 1);
+        const suggestedTeamMembers = Math.max(
+            concurrentRequired,
+            this.normalizePositiveInt(role.suggestedTeamMembers ?? role.required, concurrentRequired),
+            role.users.length
+        );
+
+        return {
+            ...role,
+            concurrentRequired,
+            required: suggestedTeamMembers,
+            suggestedTeamMembers
+        };
+    }
+
+    private normalizePositiveInt(value: number | null | undefined, fallback: number): number {
+        const parsed = Math.trunc(Number(value));
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+            return fallback;
+        }
+        return parsed;
     }
 }

@@ -126,7 +126,9 @@ export class TeamWizardComponent implements OnInit {
     }
 
     decrementRequired(role: TeamRoleSetup): void {
-        role.concurrentRequired = Math.max(0, role.concurrentRequired - 1);
+        role.concurrentRequired = Math.max(1, role.concurrentRequired - 1);
+        role.required = Math.max(role.concurrentRequired, role.required);
+        role.suggestedTeamMembers = Math.max(role.concurrentRequired, role.suggestedTeamMembers ?? role.required);
     }
 
     incrementSuggestedTeam(role: TeamRoleSetup): void {
@@ -217,7 +219,10 @@ export class TeamWizardComponent implements OnInit {
         try {
             const estimate = await this.servicesService.estimateTeamSize({
                 idservice: this.service.id,
-                roles: this.roles.map(role => ({ idserviceRole: role.id, concurrentRequired: role.concurrentRequired }))
+                roles: this.roles.map(role => ({
+                    idserviceRole: role.id,
+                    concurrentRequired: this.normalizePositiveInt(role.concurrentRequired, 1)
+                }))
             });
             this.teamSizeEstimate = estimate;
             const byRole = new Map((estimate?.roles ?? []).map(role => [role.idserviceRole, role]));
@@ -251,8 +256,16 @@ export class TeamWizardComponent implements OnInit {
         this.isSaving = true;
         try {
             const availability = this.roles.map(role => new ServiceAvailabilityRequestedCrud(
-                this.service!.id, null, role.id, Math.max(0, role.concurrentRequired),
-                Math.max(role.concurrentRequired, role.suggestedTeamMembers ?? role.required), 1
+                this.service!.id,
+                null,
+                role.id,
+                this.normalizePositiveInt(role.concurrentRequired, 1),
+                Math.max(
+                    this.normalizePositiveInt(role.concurrentRequired, 1),
+                    this.normalizePositiveInt(role.suggestedTeamMembers ?? role.required, role.concurrentRequired),
+                    this.getAssignedUsers(role.id).length
+                ),
+                1
             ));
             const existing = new Set((this.teamCoverage?.rolesCoverage ?? [])
                 .filter(item => item.serviceRole?.id && item.user?.id)
@@ -308,6 +321,10 @@ export class TeamWizardComponent implements OnInit {
         }));
         for (const role of this.roles) {
             if (!assignments.has(role.id)) assignments.set(role.id, []);
+            const assignedCount = assignments.get(role.id)?.length ?? 0;
+            role.concurrentRequired = this.normalizePositiveInt(role.concurrentRequired, 1);
+            role.required = Math.max(role.concurrentRequired, role.required, assignedCount);
+            role.suggestedTeamMembers = role.required;
         }
         this.assignments = assignments;
     }
@@ -327,8 +344,11 @@ export class TeamWizardComponent implements OnInit {
         for (const returnedRole of this.returnedRoles) {
             const role = this.roles.find(item => item.id === returnedRole.id);
             if (!role) continue;
-            role.concurrentRequired = returnedRole.concurrentRequired ?? role.concurrentRequired;
-            role.required = Math.max(role.concurrentRequired, returnedRole.suggestedTeamMembers ?? returnedRole.required);
+            role.concurrentRequired = this.normalizePositiveInt(returnedRole.concurrentRequired ?? role.concurrentRequired, 1);
+            role.required = Math.max(
+                role.concurrentRequired,
+                this.normalizePositiveInt(returnedRole.suggestedTeamMembers ?? returnedRole.required, role.required)
+            );
             role.suggestedTeamMembers = role.required;
             const current = this.assignments.get(role.id) ?? [];
             const returnedIds = (returnedRole.users ?? [])
@@ -344,7 +364,15 @@ export class TeamWizardComponent implements OnInit {
         employeeNumber: number | undefined
     ): number {
         const requirement = this.initialRoleRequirements.find(item => item.name === roleName);
-        return requirement?.required ?? coverageRequired ?? Math.max(1, employeeNumber ?? 1);
+        return this.normalizePositiveInt(requirement?.required ?? coverageRequired ?? employeeNumber, 1);
+    }
+
+    private normalizePositiveInt(value: number | null | undefined, fallback: number): number {
+        const parsed = Math.trunc(Number(value));
+        if (!Number.isFinite(parsed) || parsed <= 0) {
+            return fallback;
+        }
+        return parsed;
     }
 
     private parseState<T>(value: unknown): T | null {

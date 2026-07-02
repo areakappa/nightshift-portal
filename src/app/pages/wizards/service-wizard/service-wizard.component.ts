@@ -255,8 +255,8 @@ export class ServiceWizardComponent implements OnInit {
                 2,
                 0,
                 this.serviceTypeSelected === 'internal' ? 1 : 2,
-                this.anagraphicForm.value.name.trim(),
-                this.descriptionForm.value.serviceType.trim(),
+                this.truncateForDb(this.anagraphicForm.value.name.trim(), 50),
+                this.truncateForDb(this.descriptionForm.value.serviceType.trim(), 255),
                 this.toApiDate(this.anagraphicForm.value.startDate),
                 1
             );
@@ -271,13 +271,14 @@ export class ServiceWizardComponent implements OnInit {
                 this.mapCenter.lat,
                 this.mapCenter.lng
             );
+            demoInformations.Address.Address1 = this.truncateForDb(demoInformations.Address.Address1 ?? '', 256);
             demoInformations.Roles = this.getSelectedRoles()
                 .map(role => new ServiceRoleCrud(
-                    role.ruolo,
+                    this.truncateForDb(role.ruolo, 255),
                     role.mansione ?? '',
                     0,
                     1,
-                    1
+                    this.normalizeEmployeeNumber(role.employeeNumber)
                 ));
             demoInformations.ServiceShifts = this.buildServiceShifts(orgId, serviceCrud);
 
@@ -345,36 +346,50 @@ export class ServiceWizardComponent implements OnInit {
         const orgId = this.orgService.getOrganizationSelectedId();
         const startDate = this.anagraphicForm.value.startDate;
         const stopDate = this.anagraphicForm.value.endDate || startDate;
-        const shifts = this.getSelectedDays().map(day => new ServiceShiftCrud(
-            orgId,
-            this.createdService!.id,
-            !day.isRestDay && this.isMorningEnabled(day) ? day.startMorning : '',
-            !day.isRestDay && this.isMorningEnabled(day) ? day.stopMorning : '',
-            !day.isRestDay && this.isAfternoonEnabled(day) ? day.startAfternoon : '',
-            !day.isRestDay && this.isAfternoonEnabled(day) ? day.stopAfternoon : '',
-            day.index,
-            startDate,
-            stopDate,
-            1
-        ));
+        const shifts = this.getSelectedDays()
+            .filter(day => !day.isRestDay)
+            .map(day => {
+                const slots = this.getEnabledSlots(day);
+                const firstSlot = slots[0];
+                const secondSlot = slots[1];
+                return new ServiceShiftCrud(
+                    orgId,
+                    this.createdService!.id,
+                    firstSlot?.start ?? '',
+                    firstSlot?.stop ?? '',
+                    secondSlot?.start ?? '',
+                    secondSlot?.stop ?? '',
+                    day.index,
+                    this.toApiDate(startDate),
+                    this.toApiDate(stopDate),
+                    1
+                );
+            })
+            .filter(shift => !!shift.StartMorningDate && !!shift.StopMorningDate);
         if (shifts.length) await this.servicesService.postServiceShifts(shifts);
     }
 
     private buildServiceShifts(orgId: number, serviceCrud: ServiceCrud): ServiceShiftCrud[] {
         return this.getSelectedDays()
             .filter(day => !day.isRestDay)
-            .map(day => new ServiceShiftCrud(
-                orgId,
-                0,
-                this.isMorningEnabled(day) ? day.startMorning || '' : '',
-                this.isMorningEnabled(day) ? day.stopMorning || '' : '',
-                this.isAfternoonEnabled(day) ? day.startAfternoon || '' : '',
-                this.isAfternoonEnabled(day) ? day.stopAfternoon || '' : '',
-                day.index,
-                serviceCrud.StartValidityDate,
-                serviceCrud.StopValidityDate || '',
-                1
-            ));
+            .map(day => {
+                const slots = this.getEnabledSlots(day);
+                const firstSlot = slots[0];
+                const secondSlot = slots[1];
+                return new ServiceShiftCrud(
+                    orgId,
+                    0,
+                    firstSlot?.start ?? '',
+                    firstSlot?.stop ?? '',
+                    secondSlot?.start ?? '',
+                    secondSlot?.stop ?? '',
+                    day.index,
+                    serviceCrud.StartValidityDate,
+                    serviceCrud.StopValidityDate || '',
+                    1
+                );
+            })
+            .filter(shift => !!shift.StartMorningDate && !!shift.StopMorningDate);
     }
 
     private async findCreatedService(orgId: number, serviceName: string): Promise<ServiceDTO | null> {
@@ -765,6 +780,21 @@ export class ServiceWizardComponent implements OnInit {
 
     private normalizeEmployeeNumber(value: number | null | undefined): number {
         return Math.max(1, Math.trunc(Number(value) || 1));
+    }
+
+    private truncateForDb(value: string, maxLength: number): string {
+        return (value ?? '').trim().slice(0, maxLength);
+    }
+
+    private getEnabledSlots(day: WorkDay): Array<{ start: string; stop: string }> {
+        const slots: Array<{ start: string; stop: string }> = [];
+        if (this.isMorningEnabled(day) && day.startMorning && day.stopMorning) {
+            slots.push({ start: day.startMorning, stop: day.stopMorning });
+        }
+        if (this.isAfternoonEnabled(day) && day.startAfternoon && day.stopAfternoon) {
+            slots.push({ start: day.startAfternoon, stop: day.stopAfternoon });
+        }
+        return slots;
     }
 
     private parseJsonObject<T>(response: string): T {
