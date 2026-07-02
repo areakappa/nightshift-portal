@@ -165,10 +165,10 @@
             <div class="preview-times"><span *ngFor="let hour of previewHours">{{ hour | number:'2.0-0' }}:00</span></div>
             <div class="preview-day" *ngFor="let day of previewDays">
               <div class="preview-hour" *ngFor="let hour of previewHours"></div>
-              <section class="preview-shift-group" *ngFor="let group of day.shiftGroups" [style.top.px]="previewTop(group.shifts[0])" [style.height.px]="previewHeight(group.shifts[0])" [style.--preview-column]="group.column" [style.--preview-columns]="group.columns">
+              <section class="preview-shift-group" *ngFor="let group of day.shiftGroups" [class.compact]="previewHeight(group.shifts[0]) < 90" [style.top.px]="previewTop(group.shifts[0])" [style.height.px]="previewHeight(group.shifts[0])" [style.--preview-column]="group.column" [style.--preview-columns]="group.columns">
                 <div class="preview-group-header"><strong>{{ group.startDateTime | date:'HH:mm' }} – {{ group.endDateTime | date:'HH:mm' }}</strong><span>{{ group.shifts.length }} {{ group.shifts.length === 1 ? 'persona' : 'persone' }}</span></div>
                 <div class="preview-group-people">
-                  <button type="button" class="preview-person" *ngFor="let shift of group.shifts" [class.selected]="previewEditingShift === shift" (click)="editPreviewShift(shift)" aria-label="Modifica turno in bozza">
+                  <button type="button" class="preview-person" *ngFor="let shift of group.shifts" [class.selected]="previewEditingShift === shift" [title]="previewShiftTitle(shift)" (click)="editPreviewShift(shift)" aria-label="Modifica turno in bozza">
                     <span>{{ previewPersonName(shift) }}</span><small>{{ shift.serviceRole || shift.roleName || shift.role || 'Operatore' }}</small>
                     <mat-icon>edit</mat-icon>
                   </button>
@@ -177,7 +177,7 @@
                 <strong>{{ shift.startDateTime | date:'HH:mm' }} – {{ shift.endDateTime | date:'HH:mm' }}</strong><span>{{ shift.nameEmployee || shift.employeeName || 'Non assegnato' }}</span><span>{{ shift.serviceRole || shift.roleName || shift.role }}</span>
                 -->
               </section>
-              <button type="button" class="preview-event gap" *ngFor="let gap of day.gaps" (click)="openCoverageGap(gap)" [style.top.px]="previewTop(gap)" [style.height.px]="previewHeight(gap)" [style.--preview-column]="gap.column" [style.--preview-columns]="gap.columns">
+              <button type="button" class="preview-event gap" *ngFor="let gap of day.gaps" [class.compact]="previewHeight(gap) < 90" [title]="gap.startTime + ' - ' + gap.endTime + ' · Scopertura · ' + gap.role + ' · ' + gap.reason" (click)="openCoverageGap(gap)" [style.top.px]="previewTop(gap)" [style.height.px]="previewHeight(gap)" [style.--preview-column]="gap.column" [style.--preview-columns]="gap.columns">
                 <strong>{{ gap.startTime }} – {{ gap.endTime }}</strong><span>Scopertura · {{ gap.role }}</span><span>{{ gap.reason }}</span>
               </button>
               <div class="preview-event overcoverage" *ngFor="let item of day.overcoverages" [style.top.px]="previewTop(item)" [style.height.px]="previewHeight(item)" [style.--preview-column]="item.column" [style.--preview-columns]="item.columns">
@@ -197,10 +197,16 @@
           <button mat-stroked-button color="warn" (click)="removePreviewShift(shift)"><mat-icon>delete_outline</mat-icon> Elimina turno</button>
           <button mat-raised-button color="primary" (click)="savePreviewShiftEdit()">Salva modifica</button>
         </div>
-        <div class="coverage-gap-modal-backdrop" *ngIf="previewGap as gap" (click)="$event.target === $event.currentTarget && closePreviewEditor()">
-          <h3>Copri scopertura: {{ gap.role }}</h3><p>{{ gap.startTime }} – {{ gap.endTime }} · {{ gap.reason }}</p>
+        <div class="coverage-gap-modal-backdrop gap-edit-modal" *ngIf="previewGap as gap" (click)="$event.target === $event.currentTarget && closePreviewEditor()">
+          <button mat-icon-button class="modal-close" (click)="closePreviewEditor()" aria-label="Chiudi scopertura"><mat-icon>close</mat-icon></button>
+          <h3>Scopertura: {{ gap.role }}</h3><p>{{ gap.startTime }} – {{ gap.endTime }} · {{ gap.reason }}</p>
+          <div class="preview-edit-grid">
+            <label>Inizio<input type="datetime-local" [(ngModel)]="previewEditStart"></label>
+            <label>Fine<input type="datetime-local" [(ngModel)]="previewEditEnd"></label>
+          </div>
+          <button mat-stroked-button class="gap-time-save" type="button" (click)="saveCoverageGapTime()">Salva orario</button>
           <mat-form-field appearance="outline"><mat-label>Membro del team</mat-label><mat-select [(ngModel)]="selectedPreviewGapUserId" [disabled]="isLoadingPreviewGapUsers"><mat-option *ngFor="let user of previewGapUsers" [value]="user.id" [disabled]="user.busy">{{ user.name }}{{ user.busy ? ' · turno sovrapposto' : '' }}</mat-option></mat-select></mat-form-field>
-          <button mat-raised-button color="primary" (click)="assignCoverageGap()" [disabled]="!selectedPreviewGapUserId || isLoadingPreviewGapUsers">Assegna turno</button><button mat-button (click)="closePreviewEditor()">Annulla</button>
+          <button mat-raised-button color="primary" class="gap-assign" (click)="assignCoverageGap()" [disabled]="!selectedPreviewGapUserId || isLoadingPreviewGapUsers">Assegna turno</button><button mat-button class="gap-cancel" (click)="closePreviewEditor()">Annulla</button>
         </div>
         <div class="actions-row">
           <button mat-raised-button color="primary" (click)="confirmGeneratedPreview()" [disabled]="isSavingPreview">Conferma turni</button>

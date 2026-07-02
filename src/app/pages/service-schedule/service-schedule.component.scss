@@ -82,6 +82,8 @@ button mat-spinner { display: inline-block; margin-right: 8px; }
   line-height: 1.25;
 }
 .preview-shift-group:hover { z-index: 4; box-shadow: 0 10px 26px rgba(0,0,0,.22); }
+.preview-shift-group.compact { padding: 5px 7px; }
+.preview-shift-group.compact .preview-group-header span { display: none; }
 .preview-group-header { display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px; min-width: 0; }
 .preview-group-header strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; line-height: 1.1; }
 .preview-group-header span {
@@ -181,13 +183,8 @@ button.preview-event { cursor: pointer; }
   font-size: 11px;
   font-weight: 900;
 }
-.preview-event.gap span:last-of-type {
-  display: -webkit-box;
-  color: #fef3c7;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;
-  white-space: normal;
-}
+.preview-event.gap.compact { gap: 2px; padding: 4px 6px; }
+.preview-event.gap.compact span:last-of-type { display: none; }
 .preview-event.gap::after {
   content: "Assegna membro";
   margin-top: auto;
@@ -232,8 +229,6 @@ button.preview-event { cursor: pointer; }
   background: rgba(245,158,11,.12);
 }
 .coverage-gap-modal-backdrop mat-form-field { grid-column: 1 / -1; width: 100%; }
-.coverage-gap-modal-backdrop > button:first-of-type { grid-column: 2; grid-row: 4; }
-.coverage-gap-modal-backdrop > button:last-of-type { grid-column: 1; grid-row: 4; justify-self: start; }
 
 @media (max-width: 760px) {
   .form-grid, .report-stats, .preview-edit-grid { grid-template-columns: 1fr; }

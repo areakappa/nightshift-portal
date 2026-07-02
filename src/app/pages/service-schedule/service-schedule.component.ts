@@ -431,6 +431,10 @@ export class ServiceScheduleComponent implements OnInit {
     }
 
     previewPersonName(shift: any): string { return shift.nameEmployee || shift.employeeName || 'Non assegnato'; }
+    previewShiftTitle(shift: any): string {
+        const role = shift.serviceRole || shift.roleName || shift.role || 'Operatore';
+        return `${this.formatDisplayTime(shift.startDateTime)} - ${this.formatDisplayTime(shift.endDateTime)} · ${this.previewPersonName(shift)} · ${role}`;
+    }
 
     previewTop(value: { startDateTime?: string } | CoverageGap | Overcoverage): number {
         const date = 'startDateTime' in value ? new Date(value.startDateTime ?? '') : this.gapStart(value as CoverageGap | Overcoverage);
@@ -474,6 +478,8 @@ export class ServiceScheduleComponent implements OnInit {
     async openCoverageGap(gap: CoverageGap): Promise<void> {
         if (!this.service?.id) return;
         this.previewEditingShift = null; this.previewGap = gap; this.previewGapUsers = []; this.selectedPreviewGapUserId = null; this.isLoadingPreviewGapUsers = true;
+        this.previewEditStart = this.toDateTimeLocal(this.toLocalDateTimePayload(this.gapStart(gap)));
+        this.previewEditEnd = this.toDateTimeLocal(this.toLocalDateTimePayload(this.gapEnd(gap)));
         try {
             const users = await this.organizationService.getUsersbyService(this.service.id);
             const start = this.gapStart(gap), end = this.gapEnd(gap);
@@ -487,6 +493,29 @@ export class ServiceScheduleComponent implements OnInit {
             }
         } catch { this.showMessage('Impossibile caricare i membri del team.'); }
         finally { this.isLoadingPreviewGapUsers = false; this.cdr.detectChanges(); }
+    }
+
+    saveCoverageGapTime(): void {
+        const gap = this.previewGap;
+        if (!gap) return;
+        const start = this.parseDateTimeLocal(this.previewEditStart);
+        const end = this.parseDateTimeLocal(this.previewEditEnd);
+        if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || start >= end) {
+            this.showMessage('Lâ€™orario di inizio deve precedere quello di fine.');
+            return;
+        }
+        const updated: CoverageGap = {
+            ...gap,
+            date: this.toLocalDateTimePayload(start).slice(0, 10),
+            startTime: `${String(start.getHours()).padStart(2, '0')}:${String(start.getMinutes()).padStart(2, '0')}`,
+            endTime: `${String(end.getHours()).padStart(2, '0')}:${String(end.getMinutes()).padStart(2, '0')}`
+        };
+        this.generationCoverageGaps = this.generationCoverageGaps.map(item =>
+            this.isSameCoverageGap(item, gap) ? updated : item
+        );
+        this.previewGap = updated;
+        this.showMessage('Orario scopertura aggiornato.');
+        this.cdr.detectChanges();
     }
 
     assignCoverageGap(): void {
@@ -510,7 +539,14 @@ export class ServiceScheduleComponent implements OnInit {
     private extractOvercoverages(response: any): Overcoverage[] { return this.normalizeIssues(response?.overcoverages ?? response?.Overcoverages ?? response?.data?.overcoverages) as Overcoverage[]; }
     private normalizeIssues(value: any): any[] { return Array.isArray(value) ? value.map(item => ({ date: item.date ?? item.Date ?? '', role: item.role ?? item.roleName ?? '', startTime: item.startTime ?? item.StartTime ?? '', endTime: item.endTime ?? item.EndTime ?? '', reason: item.reason ?? item.message ?? '', extraEmployees: Number(item.extraEmployees ?? item.ExtraEmployees ?? 1) })) : []; }
     private gapStart(item: CoverageGap | Overcoverage): Date { return this.combineGapDateAndTime(item.date, item.startTime || '00:00'); }
-    private gapEnd(item: CoverageGap | Overcoverage): Date { return this.combineGapDateAndTime(item.date, item.endTime || '00:30'); }
+    private gapEnd(item: CoverageGap | Overcoverage): Date {
+        const start = this.gapStart(item);
+        const end = this.combineGapDateAndTime(item.date, item.endTime || '00:30');
+        if (!Number.isNaN(start.getTime()) && !Number.isNaN(end.getTime()) && end <= start) {
+            end.setDate(end.getDate() + 1);
+        }
+        return end;
+    }
     private isSameCoverageGap(left: CoverageGap, right: CoverageGap): boolean {
         return left.date === right.date &&
             left.startTime === right.startTime &&
