@@ -31,6 +31,7 @@ import { DemoService } from '../../../services/demo.service';
 import { DemoInformations } from '../../../models/generic/DemoInformations';
 import { ClientCrud } from '../../../models/crud/ClientCrud';
 import { AddressCrud } from '../../../models/crud/AddressCrud';
+import { DemoLimitService } from '../../../services/demo-limit.service';
 
 type ServiceFor = 'internal' | 'external';
 
@@ -108,6 +109,7 @@ export class ServiceWizardComponent implements OnInit {
         private orgService: OrganizationService,
         private openAiService: OpenAiService,
         private demoService: DemoService,
+        private demoLimitService: DemoLimitService,
         private router: Router,
         private snackBar: MatSnackBar,
         private cdr: ChangeDetectorRef
@@ -133,6 +135,7 @@ export class ServiceWizardComponent implements OnInit {
 
     ngOnInit(): void {
         void this.loadGoogleMaps();
+        void this.enforceServiceLimit();
     }
 
     async loadOrganization(): Promise<void> {
@@ -230,6 +233,11 @@ export class ServiceWizardComponent implements OnInit {
         this.isSaving = true;
         try {
             const orgId = this.orgService.getOrganizationSelectedId();
+            if (await this.isServiceLimitReached(orgId)) {
+                this.showServiceLimitMessage();
+                return;
+            }
+
             await this.geocodeAddress();
             const serviceCrud = new ServiceCrud(
                 orgId,
@@ -278,6 +286,32 @@ export class ServiceWizardComponent implements OnInit {
             this.isSaving = false;
             this.cdr.detectChanges();
         }
+    }
+
+    private async enforceServiceLimit(): Promise<void> {
+        try {
+            const orgId = this.orgService.getOrganizationSelectedId();
+            if (!orgId || !(await this.isServiceLimitReached(orgId))) {
+                return;
+            }
+
+            this.showServiceLimitMessage();
+            await this.router.navigateByUrl('/services', { replaceUrl: true });
+        } catch (error) {
+            console.warn('enforceServiceLimit() ERROR:: ', error);
+        }
+    }
+
+    private async isServiceLimitReached(orgId: number): Promise<boolean> {
+        return await this.demoLimitService.isDemoServiceLimitReached({ orgId });
+    }
+
+    private showServiceLimitMessage(): void {
+        this.snackBar.open(
+            'Limite piano raggiunto: non puoi creare altri servizi con il piano attuale.',
+            'Chiudi',
+            { duration: 5000 }
+        );
     }
 
     private async saveRoles(): Promise<void> {

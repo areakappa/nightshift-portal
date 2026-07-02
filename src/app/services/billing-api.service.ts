@@ -3,6 +3,7 @@ import { Injectable } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { BillingEventDto } from '../models/dto/BillingEventDto';
+import { BillingPlanDto } from '../models/dto/BillingPlanDto';
 import { BillingSubscriptionDto } from '../models/dto/BillingSubscriptionDto';
 import { Utility } from '../models/utility';
 
@@ -27,6 +28,15 @@ export class BillingApiService {
         return await firstValueFrom(
             this.http.get<BillingEventDto[]>(
                 `${this.billingUrl}/GetMyEvents?take=${take}`,
+                { headers: Utility.getAuthHeader() }
+            )
+        );
+    }
+
+    public async getBillingPlans(): Promise<BillingPlanDto[]> {
+        return await firstValueFrom(
+            this.http.get<BillingPlanDto[]>(
+                `${this.billingUrl}/GetBillingPlans`,
                 { headers: Utility.getAuthHeader() }
             )
         );

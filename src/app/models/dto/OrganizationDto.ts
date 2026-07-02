@@ -10,6 +10,7 @@ export interface OrganizationDto {
     ccnlcontractDescription: string | null;
     imagePath: string | null;
     workSector: string | null;
+    idbillingPlan?: number | null;
     rules: OrganizationRuleDto[];
     prompt: string | null;
     state: number;
