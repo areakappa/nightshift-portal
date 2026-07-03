@@ -78,9 +78,9 @@
 
           <div class="day-editor" *ngIf="day.enabled && day.expanded">
             <div class="range-row" *ngFor="let range of day.ranges; let index = index">
-              <input type="time" [value]="fmtTime(range.start)" (change)="updateTime(day, index, 'start', $any($event.target).value)">
+              <input type="time" min="00:00" max="23:58" [value]="fmtTime(range.start)" (change)="updateTime(day, index, 'start', $any($event.target).value)">
               <span>–</span>
-              <input type="time" [value]="fmtTime(range.end)" (change)="updateTime(day, index, 'end', $any($event.target).value)">
+              <input type="time" min="00:01" max="23:59" [value]="fmtTime(range.end)" (change)="updateTime(day, index, 'end', $any($event.target).value)">
               <button mat-icon-button color="warn" (click)="removeRange(day, index)"><mat-icon>delete_outline</mat-icon></button>
             </div>
             <button mat-stroked-button (click)="addRange(day)" [disabled]="day.ranges.length >= 2">

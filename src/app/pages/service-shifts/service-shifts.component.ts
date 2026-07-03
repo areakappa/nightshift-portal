@@ -61,6 +61,8 @@ interface ContractPreset {
     styleUrls: ['./service-shifts.component.scss']
 })
 export class ServiceShiftsComponent implements OnInit {
+    private readonly maxEndMinutes = (24 * 60) - 1;
+
     service: ServiceDTO | null = null;
     contractHours = 40;
     selectedPresetId = 'p_5x8';
@@ -183,7 +185,11 @@ export class ServiceShiftsComponent implements OnInit {
 
     updateTime(day: DayModel, index: number, field: 'start' | 'end', value: string): void {
         const minutes = this.parseTime(value);
-        if (minutes !== null) day.ranges[index][field] = minutes;
+        if (minutes !== null) {
+            day.ranges[index][field] = field === 'end'
+                ? this.normalizeEndMinutes(minutes)
+                : minutes;
+        }
         this.revalidateAll();
     }
 
@@ -287,7 +293,8 @@ export class ServiceShiftsComponent implements OnInit {
 
     private pushRange(day: DayModel, startValue?: string | null, endValue?: string | null): void {
         const start = this.parseTime(startValue);
-        const end = this.parseTime(endValue);
+        const parsedEnd = this.parseTime(endValue);
+        const end = parsedEnd !== null ? this.normalizeEndMinutes(parsedEnd) : null;
         if (start !== null && end !== null && end > start) day.ranges.push({ start, end });
     }
 
@@ -299,10 +306,11 @@ export class ServiceShiftsComponent implements OnInit {
                 continue;
             }
             if (day.ranges.some(range => range.end <= range.start)) {
-                this.dayErrors[day.key] = 'L’orario finale deve essere successivo a quello iniziale.';
+                this.dayErrors[day.key] = "L'orario finale deve essere maggiore dell'orario iniziale.";
                 continue;
             }
-            const sorted = [...day.ranges].sort((left, right) => left.start - right.start);
+            const sorted = day.ranges
+                .sort((left, right) => left.start - right.start);
             if (sorted.some((range, index) => index > 0 && range.start < sorted[index - 1].end)) {
                 this.dayErrors[day.key] = 'Le fasce orarie non possono sovrapporsi.';
             }
@@ -345,6 +353,11 @@ export class ServiceShiftsComponent implements OnInit {
 
     private cloneRanges(ranges: TimeRange[]): TimeRange[] {
         return ranges.map(range => ({ ...range }));
+    }
+
+    private normalizeEndMinutes(minutes: number): number {
+        if (minutes <= 0) return this.maxEndMinutes;
+        return Math.min(minutes, this.maxEndMinutes);
     }
 
     private hm(hours: number, minutes: number): number {
