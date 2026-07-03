@@ -59,9 +59,9 @@ button mat-spinner { display: inline-block; margin-right: 8px; }
 .preview-corner, .preview-day-head { position: sticky; top: 0; z-index: 3; border-bottom: 1px solid var(--ns-border); background: var(--ns-surface); }
 .preview-day-head { display: grid; place-items: center; border-left: 1px solid var(--ns-border); font-size: 12px; font-weight: 800; text-transform: capitalize; }
 .preview-times { grid-row: 2; border-right: 1px solid var(--ns-border); }
-.preview-times span { display: block; height: 60px; padding-right: 7px; transform: translateY(-7px); color: var(--ns-text-secondary); font-size: 10px; text-align: right; }
+.preview-times span { display: block; height: 60px; padding-right: 7px; color: var(--ns-text-secondary); font-size: 10px; line-height: 1; text-align: right; }
 .preview-day { position: relative; grid-row: 2; border-right: 1px solid var(--ns-border); }
-.preview-hour { height: 59px; border-bottom: 1px solid var(--ns-border); }
+.preview-hour { height: 60px; box-sizing: border-box; border-bottom: 1px solid var(--ns-border); }
 .preview-shift-group {
   position: absolute;
   left: calc(6px + var(--preview-column, 0) * (100% - 12px) / var(--preview-columns, 1));

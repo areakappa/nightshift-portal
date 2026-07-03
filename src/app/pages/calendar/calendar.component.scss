@@ -119,10 +119,10 @@
 .timeline-day-header { display: grid; place-items: center; border-left: 1px solid var(--ns-border); color: var(--ns-text-secondary); font-size: 13px; font-weight: 800; text-transform: capitalize; }
 .timeline-day-header.today { color: var(--ns-primary-light); background: rgba(99,102,241,.1); }
 .timeline-hours { grid-row: 2; border-right: 1px solid var(--ns-border); background: var(--ns-surface); }
-.timeline-hours span { display: block; height: 60px; padding-right: 8px; transform: translateY(-7px); color: var(--ns-text-secondary); font-size: 11px; text-align: right; }
+.timeline-hours span { display: block; height: 60px; padding-right: 8px; color: var(--ns-text-secondary); font-size: 11px; line-height: 1; text-align: right; }
 .timeline-day { position: relative; grid-row: 2; border-right: 1px solid var(--ns-border); }
 .timeline-day.today { background: rgba(99,102,241,.035); }
-.timeline-hour { height: 59px; border-bottom: 1px solid var(--ns-border); }
+.timeline-hour { height: 60px; box-sizing: border-box; border-bottom: 1px solid var(--ns-border); }
 .timeline-shift {
   position: absolute;
   left: calc(8px + var(--overlap-column, 0) * (100% - 16px) / var(--overlap-columns, 1));
