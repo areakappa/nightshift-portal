@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './guards/auth.guard';
+import { pendingShiftPreviewGuard } from './guards/pending-shift-preview.guard';
 
 export const routes: Routes = [
     { path: '', redirectTo: 'initial', pathMatch: 'full' },
@@ -33,7 +34,11 @@ export const routes: Routes = [
             { path: 'service-detail', loadComponent: () => import('./pages/service-detail/service-detail.component').then(m => m.ServiceDetailComponent) },
             { path: 'service-roles', loadComponent: () => import('./pages/service-roles/service-roles.component').then(m => m.ServiceRolesComponent) },
             { path: 'service-shifts', loadComponent: () => import('./pages/service-shifts/service-shifts.component').then(m => m.ServiceShiftsComponent) },
-            { path: 'service-schedule', loadComponent: () => import('./pages/service-schedule/service-schedule.component').then(m => m.ServiceScheduleComponent) },
+            {
+                path: 'service-schedule',
+                canDeactivate: [pendingShiftPreviewGuard],
+                loadComponent: () => import('./pages/service-schedule/service-schedule.component').then(m => m.ServiceScheduleComponent)
+            },
             { path: 'service-maps', loadComponent: () => import('./pages/service-maps/service-maps.component').then(m => m.ServiceMapsComponent) },
             { path: 'team', loadComponent: () => import('./pages/team/team.component').then(m => m.TeamComponent) },
             { path: 'user-wizard', loadComponent: () => import('./pages/user-wizard/user-wizard.component').then(m => m.UserWizardComponent) },

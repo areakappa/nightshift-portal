@@ -1,4 +1,4 @@
-import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
+import { ChangeDetectorRef, Component, HostListener, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -155,6 +155,20 @@ export class ServiceScheduleComponent implements OnInit {
         this.applyUnavailabilityPreviewContext();
         await this.loadShiftAutomation();
         await this.startUnavailabilityRegenerationPreviewIfNeeded();
+    }
+
+    @HostListener('window:beforeunload', ['$event'])
+    warnBeforeBrowserLeave(event: BeforeUnloadEvent): void {
+        if (!this.hasGeneratedPreviewToLose()) return;
+
+        event.preventDefault();
+        event.returnValue = '';
+    }
+
+    canLeaveWithGeneratedPreview(): boolean {
+        if (!this.hasGeneratedPreviewToLose()) return true;
+
+        return window.confirm('Stai per abbandonare la pagina e perderai tutti i turni. Continuare?');
     }
 
     get summaryText(): string {
@@ -600,6 +614,12 @@ export class ServiceScheduleComponent implements OnInit {
         if (report.errors > 0) return 'error';
         if (report.inconsistencies > 0) return 'warning';
         return 'success';
+    }
+
+    private hasGeneratedPreviewToLose(): boolean {
+        return this.generatedShiftsPreview.length > 0 ||
+            this.generationCoverageGaps.length > 0 ||
+            this.generationOvercoverages.length > 0;
     }
 
     goBack(): void {
