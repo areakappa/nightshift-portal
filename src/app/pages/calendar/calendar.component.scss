@@ -112,7 +112,13 @@
   mat-icon { font-size: 56px; width: 56px; height: 56px; opacity: 0.3; display: block; margin: 0 auto 12px; }
 }
 
-.timeline-scroll { overflow: auto; border: 1px solid var(--ns-border); border-radius: 12px; background: var(--ns-surface); }
+.timeline-scroll {
+  max-height: min(76vh, 860px);
+  overflow: auto;
+  border: 1px solid var(--ns-border);
+  border-radius: 12px;
+  background: var(--ns-surface);
+}
 .timeline-grid { --day-count: 7; display: grid; grid-template-columns: 64px repeat(var(--day-count), minmax(150px, 1fr)); grid-template-rows: 48px 1440px; min-width: calc(64px + var(--day-count) * 150px); }
 .timeline-corner, .timeline-day-header { position: sticky; top: 0; z-index: 3; border-bottom: 1px solid var(--ns-border); background: var(--ns-surface); }
 .timeline-corner { grid-column: 1; }

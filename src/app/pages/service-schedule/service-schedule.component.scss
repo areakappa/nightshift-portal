@@ -54,7 +54,7 @@ button mat-spinner { display: inline-block; margin-right: 8px; }
 
 .preview-summary { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 12px; color: var(--ns-text-secondary); }
 .preview-summary strong { color: var(--ns-text); }
-.preview-scroll { overflow: auto; border: 1px solid var(--ns-border); border-radius: 10px; }
+.preview-scroll { max-height: min(76vh, 860px); overflow: auto; border: 1px solid var(--ns-border); border-radius: 10px; }
 .preview-grid { --preview-days: 1; display: grid; grid-template-columns: 64px repeat(var(--preview-days), minmax(280px, 1fr)); grid-template-rows: 44px 1440px; min-width: calc(64px + var(--preview-days) * 280px); background: var(--ns-surface); }
 .preview-corner, .preview-day-head { position: sticky; top: 0; z-index: 3; border-bottom: 1px solid var(--ns-border); background: var(--ns-surface); }
 .preview-day-head { display: grid; place-items: center; border-left: 1px solid var(--ns-border); font-size: 12px; font-weight: 800; text-transform: capitalize; }
