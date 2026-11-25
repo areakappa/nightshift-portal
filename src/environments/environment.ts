@@ -2,8 +2,7 @@ import { Settings } from '../app/models/settings';
 
 export const environment: Settings = {
     production: false,
-    api: 'https://nightshift.areakappa.it',
-    //api: 'http://localhost:5100',
+    api: 'http://localhost:5100',
     name: 'NightShift Portal (dev)',
     companyLogo: 'assets/img/logo_aismartshifts.png',
     googleMapsApiKey: 'AIzaSyD-BsqVxicVr80WivaTkxjMwvVuE3a8Ck8',

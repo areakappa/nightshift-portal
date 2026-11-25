@@ -304,6 +304,11 @@ export class TeamWizardComponent implements OnInit {
     private initializeRoles(): void {
         const requiredByRole = new Map<number, number>();
         const assignments = new Map<number, number[]>();
+        const availabilityByRole = new Map(
+            (this.service?.servicesAvailabilityRequested ?? [])
+                .filter(item => item.state > 0 && !!item.idserviceRole)
+                .map(item => [item.idserviceRole!, item])
+        );
         for (const coverage of this.teamCoverage?.rolesCoverage ?? []) {
             const roleId = coverage.serviceRole?.id;
             if (!roleId) continue;
@@ -315,9 +320,21 @@ export class TeamWizardComponent implements OnInit {
         this.roles = (this.service?.serviceRoles ?? []).map(role => ({
             id: role.id,
             name: role.name ?? 'Ruolo',
-            concurrentRequired: this.getInitialRequired(role.name, requiredByRole.get(role.id), role.employeeNumber),
-            required: this.getInitialRequired(role.name, requiredByRole.get(role.id), role.employeeNumber),
-            suggestedTeamMembers: this.getInitialRequired(role.name, requiredByRole.get(role.id), role.employeeNumber)
+            concurrentRequired: this.getInitialRequired(
+                role.name,
+                availabilityByRole.get(role.id)?.concurrentRequiredQuantity ?? requiredByRole.get(role.id),
+                role.employeeNumber
+            ),
+            required: this.getInitialRequired(
+                role.name,
+                availabilityByRole.get(role.id)?.suggestedTeamQuantity ?? requiredByRole.get(role.id),
+                role.employeeNumber
+            ),
+            suggestedTeamMembers: this.getInitialRequired(
+                role.name,
+                availabilityByRole.get(role.id)?.suggestedTeamQuantity ?? requiredByRole.get(role.id),
+                role.employeeNumber
+            )
         }));
         for (const role of this.roles) {
             if (!assignments.has(role.id)) assignments.set(role.id, []);

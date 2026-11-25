@@ -42,6 +42,7 @@
         </div>
       </div>
       <div class="step-actions">
+        <button mat-button type="button" (click)="cancel()">Annulla</button>
         <button mat-raised-button color="primary" class="primary-action" (click)="continueFromRoles()" [disabled]="roles.length === 0 || isEstimatingTeamSize">
           <mat-spinner *ngIf="isEstimatingTeamSize" diameter="18"></mat-spinner>
           <span *ngIf="!isEstimatingTeamSize">Avanti</span>
@@ -105,8 +106,11 @@
         </div>
       </div>
       <div class="step-actions split-actions">
-        <button mat-button matStepperPrevious>Indietro</button>
+        <button mat-button type="button" (click)="cancel()">Annulla</button>
+        <div class="step-navigation">
+          <button mat-button matStepperPrevious>Indietro</button>
         <button mat-raised-button color="primary" class="primary-action" matStepperNext>Review</button>
+        </div>
       </div>
     </mat-step>
 
@@ -132,11 +136,14 @@
         </div>
       </div>
       <div class="step-actions split-actions">
-        <button mat-button matStepperPrevious>Indietro</button>
+        <button mat-button type="button" (click)="cancel()">Annulla</button>
+        <div class="step-navigation">
+          <button mat-button matStepperPrevious>Indietro</button>
         <button mat-raised-button color="primary" class="primary-action" (click)="save()" [disabled]="isSaving">
           <mat-spinner *ngIf="isSaving" diameter="18"></mat-spinner>
           <span *ngIf="!isSaving">Conferma e salva</span>
         </button>
+        </div>
       </div>
     </mat-step>
   </mat-stepper>

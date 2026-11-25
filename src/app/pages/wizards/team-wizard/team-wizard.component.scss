@@ -153,9 +153,17 @@
 
 .step-actions {
   display: flex;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: space-between;
   gap: 10px;
   padding-top: 22px;
+}
+
+.step-navigation {
+  justify-content: flex-end;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .primary-action {
@@ -501,8 +509,10 @@
     border-radius: 22px;
   }
 
-  .step-actions {
+  .step-actions,
+  .step-navigation {
     flex-direction: column-reverse;
+    align-items: stretch;
   }
 
   .role-definition,
